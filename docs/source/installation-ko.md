@@ -62,7 +62,7 @@ which python
 
 ## 로컬 설치
 
-### DX-Compiler 환경 설치 (dx_com)
+### DX-Compiler 환경 설치 (dx_com, dx_tron)
 
 `DX-Compiler` 환경은 사전 빌드된 바이너리를 제공하며, 소스 코드는 포함되지 않습니다. 각 모듈은 원격 서버에서 다운로드하여 설치할 수 있습니다.
 
@@ -72,16 +72,18 @@ which python
 
 위 명령어를 실행하면 DX-Compiler 모듈을 다운로드 및 설치하기 위해 DEEPX Developers' Portal([https://developer.deepx.ai](https://developer.deepx.ai)) 계정 인증이 필요합니다.
 
-Developer Portal 계정이 필요하신 경우, 아래 정보를 포함하여 [sales@deepx.ai](mailto:sales@deepx.ai)로 이메일을 보내주세요.
-
-- 회사/기관명
-- 직책
+계속하기 전에 개발자 포털을 방문하여 계정을 생성하세요.
 
 스크립트는 아래의 우선순위에 따라 인증 정보를 획득합니다:
 
 1.  **명령어 실행 시 직접 지정 (1순위):**
     ```bash
     ./dx-compiler/install.sh --username=<user> --password=<pass>
+    ```
+    
+    **참고:** 비밀번호에 `!` 또는 `$`와 같은 특수문자가 포함되어 있는 경우, 작은따옴표를 사용하세요:
+    ```bash
+    ./dx-compiler/install.sh --username=<user> --password='pass!word'
     ```
 2.  **환경 변수 사용 (2순위):**
 
@@ -102,16 +104,68 @@ Developer Portal 계정이 필요하신 경우, 아래 정보를 포함하여 [s
 3.  **프롬프트 입력 (3순위):**
     위 두 가지 방법이 사용되지 않은 경우, 스크립트 실행 중 터미널 프롬프트에서 계정 정보를 직접 입력하라는 메시지가 표시됩니다.
 
+#### Python 버전 호환성
+
+`dx_com`의 `Wheel 모드(기본값)** 설치는 Python을 필요로 합니다.
+
+설치 스크립트는 Python 버전 호환성을 자동으로 확인합니다. 지원되는 Python 버전은 `3.8`, `3.9`, `3.10`, `3.11`, `3.12`입니다.
+
+현재 시스템의 Python 버전이 호환되지 않는 경우, 스크립트가 이를 감지하고 사용자에게 호환 가능한 Python 버전을 설치할 것인지 묻습니다. `--python_version` 옵션을 사용하여 특정 Python 버전을 지정할 수도 있습니다:
+
+```bash
+./dx-compiler/install.sh --python_version=3.11
+```
+
+#### 설치 모드
+
+기본적으로 설치 스크립트는 **Wheel 모드**로 실행됩니다. 이 모드에서는 Python wheel 패키지를 다운로드하고 가상 환경에 설치합니다.
+
+레거시 실행 파일을 사용하려면 `--legacy` 옵션을 추가하세요:
+
+```bash
+./dx-compiler/install.sh --legacy
+```
+
+**Wheel 모드 (기본값):**
+- Python wheel 패키지를 다운로드하고 설치
+- 가상 환경 활성화 후 `dxcom` 명령어 사용 가능
+- Python 버전별로 적절한 wheel 패키지 자동 선택
+
+**Legacy 모드:**
+- 실행 파일 다운로드 및 압축 해제
+- 직접 실행 가능
+
+> ⚠️ **주의:** Legacy 모드는 향후 버전에서 제거될 예정입니다. 새로운 프로젝트에서는 Wheel 모드(기본값) 사용을 권장합니다.
+
 성공적으로 설치되면:
 
-1.  `dx-com` 모듈의 아카이브 파일(`.tar.gz`)이 아래 경로에 다운로드 및 저장됩니다.
+1.  `dx_com` 모듈이 다운로드 및 설치됩니다:
+    - **Wheel 모드:** Python wheel 패키지가 가상 환경에 설치됩니다
+    - **Legacy 모드:** 실행 파일이 `./workspace/release/dx_com/dx_com_M1_v[VERSION]`에 압축 해제됩니다
 
-    - `./workspace/release/dx_com/download/dx_com_M1_v[VERSION].tar.gz`
+2.  심볼릭 링크가 `./dx-compiler/dx_com`에 생성됩니다.
 
-2.  다운로드된 모듈이 아래 경로에 압축 해제됩니다.
+#### dx_com 사용하기
 
-    - `./workspace/release/dx_com/dx_com_M1_v[VERSION]`
-    - 심볼릭 링크가 `./dx-compiler/dx-com`에 생성됩니다.
+**Wheel 모드로 설치한 경우:**
+
+가상 환경을 활성화한 후 `dxcom` 명령어를 사용할 수 있습니다:
+
+```bash
+# 가상 환경 활성화
+source ./dx-compiler/venv-dx-compiler/bin/activate
+
+# dxcom 사용
+dxcom -h
+```
+
+**Legacy 모드로 설치한 경우:**
+
+별도의 가상환경 활성화 없이 직접 실행 가능합니다:
+
+```bash
+./dx-compiler/dx_com/dx_com/dx_com -h
+```
 
 #### 아카이브 모드 (--archive_mode=y)
 
@@ -121,11 +175,45 @@ Developer Portal 계정이 필요하신 경우, 아래 정보를 포함하여 [s
 ./dx-compiler/install.sh --archive_mode=y
 ```
 
-위 명령을 실행하면, 모듈 아카이브 파일(\*.tar.gz)이 아래 경로에 다운로드 및 저장됩니다:
+위 명령을 실행하면, 모듈 아카이브 파일(`*.tar.gz`)이 아래 경로에 다운로드 및 저장됩니다:
 
 archives/dx_com_M1_v[VERSION].tar.gz
 
 이 아카이브 파일들은 Docker 이미지 빌드 프로세스에서 활용될 수 있습니다.
+
+#### DX-TRON 사용하기
+
+`dx_tron` (DX-TRON)은 그래픽 기반 모델 컴파일러 도구입니다.
+
+**deb(Debian Package: 기본값) 모드로 설치한 경우:**
+
+`dxtron` 명령어를 사용할 수 있습니다:
+
+```bash
+dxtron
+```
+
+**AppImage로 실행 (GUI):**
+
+```bash
+./dx-compiler/run_dxtron_appimage.sh
+```
+
+**웹 서버로 실행:**
+
+```bash
+./dx-compiler/run_dxtron_web.sh --port=8080
+```
+
+그런 다음 브라우저에서 `http://localhost:8080`에 접속하세요.
+
+다른 포트를 사용하려면:
+
+```bash
+./dx-compiler/run_dxtron_web.sh --port=3000
+```
+
+**(P.S.) 윈도우용 dxtron: `developer.deepx.ai`를 통해 다운로드 가능 합니다.**
 
 ---
 
@@ -139,7 +227,7 @@ archives/dx_com_M1_v[VERSION].tar.gz
 ```
 
 이 명령어는 다음 모듈을 빌드 및 설치합니다.  
-`dx_fw, dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, `dx_stream`
+`dx_fw`, `dx_rt_npu_linux_driver`, `dx_rt`, `dx_app`, `dx_stream`
 
 ```bash
 ./dx-runtime/install.sh --all --exclude-fw
@@ -453,8 +541,39 @@ fim ./result-app1.jpg
 
 #### 샘플 ONNX 입력을 사용하여 `dx_com` 실행
 
+**Wheel 모드로 설치한 경우:**
+
+가상 환경을 활성화한 후 `dxcom` 명령어를 사용할 수 있습니다:
+
 ```bash
-make
+# Activate virtual environment
+source ./dx-compiler/venv-dx-compiler/bin/activate
+
+dxcom \
+        -m sample/MobileNetV1-1.onnx \
+        -c sample/MobileNetV1-1.json \
+        -o sample/MobileNetV1-1
+        -o sample/MobileNetV1-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:06<00:00,  7.00s/model ]
+
+dxcom \
+        -m sample/ResNet50-1.onnx \
+        -c sample/ResNet50-1.json \
+        -o sample/ResNet50-1
+        -o sample/ResNet50-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:19<00:00, 19.17s/model ]
+
+dxcom \
+        -m sample/YOLOV5-1.onnx \
+        -c sample/YOLOV5-1.json \
+        -o sample/YOLOV5-1
+        -o sample/YOLOV5-1
+Compiling Model : 100%|███████████████████████████████| 1.0/1.0 [00:47<00:00, 47.66s/model ]
+```
+
+**Legacy 모드로 설치한 경우:**
+
+```bash
 dx_com/dx_com \
         -m sample/MobileNetV1-1.onnx \
         -c sample/MobileNetV1-1.json \
