@@ -291,6 +291,7 @@ class TestLocalInstallDockerRun:
             "docker", "run",
             "-d",
             "--name", container_name_str,
+            "-e", "DEBIAN_FRONTEND=noninteractive",
             "-e", f"DOCKER_VOLUME_PATH={docker_volume_path}",
             "-v", f"{local_volume_path}:{docker_volume_path}",
         ]
