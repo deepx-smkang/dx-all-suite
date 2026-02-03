@@ -159,6 +159,8 @@ class TestLocalInstallDockerBuild:
             env["CA_FILE_NAME"] = ""
         if not env.get("DISPLAY"):
             env["DISPLAY"] = ""
+        if not env.get("LOCAL_VOLUME_PATH"):
+            env["LOCAL_VOLUME_PATH"] = str(PROJECT_ROOT)
         
         config_file_args = ["-f", "tests/docker/docker-compose.local.install.test.yml"]
         if env.get("DX_TEST_NVIDIA_GPU", "0").lower() in {"1", "true", "yes", "y"}:
@@ -293,7 +295,8 @@ class TestLocalInstallDockerRun:
             "--name", container_name_str,
             "-e", "DEBIAN_FRONTEND=noninteractive",
             "-e", f"DOCKER_VOLUME_PATH={docker_volume_path}",
-            "-v", f"{local_volume_path}:{docker_volume_path}",
+            "-e", f"LOCAL_VOLUME_PATH={local_volume_path}",
+            "-v", f"{local_volume_path}:{docker_volume_path}"
         ]
         
         # Add DX_USERNAME and DX_PASSWORD if they exist
