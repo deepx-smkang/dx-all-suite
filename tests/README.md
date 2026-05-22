@@ -15,10 +15,10 @@ Validates Docker image builds using `docker_build.sh` for all supported componen
 
 **What it tests:**
 - Builds complete Docker images for dx-compiler, dx-modelzoo, and dx-runtime
-- Verifies build success across Ubuntu (24.04, 22.04, 20.04, 18.04) and Debian (12, 13)
+- Verifies build success across Ubuntu (26.04, 24.04, 22.04, 20.04, 18.04) and Debian (12, 13)
 - Uses the project's official docker build script (`docker_build.sh`)
 
-**Total tests:** 19 (4 sanity + 15 build tests)
+**Total tests:** 22 (4 sanity + 18 build tests)
 
 ### 2. **test_local_install** — Local Installation Validation
 Tests local installation procedures inside clean Docker containers to verify install scripts work correctly.
@@ -30,7 +30,7 @@ Tests local installation procedures inside clean Docker containers to verify ins
 - For dx-runtime: also installs drivers and runtime on the host
 - Verifies installations complete successfully without errors
 
-**Total tests:** 48 (3 sanity + 15 build + 15 run + 15 install tests)
+**Total tests:** 57 (3 sanity + 18 build + 18 run + 18 install tests)
 
 ### 3. **test_getting_started** — End-to-End Workflow Validation
 Validates the complete getting-started user workflow from compilation to execution.
@@ -52,25 +52,25 @@ Validates the complete getting-started user workflow from compilation to executi
 
 ### OS Configurations
 
-#### Docker Install (15 combinations)
+#### Docker Install (18 combinations)
 
-| Target | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
-|--------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
-| dx-compiler | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 3 |
-| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| **Total** | **3** | **3** | **3** | **2** | **2** | **2** | **15** |
+| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
+|--------|--------------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
+| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 4 |
+| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
+| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
+| **Total** | **3** | **3** | **3** | **3** | **2** | **2** | **2** | **18** |
 
 **Note:** dx-compiler supports Ubuntu only (no Debian)
 
-#### Local Install (15 combinations)
+#### Local Install (18 combinations)
 
-| Target | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
-|--------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
-| dx-compiler | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 3 |
-| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| **Total** | **3** | **3** | **3** | **2** | **2** | **2** | **15** |
+| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
+|--------|--------------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
+| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 4 |
+| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
+| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
+| **Total** | **3** | **3** | **3** | **3** | **2** | **2** | **2** | **18** |
 
 **Note:** dx-compiler supports Ubuntu 20.04+ only (no 18.04, no Debian)
 
@@ -78,20 +78,20 @@ Validates the complete getting-started user workflow from compilation to executi
 
 | Test Suite | Sanity | Build | Run | Install | Workflow | Total |
 |------------|--------|-------|-----|---------|----------|-------|
-| **docker_install** | 4 | 15 | - | - | - | **19** |
-| **local_install** | 3 | 15 | 15 | 15 | - | **48** |
+| **docker_install** | 4 | 18 | - | - | - | **22** |
+| **local_install** | 3 | 18 | 18 | 18 | - | **57** |
 | **getting_started** | - | - | - | - | 11 | **11** |
-| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **78** |
+| **Grand Total** | **7** | **36** | **18** | **18** | **11** | **90** |
 
 ## 📁 File Structure
 
 ```
 tests/
 ├── 🐍 test_docker_install/          # Docker build validation tests
-│   ├── test_docker_install.py       # 19 tests (4 sanity + 15 builds)
+│   ├── test_docker_install.py       # 22 tests (4 sanity + 18 builds)
 │   └── README.md                    # Docker install test documentation
 ├── 🐍 test_local_install/           # Local installation tests
-│   ├── test_local_install.py        # 48 tests (3 sanity + 15 build + 15 run + 15 install)
+│   ├── test_local_install.py        # 57 tests (3 sanity + 18 build + 18 run + 18 install)
 │   └── README.md                    # Local install test documentation
 ├── 🐍 test_getting-started/         # Getting-started workflow tests
 │   ├── test_getting_started.py      # 11 tests (6 compiler + 5 runtime)
@@ -124,10 +124,10 @@ cd tests
 ### Step 2: Run Specific Test Suites
 
 ```bash
-# Docker installation tests (15 builds, ~6-8 hours)
+# Docker installation tests (18 builds, ~6-8 hours)
 ./test.sh docker_install
 
-# Local installation tests (49 tests, ~8-12 hours)
+# Local installation tests (57 tests, ~8-12 hours)
 ./test.sh local_install
 
 # Getting-started workflow (11 tests, ~30-60 minutes)
@@ -137,7 +137,7 @@ cd tests
 ### Step 3: Full Test Suite
 
 ```bash
-./test.sh all          # All 79 tests (~12-20 hours)
+./test.sh all          # All 90 tests (~12-20 hours)
 ```
 
 ### Step 4: Generate Reports
@@ -153,7 +153,7 @@ cd tests
 
 ```bash
 ./test.sh sanity           # ⚡ Quick validation (5-10 seconds)
-./test.sh all              # 🔥 Full test suite (12-20 hours, 79 tests)
+./test.sh all              # 🔥 Full test suite (12-20 hours, 90 tests)
 ./test.sh list             # 📋 List all available tests
 ./test.sh help             # ❓ Show detailed help
 ```
@@ -161,8 +161,8 @@ cd tests
 ### Test Suite Commands
 
 ```bash
-./test.sh docker_install   # Docker build tests (15 tests, ~6-8 hours)
-./test.sh local_install    # Local install tests (49 tests, ~8-12 hours)
+./test.sh docker_install   # Docker build tests (18 tests, ~6-8 hours)
+./test.sh local_install    # Local install tests (57 tests, ~8-12 hours)
 ./test.sh getting_started  # Getting-started workflow (11 tests, ~30-60 min)
 ```
 
@@ -317,7 +317,7 @@ Use `-m` to filter tests by pytest markers:
 
 ## 🔍 Test Details
 
-### Test Suite 1: docker_install (19 tests)
+### Test Suite 1: docker_install (22 tests)
 
 #### Sanity Tests (4 tests)
 
@@ -326,14 +326,16 @@ Use `-m` to filter tests by pytest markers:
 - ✅ `test_docker_compose_command_available` - Check docker compose
 - ✅ `test_project_structure` - Verify project directories
 
-#### Docker Build Tests (15 tests)
+#### Docker Build Tests (18 tests)
 
-**dx-compiler (3 tests - Ubuntu only)**
+**dx-compiler (4 tests - Ubuntu only)**
+- ✅ `test_docker_build[dx-compiler-ubuntu-26.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-24.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-22.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-20.04]`
 
-**dx-modelzoo (6 tests)**
+**dx-modelzoo (7 tests)**
+- ✅ `test_docker_build[dx-modelzoo-ubuntu-26.04]`
 - ✅ `test_docker_build[dx-modelzoo-ubuntu-24.04]`
 - ✅ `test_docker_build[dx-modelzoo-ubuntu-22.04]`
 - ✅ `test_docker_build[dx-modelzoo-ubuntu-20.04]`
@@ -341,7 +343,8 @@ Use `-m` to filter tests by pytest markers:
 - ✅ `test_docker_build[dx-modelzoo-debian-12]`
 - ✅ `test_docker_build[dx-modelzoo-debian-13]`
 
-**dx-runtime (6 tests)**
+**dx-runtime (7 tests)**
+- ✅ `test_docker_build[dx-runtime-ubuntu-26.04]`
 - ✅ `test_docker_build[dx-runtime-ubuntu-24.04]`
 - ✅ `test_docker_build[dx-runtime-ubuntu-22.04]`
 - ✅ `test_docker_build[dx-runtime-ubuntu-20.04]`
@@ -351,7 +354,7 @@ Use `-m` to filter tests by pytest markers:
 
 ---
 
-### Test Suite 2: local_install (49 tests)
+### Test Suite 2: local_install (57 tests)
 
 #### Sanity Tests (3 tests)
 
@@ -359,25 +362,25 @@ Use `-m` to filter tests by pytest markers:
 - ✅ `test_docker_compose_command_available` - Check docker compose
 - ✅ `test_project_structure` - Verify project structure
 
-#### Image Build Tests (15 tests)
+#### Image Build Tests (18 tests)
 
 Validates base OS container images build successfully for local install testing.
 
-#### Container Run Tests (15 tests)
+#### Container Run Tests (18 tests)
 
 Validates containers start successfully and are ready for installations.
 
-#### Installation Tests (16 tests)
+#### Installation Tests (18 tests)
 
 **dx-compiler (4 tests)**
-- ✅ Ubuntu 24.04, 22.04, 20.04, 18.04
+- ✅ Ubuntu 26.04, 24.04, 22.04, 20.04
 
-**dx-modelzoo (6 tests)**
-- ✅ Ubuntu 24.04, 22.04, 20.04, 18.04
+**dx-modelzoo (7 tests)**
+- ✅ Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04
 - ✅ Debian 12, 13
 
-**dx-runtime (6 tests)**
-- ✅ Ubuntu 24.04, 22.04, 20.04, 18.04
+**dx-runtime (7 tests)**
+- ✅ Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04
 - ✅ Debian 12, 13
 
 **Note:** dx-runtime tests also install NPU driver and runtime on the host system.

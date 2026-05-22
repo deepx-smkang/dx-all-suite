@@ -45,16 +45,20 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
     fi
 
 # Install dependencies for dx-compiler
-# Setup Python (minimum 3.8)
+# Setup Python (minimum 3.8, maximum 3.12)
 #   - Detect system Python first, install MIN_PY_VERSION if system Python is lower
+#   - If system Python exceeds MAX_PY_VERSION, install MAX_PY_VERSION instead
 #   - Unified installation flow: system python → apt → source build fallback
-#   - Ubuntu 20.04, 22.04, 24.04 supported
+#   - Ubuntu 20.04, 22.04, 24.04, 26.04 supported
 ENV MIN_PY_VERSION=3.8
+ENV MAX_PY_VERSION=3.12
 ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
-    echo "Detecting system Python and checking minimum version requirement..." && \
+    echo "Detecting system Python and checking version requirements..." && \
     MIN_MAJOR=$(echo "${MIN_PY_VERSION}" | cut -d. -f1) && \
     MIN_MINOR=$(echo "${MIN_PY_VERSION}" | cut -d. -f2) && \
+    MAX_MAJOR=$(echo "${MAX_PY_VERSION}" | cut -d. -f1) && \
+    MAX_MINOR=$(echo "${MAX_PY_VERSION}" | cut -d. -f2) && \
     DX_PYTHON_EXEC="" && \
     NEED_INSTALL="false" && \
     if command -v python3 >/dev/null 2>&1; then \
@@ -62,8 +66,12 @@ RUN set -x && \
         SYS_MAJOR=$(echo "${SYS_PY_VERSION}" | cut -d. -f1) && \
         SYS_MINOR=$(echo "${SYS_PY_VERSION}" | cut -d. -f2) && \
         echo "System Python detected: ${SYS_PY_VERSION}" && \
-        if [ "$SYS_MAJOR" -gt "$MIN_MAJOR" ] || { [ "$SYS_MAJOR" -eq "$MIN_MAJOR" ] && [ "$SYS_MINOR" -ge "$MIN_MINOR" ]; }; then \
-            echo "System Python ${SYS_PY_VERSION} meets minimum requirement (>= ${MIN_PY_VERSION})" && \
+        if [ "$SYS_MAJOR" -gt "$MAX_MAJOR" ] || { [ "$SYS_MAJOR" -eq "$MAX_MAJOR" ] && [ "$SYS_MINOR" -gt "$MAX_MINOR" ]; }; then \
+            echo "System Python ${SYS_PY_VERSION} exceeds maximum ${MAX_PY_VERSION}, need to install ${MAX_PY_VERSION}..." && \
+            NEED_INSTALL="true" && \
+            TARGET_INSTALL_PY_VERSION="${MAX_PY_VERSION}.0"; \
+        elif [ "$SYS_MAJOR" -gt "$MIN_MAJOR" ] || { [ "$SYS_MAJOR" -eq "$MIN_MAJOR" ] && [ "$SYS_MINOR" -ge "$MIN_MINOR" ]; }; then \
+            echo "System Python ${SYS_PY_VERSION} meets version requirements (>= ${MIN_PY_VERSION}, <= ${MAX_PY_VERSION})" && \
             SYS_PY_MAJOR_MINOR="${SYS_MAJOR}.${SYS_MINOR}" && \
             echo "Installing python${SYS_PY_MAJOR_MINOR}-dev and python${SYS_PY_MAJOR_MINOR}-venv packages..." && \
             apt-get update && \
@@ -89,7 +97,7 @@ RUN set -x && \
             echo "Using minimum version for installation: ${TARGET_INSTALL_PY_VERSION}"; \
         fi && \
         PY_MAJOR_MINOR=$(echo "${TARGET_INSTALL_PY_VERSION}" | cut -d. -f1,2) && \
-        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ]; }; then \
+        if [ "${BASE_IMAGE_NAME}" = "ubuntu" ] && { [ "$(lsb_release -rs)" = "26.04" ] || [ "$(lsb_release -rs)" = "24.04" ] || [ "$(lsb_release -rs)" = "22.04" ] || [ "$(lsb_release -rs)" = "20.04" ]; }; then \
             echo "Supported OS: ${BASE_IMAGE_NAME} $(lsb_release -rs)" && \
             apt-get update && \
             if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
@@ -157,7 +165,7 @@ RUN set -x && \
     if [ "${BASE_IMAGE_NAME}" = "ubuntu" ]; then \
         OS_VERSION=$(lsb_release -rs) && \
         echo "*** OS_VERSION(${OS_VERSION}) ***" && \
-        if [ "$OS_VERSION" = "24.04" ]; then \
+        if [ "$OS_VERSION" = "26.04" ] || [ "$OS_VERSION" = "24.04" ]; then \
             apt-get update && apt-get install -y --no-install-recommends \
                 libgl1-mesa-dev libglib2.0-0 make \
                 libfuse2 libayatana-appindicator3-1; \
@@ -177,7 +185,11 @@ RUN set -x && \
     fi
 
 # Install build tools and libraries
+# Some packages are renamed/removed in newer Ubuntu versions:
+#   - fuse → fuse3 (26.04+), libncurses5-dev → libncurses-dev (26.04+)
+#   - fim, libcanberra-gtk-module may not be available on 26.04
 RUN set -x && \
+    OS_VERSION=$(lsb_release -rs) && \
     apt-get update && apt-get install -y --no-install-recommends \
         libssl-dev \
         wget \
@@ -194,13 +206,24 @@ RUN set -x && \
         tk-dev \
         libgdbm-dev \
         libc6-dev \
-        libncurses5-dev \
         libnss3-dev \
         ccache \
-        fuse libxss1 libxtst6 libnss3 \
-        libcanberra-gtk-module libcanberra-gtk3-module \
+        libxtst6 libnss3 \
         software-properties-common \
-        vim fim
+        vim && \
+    if [ "$OS_VERSION" = "26.04" ]; then \
+        apt-get install -y --no-install-recommends \
+            fuse3 libncurses-dev libxss-dev || true && \
+        apt-get install -y --no-install-recommends \
+            libcanberra-gtk3-module 2>/dev/null || echo "libcanberra-gtk3-module not available, skipping" && \
+        apt-get install -y --no-install-recommends \
+            fim 2>/dev/null || echo "fim not available, skipping"; \
+    else \
+        apt-get install -y --no-install-recommends \
+            fuse libxss1 libncurses5-dev \
+            libcanberra-gtk-module libcanberra-gtk3-module \
+            fim; \
+    fi
 
 RUN apt-get update && \
     apt-get install -y \

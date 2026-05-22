@@ -2,9 +2,9 @@
 Local Install Test Suite for dx-all-suite
 
 This test suite validates local installation for:
-- dx-compiler (Ubuntu 24.04, 22.04, 20.04)
-- dx-modelzoo (Ubuntu 24.04, 22.04, 20.04, Debian 12, 13)
-- dx-runtime (Ubuntu 24.04, 22.04, 20.04, Debian 12, 13)
+- dx-compiler (Ubuntu 26.04, 24.04, 22.04, 20.04)
+- dx-modelzoo (Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, 13)
+- dx-runtime (Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, 13)
 
 Test workflow:
 1. Build docker image (session fixture)
@@ -88,15 +88,18 @@ class TestLocalInstallDockerBuild:
     @pytest.mark.parametrize(
         "component,os_type,version",
         [
+            ("dx-compiler", "ubuntu", "26.04"),
             ("dx-compiler", "ubuntu", "24.04"),
             ("dx-compiler", "ubuntu", "22.04"),
             ("dx-compiler", "ubuntu", "20.04"),
+            ("dx-modelzoo", "ubuntu", "26.04"),
             ("dx-modelzoo", "ubuntu", "24.04"),
             ("dx-modelzoo", "ubuntu", "22.04"),
             ("dx-modelzoo", "ubuntu", "20.04"),
             ("dx-modelzoo", "ubuntu", "18.04"),
             ("dx-modelzoo", "debian", "12"),
             ("dx-modelzoo", "debian", "13"),
+            ("dx-runtime", "ubuntu", "26.04"),
             ("dx-runtime", "ubuntu", "24.04"),
             ("dx-runtime", "ubuntu", "22.04"),
             ("dx-runtime", "ubuntu", "20.04"),
@@ -105,15 +108,18 @@ class TestLocalInstallDockerBuild:
             ("dx-runtime", "debian", "13"),
         ],
         ids=[
+            "dx-compiler-ubuntu-26.04",
             "dx-compiler-ubuntu-24.04",
             "dx-compiler-ubuntu-22.04",
             "dx-compiler-ubuntu-20.04",
+            "dx-modelzoo-ubuntu-26.04",
             "dx-modelzoo-ubuntu-24.04",
             "dx-modelzoo-ubuntu-22.04",
             "dx-modelzoo-ubuntu-20.04",
             "dx-modelzoo-ubuntu-18.04",
             "dx-modelzoo-debian-12",
             "dx-modelzoo-debian-13",
+            "dx-runtime-ubuntu-26.04",
             "dx-runtime-ubuntu-24.04",
             "dx-runtime-ubuntu-22.04",
             "dx-runtime-ubuntu-20.04",
@@ -215,15 +221,18 @@ class TestLocalInstallDockerRun:
     @pytest.mark.parametrize(
         "component,os_type,version",
         [
+            ("dx-compiler", "ubuntu", "26.04"),
             ("dx-compiler", "ubuntu", "24.04"),
             ("dx-compiler", "ubuntu", "22.04"),
             ("dx-compiler", "ubuntu", "20.04"),
+            ("dx-modelzoo", "ubuntu", "26.04"),
             ("dx-modelzoo", "ubuntu", "24.04"),
             ("dx-modelzoo", "ubuntu", "22.04"),
             ("dx-modelzoo", "ubuntu", "20.04"),
             ("dx-modelzoo", "ubuntu", "18.04"),
             ("dx-modelzoo", "debian", "12"),
             ("dx-modelzoo", "debian", "13"),
+            ("dx-runtime", "ubuntu", "26.04"),
             ("dx-runtime", "ubuntu", "24.04"),
             ("dx-runtime", "ubuntu", "22.04"),
             ("dx-runtime", "ubuntu", "20.04"),
@@ -232,15 +241,18 @@ class TestLocalInstallDockerRun:
             ("dx-runtime", "debian", "13"),
         ],
         ids=[
+            "dx-compiler-ubuntu-26.04",
             "dx-compiler-ubuntu-24.04",
             "dx-compiler-ubuntu-22.04",
             "dx-compiler-ubuntu-20.04",
+            "dx-modelzoo-ubuntu-26.04",
             "dx-modelzoo-ubuntu-24.04",
             "dx-modelzoo-ubuntu-22.04",
             "dx-modelzoo-ubuntu-20.04",
             "dx-modelzoo-ubuntu-18.04",
             "dx-modelzoo-debian-12",
             "dx-modelzoo-debian-13",
+            "dx-runtime-ubuntu-26.04",
             "dx-runtime-ubuntu-24.04",
             "dx-runtime-ubuntu-22.04",
             "dx-runtime-ubuntu-20.04",
@@ -356,15 +368,18 @@ class TestLocalInstallation:
     @pytest.mark.parametrize(
         "component,os_type,version",
         [
+            ("dx-compiler", "ubuntu", "26.04"),
             ("dx-compiler", "ubuntu", "24.04"),
             ("dx-compiler", "ubuntu", "22.04"),
             ("dx-compiler", "ubuntu", "20.04"),
+            ("dx-modelzoo", "ubuntu", "26.04"),
             ("dx-modelzoo", "ubuntu", "24.04"),
             ("dx-modelzoo", "ubuntu", "22.04"),
             ("dx-modelzoo", "ubuntu", "20.04"),
             ("dx-modelzoo", "ubuntu", "18.04"),
             ("dx-modelzoo", "debian", "12"),
             ("dx-modelzoo", "debian", "13"),
+            ("dx-runtime", "ubuntu", "26.04"),
             ("dx-runtime", "ubuntu", "24.04"),
             ("dx-runtime", "ubuntu", "22.04"),
             ("dx-runtime", "ubuntu", "20.04"),
@@ -373,15 +388,18 @@ class TestLocalInstallation:
             ("dx-runtime", "debian", "13"),
         ],
         ids=[
+            "dx-compiler-ubuntu-26.04",
             "dx-compiler-ubuntu-24.04",
             "dx-compiler-ubuntu-22.04",
             "dx-compiler-ubuntu-20.04",
+            "dx-modelzoo-ubuntu-26.04",
             "dx-modelzoo-ubuntu-24.04",
             "dx-modelzoo-ubuntu-22.04",
             "dx-modelzoo-ubuntu-20.04",
             "dx-modelzoo-ubuntu-18.04",
             "dx-modelzoo-debian-12",
             "dx-modelzoo-debian-13",
+            "dx-runtime-ubuntu-26.04",
             "dx-runtime-ubuntu-24.04",
             "dx-runtime-ubuntu-22.04",
             "dx-runtime-ubuntu-20.04",

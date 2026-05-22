@@ -2,11 +2,11 @@
 Docker Build Test Suite for dx-all-suite
 
 This test suite validates Docker image builds for:
-- dx-runtime (Ubuntu 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
-- dx-modelzoo (Ubuntu 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
-- dx-compiler (Ubuntu 24.04, 22.04, 20.04)
+- dx-runtime (Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
+- dx-modelzoo (Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
+- dx-compiler (Ubuntu 26.04, 24.04, 22.04, 20.04)
 
-Total: 15 test cases
+Total: 18 test cases
 """
 
 import pytest
@@ -68,7 +68,8 @@ class TestDockerBuild:
     """Docker image build tests"""
 
     @pytest.mark.parametrize("target,os_type,version", [
-        # dx-runtime tests (6 configurations)
+        # dx-runtime tests (7 configurations)
+        ("dx-runtime", "ubuntu", "26.04"),
         ("dx-runtime", "ubuntu", "24.04"),
         ("dx-runtime", "ubuntu", "22.04"),
         ("dx-runtime", "ubuntu", "20.04"),
@@ -76,7 +77,8 @@ class TestDockerBuild:
         ("dx-runtime", "debian", "12"),
         ("dx-runtime", "debian", "13"),
 
-        # dx-modelzoo tests (6 configurations)
+        # dx-modelzoo tests (7 configurations)
+        ("dx-modelzoo", "ubuntu", "26.04"),
         ("dx-modelzoo", "ubuntu", "24.04"),
         ("dx-modelzoo", "ubuntu", "22.04"),
         ("dx-modelzoo", "ubuntu", "20.04"),
@@ -84,7 +86,8 @@ class TestDockerBuild:
         ("dx-modelzoo", "debian", "12"),
         ("dx-modelzoo", "debian", "13"),
 
-        # dx-compiler tests (3 configurations - Ubuntu only)
+        # dx-compiler tests (4 configurations - Ubuntu only)
+        ("dx-compiler", "ubuntu", "26.04"),
         ("dx-compiler", "ubuntu", "24.04"),
         ("dx-compiler", "ubuntu", "22.04"),
         ("dx-compiler", "ubuntu", "20.04"),

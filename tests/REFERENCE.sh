@@ -28,10 +28,10 @@ BASIC USAGE:
 
 TEST SUITE COMMANDS:
 --------------------
-# Docker installation tests (15 tests, ~6-8 hours)
+# Docker installation tests (18 tests, ~6-8 hours)
 ./test.sh docker_install
 
-# Local installation tests (48 tests, ~8-12 hours)
+# Local installation tests (57 tests, ~8-12 hours)
 ./test.sh local_install
 
 # Getting-started workflow (11 tests, ~30-60 minutes)
@@ -229,21 +229,21 @@ COMBINING OPTIONS - EXAMPLES:
 
 TEST STRUCTURE SUMMARY:
 -----------------------
-docker_install (19 tests):
+docker_install (22 tests):
   - 4 sanity tests
-  - 15 build tests (3 compiler + 6 modelzoo + 6 runtime)
+  - 18 build tests (4 compiler + 7 modelzoo + 7 runtime)
 
-local_install (48 tests):
+local_install (57 tests):
   - 3 sanity tests
-  - 15 build tests
-  - 15 run tests
-  - 15 install tests
+  - 18 build tests
+  - 18 run tests
+  - 18 install tests
 
 getting_started (11 tests):
   - 6 compiler workflow tests
   - 5 runtime workflow tests
 
-Total: 78 tests
+Total: 90 tests
 
 
 FILE LOCATIONS:
@@ -314,10 +314,10 @@ export DX_PASSWORD="your_password"
 EXPECTED EXECUTION TIMES:
 -------------------------
 Sanity tests:           ~5-10 seconds
-docker_install:         ~6-8 hours (15 tests)
-local_install:          ~8-12 hours (48 tests)
+docker_install:         ~6-8 hours (18 tests)
+local_install:          ~8-12 hours (57 tests)
 getting_started:        ~30-60 minutes (11 tests)
-Full suite (all):       ~12-20 hours (78 tests)
+Full suite (all):       ~12-20 hours (90 tests)
 
 
 =============================================================================

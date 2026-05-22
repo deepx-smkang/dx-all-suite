@@ -64,7 +64,7 @@ show_help() {
     echo -e "                                   Available: ${COLOR_CYAN}dx-compiler${COLOR_RESET} | ${COLOR_CYAN}dx-runtime${COLOR_RESET} | ${COLOR_CYAN}dx-modelzoo${COLOR_RESET}"
     echo -e ""
     echo -e "${COLOR_BOLD}Required (choose one OS option):${COLOR_RESET}"
-    echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 24.04, 22.04, 20.04)"
+    echo -e "  ${COLOR_YELLOW}--ubuntu_version=<version>${COLOR_RESET}     Specify Ubuntu version (ex: 26.04, 24.04, 22.04, 20.04)"
     echo -e "  ${COLOR_YELLOW}--debian_version=<version>${COLOR_RESET}     Specify Debian version (ex: 12)"
     echo -e "                                   Note: ${COLOR_CYAN}dx-compiler${COLOR_RESET} only supports Ubuntu ${COLOR_RED}(Debian is not supported)${COLOR_RESET}"
     echo -e ""
@@ -163,7 +163,7 @@ archive_dx-compiler()
     print_colored_v2 "INFO" "Archiving dx-compiler"
     # this function is defined in scripts/common_util.sh
     # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
-    os_check "ubuntu" "20.04 22.04 24.04" "" || {
+    os_check "ubuntu" "20.04 22.04 24.04 26.04" "" || {
         print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
         return 0
     }
@@ -176,14 +176,15 @@ archive_dx-compiler()
     }
 
     # Determine default Python version based on OS version
-    # Ubuntu 20.04: 3.8, Ubuntu 22.04: 3.10, Ubuntu 24.04: 3.12
+    # Ubuntu 20.04: 3.8, Ubuntu 22.04: 3.10, Ubuntu 24.04: 3.12, Ubuntu 26.04: 3.12
     local PYTHON_VERSION_ARG=""
     case "${OS_VERSION}" in
         20.04) PYTHON_VERSION_ARG="--python_version=3.8" ;;
         22.04) PYTHON_VERSION_ARG="--python_version=3.10" ;;
         24.04) PYTHON_VERSION_ARG="--python_version=3.12" ;;
+        26.04) PYTHON_VERSION_ARG="--python_version=3.12" ;;
         *)
-            print_colored_v2 "ERROR" "Unsupported OS version: ${BASE_IMAGE_NAME} ${OS_VERSION}. Supported versions: Ubuntu 20.04, 22.04, 24.04"
+            print_colored_v2 "ERROR" "Unsupported OS version: ${BASE_IMAGE_NAME} ${OS_VERSION}. Supported versions: Ubuntu 20.04, 22.04, 24.04, 26.04"
             return 1
             ;;
     esac
@@ -227,7 +228,7 @@ docker_build_dx-compiler()
 
     # this function is defined in scripts/common_util.sh
     # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
-    os_check "ubuntu" "20.04 22.04 24.04" "" || {
+    os_check "ubuntu" "20.04 22.04 24.04 26.04" "" || {
         print_colored_v2 "SKIP" "Current OS is not supported. Skip and continue to next target."
         return 0
     }

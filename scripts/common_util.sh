@@ -112,7 +112,7 @@ handle_cmd_interactive() {
 
 # OS Check function
 # Usage: os_check "supported_os_names" "ubuntu_versions" "debian_versions"
-# Example: os_check "ubuntu debian" "20.04 22.04 24.04" "11 12"
+# Example: os_check "ubuntu debian" "20.04 22.04 24.04 26.04" "12 13"
 os_check() {
     print_colored "--- OS Check..... ---" "INFO"
     
