@@ -194,7 +194,7 @@ print_usage() {
     echo -e "Keyword Filters:"
     echo -e "  ${GREEN}Target keywords${NC}     - compiler | modelzoo | runtime (e.g. -k \"compiler\") "
     echo -e "  ${GREEN}OS type keywords${NC}    - ubuntu | debian (e.g. -k \"ubuntu\")"
-    echo -e "  ${GREEN}OS version keywords${NC} - 26.04 | 24.04 | 22.04 | 20.04 | 18.04 | 12 | 13 (e.g. -k \"debian and 12\")"
+    echo -e "  ${GREEN}OS version keywords${NC} - 26.04 | 24.04 | 22.04 | 20.04 | 12 | 13 (e.g. -k \"debian and 12\")"
     echo -e ""
     echo -e "Examples:"
     echo -e "  ./test.sh sanity"

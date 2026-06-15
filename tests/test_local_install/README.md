@@ -6,8 +6,8 @@ A pytest-based test suite for automated local installation verification inside D
 
 This test suite validates local installation procedures for:
 
-- **dx-runtime**: Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13 (7 tests)
-- **dx-modelzoo**: Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13 (7 tests)
+- **dx-runtime**: Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, Debian 13 (6 tests)
+- **dx-modelzoo**: Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, Debian 13 (6 tests)
 - **dx-compiler**: Ubuntu 26.04, 24.04, 22.04, 20.04, Fedora 42-45, RHEL 9-10, CentOS Stream 9-10 (12 tests)
 
 Each component undergoes three stages:
@@ -15,7 +15,7 @@ Each component undergoes three stages:
 2. **Run** - Container startup and mounting
 3. **Install** - Component installation inside container
 
-**Total: 18 build tests + 18 run tests + 18 install tests + 3 sanity tests = 57 tests**
+**Total: 16 build tests + 16 run tests + 16 install tests + 3 sanity tests = 51 tests**
 
 ## Quick Start
 
@@ -106,7 +106,7 @@ pytest -k "runtime or compiler"
 
 # Exclusion (NOT)
 pytest -k "not debian"
-pytest -k "ubuntu and not 18.04"
+pytest -k "ubuntu and not 20.04"
 ```
 
 ### Filter by Marker (-m option)
@@ -155,25 +155,23 @@ Pre-install environment validation:
 - `test_docker_compose_command_available` - Check docker compose
 - `test_project_structure` - Verify project structure
 
-### Build Tests (26 tests)
+### Build Tests (24 tests)
 
 Docker image builds for clean OS environments:
 
-**dx-runtime (7 tests)**
+**dx-runtime (6 tests)**
 - `test_docker_build[dx-runtime-ubuntu-26.04]`
 - `test_docker_build[dx-runtime-ubuntu-24.04]`
 - `test_docker_build[dx-runtime-ubuntu-22.04]`
 - `test_docker_build[dx-runtime-ubuntu-20.04]`
-- `test_docker_build[dx-runtime-ubuntu-18.04]`
 - `test_docker_build[dx-runtime-debian-12]`
 - `test_docker_build[dx-runtime-debian-13]`
 
-**dx-modelzoo (7 tests)**
+**dx-modelzoo (6 tests)**
 - `test_docker_build[dx-modelzoo-ubuntu-26.04]`
 - `test_docker_build[dx-modelzoo-ubuntu-24.04]`
 - `test_docker_build[dx-modelzoo-ubuntu-22.04]`
 - `test_docker_build[dx-modelzoo-ubuntu-20.04]`
-- `test_docker_build[dx-modelzoo-ubuntu-18.04]`
 - `test_docker_build[dx-modelzoo-debian-12]`
 - `test_docker_build[dx-modelzoo-debian-13]`
 
@@ -191,25 +189,23 @@ Docker image builds for clean OS environments:
 - `test_docker_build[dx-compiler-centos-stream9]`
 - `test_docker_build[dx-compiler-centos-stream10]`
 
-### Run Tests (18 tests)
+### Run Tests (16 tests)
 
 Container startup and workspace mounting:
 
-**dx-runtime (7 tests)**
+**dx-runtime (6 tests)**
 - `test_docker_run[dx-runtime-ubuntu-26.04]`
 - `test_docker_run[dx-runtime-ubuntu-24.04]`
 - `test_docker_run[dx-runtime-ubuntu-22.04]`
 - `test_docker_run[dx-runtime-ubuntu-20.04]`
-- `test_docker_run[dx-runtime-ubuntu-18.04]`
 - `test_docker_run[dx-runtime-debian-12]`
 - `test_docker_run[dx-runtime-debian-13]`
 
-**dx-modelzoo (7 tests)**
+**dx-modelzoo (6 tests)**
 - `test_docker_run[dx-modelzoo-ubuntu-26.04]`
 - `test_docker_run[dx-modelzoo-ubuntu-24.04]`
 - `test_docker_run[dx-modelzoo-ubuntu-22.04]`
 - `test_docker_run[dx-modelzoo-ubuntu-20.04]`
-- `test_docker_run[dx-modelzoo-ubuntu-18.04]`
 - `test_docker_run[dx-modelzoo-debian-12]`
 - `test_docker_run[dx-modelzoo-debian-13]`
 
@@ -219,25 +215,23 @@ Container startup and workspace mounting:
 - `test_docker_run[dx-compiler-ubuntu-22.04]`
 - `test_docker_run[dx-compiler-ubuntu-20.04]`
 
-### Install Tests (18 tests)
+### Install Tests (16 tests)
 
 Component installation inside containers:
 
-**dx-runtime (7 tests)**
+**dx-runtime (6 tests)**
 - `test_install_component[dx-runtime-ubuntu-26.04]`
 - `test_install_component[dx-runtime-ubuntu-24.04]`
 - `test_install_component[dx-runtime-ubuntu-22.04]`
 - `test_install_component[dx-runtime-ubuntu-20.04]`
-- `test_install_component[dx-runtime-ubuntu-18.04]`
 - `test_install_component[dx-runtime-debian-12]`
 - `test_install_component[dx-runtime-debian-13]`
 
-**dx-modelzoo (7 tests)**
+**dx-modelzoo (6 tests)**
 - `test_install_component[dx-modelzoo-ubuntu-26.04]`
 - `test_install_component[dx-modelzoo-ubuntu-24.04]`
 - `test_install_component[dx-modelzoo-ubuntu-22.04]`
 - `test_install_component[dx-modelzoo-ubuntu-20.04]`
-- `test_install_component[dx-modelzoo-ubuntu-18.04]`
 - `test_install_component[dx-modelzoo-debian-12]`
 - `test_install_component[dx-modelzoo-debian-13]`
 

@@ -2,11 +2,11 @@
 Docker Build Test Suite for dx-all-suite
 
 This test suite validates Docker image builds for:
-- dx-runtime (Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
-- dx-modelzoo (Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
+- dx-runtime (Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, Debian 13)
+- dx-modelzoo (Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, Debian 13)
 - dx-compiler (Ubuntu 26.04, 24.04, 22.04, 20.04, Fedora 42-45, RHEL 9-10, CentOS Stream 9-10)
 
-Total: 26 test cases
+Total: 24 test cases
 """
 
 import pytest
@@ -68,21 +68,19 @@ class TestDockerBuild:
     """Docker image build tests"""
 
     @pytest.mark.parametrize("target,os_type,version", [
-        # dx-runtime tests (7 configurations)
+        # dx-runtime tests (6 configurations)
         ("dx-runtime", "ubuntu", "26.04"),
         ("dx-runtime", "ubuntu", "24.04"),
         ("dx-runtime", "ubuntu", "22.04"),
         ("dx-runtime", "ubuntu", "20.04"),
-        ("dx-runtime", "ubuntu", "18.04"),
         ("dx-runtime", "debian", "12"),
         ("dx-runtime", "debian", "13"),
 
-        # dx-modelzoo tests (7 configurations)
+        # dx-modelzoo tests (6 configurations)
         ("dx-modelzoo", "ubuntu", "26.04"),
         ("dx-modelzoo", "ubuntu", "24.04"),
         ("dx-modelzoo", "ubuntu", "22.04"),
         ("dx-modelzoo", "ubuntu", "20.04"),
-        ("dx-modelzoo", "ubuntu", "18.04"),
         ("dx-modelzoo", "debian", "12"),
         ("dx-modelzoo", "debian", "13"),
 
@@ -107,7 +105,7 @@ class TestDockerBuild:
         Args:
             target: Docker build target (dx-runtime, dx-modelzoo, dx-compiler)
             os_type: OS type (ubuntu, debian, fedora, rhel, or centos)
-            version: OS version (24.04, 22.04, 20.04, 18.04, 12, 13, 42, 9, stream9, etc.)
+            version: OS version (24.04, 22.04, 20.04, 12, 13, 42, 9, stream9, etc.)
             archive_once: session fixture that builds shared archives once (Phase 0),
                           enabling safe parallel builds with --skip-archive.
         """
