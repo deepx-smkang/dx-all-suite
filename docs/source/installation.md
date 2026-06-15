@@ -102,7 +102,7 @@ You can use the `dxcom` command after activating the virtual environment:
 
 ```bash
 # Activate virtual environment
-source ./dx-compiler/venv-dx-compiler-local/bin/activate
+source ./dx-compiler/venv-dx-compiler/bin/activate
 
 # Use dxcom
 dxcom -h
@@ -510,7 +510,7 @@ Run the following from the `./dx-compiler/dx_com/` directory.
 
 ```bash
 # Activate virtual environment
-source ./dx-compiler/venv-dx-compiler-local/bin/activate
+source ./dx-compiler/venv-dx-compiler/bin/activate
 
 cd ./dx-compiler/dx_com
 
