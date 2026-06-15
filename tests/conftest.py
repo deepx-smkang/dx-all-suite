@@ -4,6 +4,7 @@ Shared utilities and configuration for all test suites.
 
 import os
 import re
+import json
 import shlex
 import shutil
 import subprocess
@@ -15,6 +16,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = REPO_ROOT  # Alias for compatibility
 GETTING_STARTED_DIR = REPO_ROOT / "getting-started"
 DEFAULT_TIMEOUT = int(os.getenv("DX_TEST_GETTING_STARTED_TIMEOUT", "3600"))
+
+# kcov coverage output (written from inside the container onto the bind-mounted
+# host workspace) and the directory where ./test.sh writes HTML/JSON reports.
+COVERAGE_DIR = REPO_ROOT / "tests" / "_coverage"
+REPORTS_DIR = REPO_ROOT / "tests" / "reports"
+
+# install_option components whose install.sh coverage is surfaced in the report.
+KCOV_COMPONENTS = (
+    ("compiler", "dx-compiler install.sh"),
+    ("runtime", "dx-runtime install.sh"),
+)
 
 # Expected NPU stack version files (authoritative source of truth).
 DRIVER_RELEASE_VER = REPO_ROOT / "dx-runtime" / "dx_rt_npu_linux_driver" / "release.ver"
@@ -495,6 +507,122 @@ def kcov_merge_cmd(merged_dir: str, run_glob: str) -> str:
         f"mkdir -p {shlex.quote(merged_dir)} && "
         f"kcov --merge {shlex.quote(merged_dir)} {run_glob}"
     )
+
+
+def _coverage_numbers(data: dict) -> tuple[float, int, int] | None:
+    """Extract (percent, covered, total) from a kcov coverage.json payload."""
+    def _to_float(value, default=0.0):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    if data.get("total_lines") not in (None, "", 0, "0"):
+        total = int(_to_float(data.get("total_lines")))
+        covered = int(_to_float(data.get("covered_lines")))
+        percent = _to_float(data.get("percent_covered"))
+        if total > 0:
+            if not data.get("percent_covered"):
+                percent = round(covered * 100.0 / total, 2)
+            return percent, covered, total
+
+    # Fall back to aggregating per-file entries.
+    files = data.get("files") or []
+    total = sum(int(_to_float(f.get("total_lines"))) for f in files)
+    covered = sum(int(_to_float(f.get("covered_lines"))) for f in files)
+    if total > 0:
+        return round(covered * 100.0 / total, 2), covered, total
+    return None
+
+
+def summarize_kcov_coverage(component: str) -> dict | None:
+    """
+    Read the merged kcov coverage.json for a component off the host filesystem.
+
+    Returns a dict with percent/covered/total/html, or None if no coverage was
+    produced (e.g. install_option tests were not run).
+    """
+    merged = COVERAGE_DIR / component / "merged"
+    if not merged.is_dir():
+        return None
+
+    candidates = sorted(
+        merged.rglob("coverage.json"),
+        key=lambda p: (0 if "kcov-merged" in p.parts else 1, len(p.parts)),
+    )
+    for cov_json in candidates:
+        try:
+            data = json.loads(cov_json.read_text())
+        except (OSError, ValueError):
+            continue
+        numbers = _coverage_numbers(data)
+        if numbers is None:
+            continue
+        percent, covered, total = numbers
+        index_html = cov_json.parent / "index.html"
+        if not index_html.exists():
+            index_html = merged / "index.html"
+        return {
+            "component": component,
+            "percent": percent,
+            "covered": covered,
+            "total": total,
+            "html": index_html if index_html.exists() else None,
+        }
+    return None
+
+
+def pytest_html_results_summary(prefix, summary, postfix):
+    """Surface kcov install.sh coverage as a summary block in the HTML report."""
+    rows = []
+    for component, label in KCOV_COMPONENTS:
+        info = summarize_kcov_coverage(component)
+        if info is None:
+            continue
+        pct = f"{info['percent']:.2f}%"
+        lines = f"{info['covered']}/{info['total']} lines"
+        if info["html"] is not None:
+            try:
+                href = os.path.relpath(info["html"], start=str(REPORTS_DIR))
+            except ValueError:
+                href = str(info["html"])
+            name = f'<a href="{href}">{label}</a>'
+        else:
+            name = label
+        rows.append(
+            f"<tr><td>{name}</td>"
+            f'<td style="text-align:right">{pct}</td>'
+            f'<td style="text-align:right">{lines}</td></tr>'
+        )
+
+    if not rows:
+        return
+
+    prefix.append(
+        "<h3>install.sh Coverage (kcov)</h3>"
+        '<table style="border-collapse:collapse">'
+        '<thead><tr><th style="text-align:left">Target</th>'
+        '<th>Coverage</th><th>Lines</th></tr></thead>'
+        f"<tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_json_modifyreport(json_report):
+    """Embed kcov install.sh coverage into the JSON report metadata."""
+    coverage = {}
+    for component, _label in KCOV_COMPONENTS:
+        info = summarize_kcov_coverage(component)
+        if info is None:
+            continue
+        coverage[component] = {
+            "percent": info["percent"],
+            "covered_lines": info["covered"],
+            "total_lines": info["total"],
+            "html": str(info["html"]) if info["html"] else None,
+        }
+    if coverage:
+        json_report.setdefault("kcov_coverage", {}).update(coverage)
 
 
 # ============================================================================
