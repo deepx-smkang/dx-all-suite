@@ -8,7 +8,7 @@ This test suite validates local installation procedures for:
 
 - **dx-runtime**: Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13 (7 tests)
 - **dx-modelzoo**: Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13 (7 tests)
-- **dx-compiler**: Ubuntu 26.04, 24.04, 22.04, 20.04 (4 tests)
+- **dx-compiler**: Ubuntu 26.04, 24.04, 22.04, 20.04, Fedora 42-45, RHEL 9-10, CentOS Stream 9-10 (12 tests)
 
 Each component undergoes three stages:
 1. **Build** - Docker image creation
@@ -155,7 +155,7 @@ Pre-install environment validation:
 - `test_docker_compose_command_available` - Check docker compose
 - `test_project_structure` - Verify project structure
 
-### Build Tests (18 tests)
+### Build Tests (26 tests)
 
 Docker image builds for clean OS environments:
 
@@ -177,11 +177,19 @@ Docker image builds for clean OS environments:
 - `test_docker_build[dx-modelzoo-debian-12]`
 - `test_docker_build[dx-modelzoo-debian-13]`
 
-**dx-compiler (4 tests)**
+**dx-compiler (12 tests)**
 - `test_docker_build[dx-compiler-ubuntu-26.04]`
 - `test_docker_build[dx-compiler-ubuntu-24.04]`
 - `test_docker_build[dx-compiler-ubuntu-22.04]`
 - `test_docker_build[dx-compiler-ubuntu-20.04]`
+- `test_docker_build[dx-compiler-fedora-42]`
+- `test_docker_build[dx-compiler-fedora-43]`
+- `test_docker_build[dx-compiler-fedora-44]`
+- `test_docker_build[dx-compiler-fedora-45]`
+- `test_docker_build[dx-compiler-rhel-9]`
+- `test_docker_build[dx-compiler-rhel-10]`
+- `test_docker_build[dx-compiler-centos-stream9]`
+- `test_docker_build[dx-compiler-centos-stream10]`
 
 ### Run Tests (18 tests)
 

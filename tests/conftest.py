@@ -45,6 +45,25 @@ def path_exists_in_container(container_name_str: str, path: str) -> bool:
     )
     return result.returncode == 0
 
+def get_base_image(os_type: str, version: str) -> str:
+    """
+    Get the base docker image for a given OS type and version.
+
+    Maps os_type/version to the correct registry image path.
+    - rhel 9 → redhat/ubi9:latest
+    - rhel 10 → redhat/ubi10:latest
+    - centos stream9 → quay.io/centos/centos:stream9
+    - centos stream10 → quay.io/centos/centos:stream10
+    - others → {os_type}:{version}
+    """
+    if os_type == "rhel":
+        return f"redhat/ubi{version}:latest"
+    elif os_type == "centos":
+        # version is "stream9" or "stream10"
+        return f"quay.io/centos/centos:{version}"
+    else:
+        return f"{os_type}:{version}"
+
 def check_docker_image_exists(os_type: str, version: str) -> bool:
     """
     Check if a local install docker image exists.

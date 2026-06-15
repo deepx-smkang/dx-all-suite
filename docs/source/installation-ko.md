@@ -324,6 +324,30 @@ dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 
 `--target=<environment_name>` 옵션을 사용하여 `dx-runtime` 또는 `dx-compiler`만 빌드할 수 있습니다.
 
+##### Red Hat 계열에서 dx-compiler 빌드 (Fedora, RHEL, CentOS Stream)
+
+`dx-compiler`는 Fedora, RHEL (UBI), CentOS Stream도 추가로 지원합니다:
+
+```bash
+./docker_build.sh --target=dx-compiler --fedora_version=42
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --rhel_version=9
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --centos_version=stream9
+```
+
+지원 버전:
+
+- Fedora: 42, 43, 44, 45
+- RHEL (UBI): 9, 10
+- CentOS Stream: stream9, stream10
+
+> **참고:** `dx-runtime`과 `dx-modelzoo`는 Red Hat 계열 배포판을 지원하지 않습니다.
+
 #### Docker 컨테이너 실행
 
 **(선택) Host 환경에 이미 `dx_rt`가 설치되어 있는 경우, Docker 컨테이너 실행 전에 `dxrt` 서비스 데몬을 중지하세요.**  

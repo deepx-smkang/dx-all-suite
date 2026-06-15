@@ -52,36 +52,36 @@ Validates the complete getting-started user workflow from compilation to executi
 
 ### OS Configurations
 
-#### Docker Install (18 combinations)
+#### Docker Install (26 combinations)
 
-| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
-|--------|--------------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
-| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 4 |
-| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
-| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
-| **Total** | **3** | **3** | **3** | **3** | **2** | **2** | **2** | **18** |
+| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Fedora 42-45 | RHEL 9-10 | CentOS Stream 9-10 | Total |
+|--------|--------------|--------------|--------------|--------------|--------------|-----------|-----------|--------------|-----------|---------------------|-------|
+| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | 12 |
+| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 7 |
+| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 7 |
+| **Total** | | | | | | | | | | | **26** |
 
-**Note:** dx-compiler supports Ubuntu only (no Debian)
+**Note:** dx-compiler supports Ubuntu, Fedora, RHEL, and CentOS Stream. dx-runtime and dx-modelzoo support Ubuntu and Debian only.
 
-#### Local Install (18 combinations)
+#### Local Install (26 combinations)
 
-| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
-|--------|--------------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
-| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 4 |
-| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
-| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 7 |
-| **Total** | **3** | **3** | **3** | **3** | **2** | **2** | **2** | **18** |
+| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Fedora 42-45 | RHEL 9-10 | CentOS Stream 9-10 | Total |
+|--------|--------------|--------------|--------------|--------------|--------------|-----------|-----------|--------------|-----------|---------------------|-------|
+| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | 12 |
+| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 7 |
+| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 7 |
+| **Total** | | | | | | | | | | | **26** |
 
-**Note:** dx-compiler supports Ubuntu 20.04+ only (no 18.04, no Debian)
+**Note:** dx-compiler supports Ubuntu 20.04+, Fedora 42+, RHEL 9+, CentOS Stream 9+ (no Ubuntu 18.04, no Debian)
 
 ### Test Composition Summary
 
 | Test Suite | Sanity | Build | Run | Install | Workflow | Total |
 |------------|--------|-------|-----|---------|----------|-------|
-| **docker_install** | 4 | 18 | - | - | - | **22** |
-| **local_install** | 3 | 18 | 18 | 18 | - | **57** |
+| **docker_install** | 4 | 26 | - | - | - | **30** |
+| **local_install** | 3 | 26 | 26 | 26 | - | **81** |
 | **getting_started** | - | - | - | - | 11 | **11** |
-| **Grand Total** | **7** | **36** | **18** | **18** | **11** | **90** |
+| **Grand Total** | **7** | **52** | **26** | **26** | **11** | **122** |
 
 ## 📁 File Structure
 
@@ -317,7 +317,7 @@ Use `-m` to filter tests by pytest markers:
 
 ## 🔍 Test Details
 
-### Test Suite 1: docker_install (22 tests)
+### Test Suite 1: docker_install (30 tests)
 
 #### Sanity Tests (4 tests)
 
@@ -326,13 +326,21 @@ Use `-m` to filter tests by pytest markers:
 - ✅ `test_docker_compose_command_available` - Check docker compose
 - ✅ `test_project_structure` - Verify project directories
 
-#### Docker Build Tests (18 tests)
+#### Docker Build Tests (26 tests)
 
-**dx-compiler (4 tests - Ubuntu only)**
+**dx-compiler (12 tests - Ubuntu, Fedora, RHEL, CentOS Stream)**
 - ✅ `test_docker_build[dx-compiler-ubuntu-26.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-24.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-22.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-20.04]`
+- ✅ `test_docker_build[dx-compiler-fedora-42]`
+- ✅ `test_docker_build[dx-compiler-fedora-43]`
+- ✅ `test_docker_build[dx-compiler-fedora-44]`
+- ✅ `test_docker_build[dx-compiler-fedora-45]`
+- ✅ `test_docker_build[dx-compiler-rhel-9]`
+- ✅ `test_docker_build[dx-compiler-rhel-10]`
+- ✅ `test_docker_build[dx-compiler-centos-stream9]`
+- ✅ `test_docker_build[dx-compiler-centos-stream10]`
 
 **dx-modelzoo (7 tests)**
 - ✅ `test_docker_build[dx-modelzoo-ubuntu-26.04]`

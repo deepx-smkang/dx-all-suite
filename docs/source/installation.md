@@ -310,6 +310,30 @@ dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 
 Use the `--target=<environment_name>` option to build only `dx-runtime` or `dx-compiler` or `dx-modelzoo`.
 
+##### Build dx-compiler on Red Hat Family (Fedora, RHEL, CentOS Stream)
+
+`dx-compiler` additionally supports Fedora, RHEL (UBI), and CentOS Stream:
+
+```bash
+./docker_build.sh --target=dx-compiler --fedora_version=42
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --rhel_version=9
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --centos_version=stream9
+```
+
+Supported versions:
+
+- Fedora: 42, 43, 44, 45
+- RHEL (UBI): 9, 10
+- CentOS Stream: stream9, stream10
+
+> **Note:** `dx-runtime` and `dx-modelzoo` do not support Red Hat family distributions.
+
 #### Run the Docker Container
 
 **(Optional) If `dx_rt` is already installed on the host system, please stop the `dxrt` service daemon before running the Docker container.**  
