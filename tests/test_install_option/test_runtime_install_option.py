@@ -2,7 +2,7 @@
 dx-runtime install.sh option coverage test suite (kcov).
 
 Goal: exercise as many install.sh option branches as possible on a single OS
-(Ubuntu 24.04) inside a container, measuring bash line coverage with kcov.
+(Ubuntu 26.04) inside a container, measuring bash line coverage with kcov.
 
 Because the script runs inside docker (no physical NPU access), every real combo
 ALWAYS appends --exclude-fw --exclude-driver so firmware/driver are never touched.
@@ -31,7 +31,7 @@ from conftest import (  # noqa: E402
 pytestmark = [pytest.mark.install_option, pytest.mark.runtime]
 
 OS_TYPE = "ubuntu"
-VERSION = "24.04"
+VERSION = "26.04"
 COMPONENT = "optcov-runtime"
 
 WS = "/deepx/workspace"
