@@ -2,9 +2,9 @@
 Local Install Test Suite for dx-all-suite
 
 This test suite validates local installation for:
-- dx-compiler (Ubuntu 24.04, 22.04, 20.04)
-- dx-modelzoo (Ubuntu 24.04, 22.04, 20.04, Debian 12, 13)
-- dx-runtime (Ubuntu 24.04, 22.04, 20.04, Debian 12, 13)
+- dx-compiler (Ubuntu 26.04, 24.04, 22.04, 20.04, Fedora 42-45, RHEL 9-10, CentOS Stream 9-10)
+- dx-modelzoo (Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, 13)
+- dx-runtime (Ubuntu 26.04, 24.04, 22.04, 20.04, Debian 12, 13)
 
 Test workflow:
 1. Build docker image (session fixture)
@@ -32,6 +32,7 @@ from conftest import (
     container_name,
     is_container_running,
     run_command,
+    get_base_image,
 )
 
 # Test configuration
@@ -88,15 +89,26 @@ class TestLocalInstallDockerBuild:
     @pytest.mark.parametrize(
         "component,os_type,version",
         [
+            ("dx-compiler", "ubuntu", "26.04"),
             ("dx-compiler", "ubuntu", "24.04"),
             ("dx-compiler", "ubuntu", "22.04"),
             ("dx-compiler", "ubuntu", "20.04"),
+            ("dx-compiler", "fedora", "42"),
+            ("dx-compiler", "fedora", "43"),
+            ("dx-compiler", "fedora", "44"),
+            ("dx-compiler", "fedora", "45"),
+            ("dx-compiler", "rhel", "9"),
+            ("dx-compiler", "rhel", "10"),
+            ("dx-compiler", "centos", "stream9"),
+            ("dx-compiler", "centos", "stream10"),
+            ("dx-modelzoo", "ubuntu", "26.04"),
             ("dx-modelzoo", "ubuntu", "24.04"),
             ("dx-modelzoo", "ubuntu", "22.04"),
             ("dx-modelzoo", "ubuntu", "20.04"),
             ("dx-modelzoo", "ubuntu", "18.04"),
             ("dx-modelzoo", "debian", "12"),
             ("dx-modelzoo", "debian", "13"),
+            ("dx-runtime", "ubuntu", "26.04"),
             ("dx-runtime", "ubuntu", "24.04"),
             ("dx-runtime", "ubuntu", "22.04"),
             ("dx-runtime", "ubuntu", "20.04"),
@@ -105,15 +117,26 @@ class TestLocalInstallDockerBuild:
             ("dx-runtime", "debian", "13"),
         ],
         ids=[
+            "dx-compiler-ubuntu-26.04",
             "dx-compiler-ubuntu-24.04",
             "dx-compiler-ubuntu-22.04",
             "dx-compiler-ubuntu-20.04",
+            "dx-compiler-fedora-42",
+            "dx-compiler-fedora-43",
+            "dx-compiler-fedora-44",
+            "dx-compiler-fedora-45",
+            "dx-compiler-rhel-9",
+            "dx-compiler-rhel-10",
+            "dx-compiler-centos-stream9",
+            "dx-compiler-centos-stream10",
+            "dx-modelzoo-ubuntu-26.04",
             "dx-modelzoo-ubuntu-24.04",
             "dx-modelzoo-ubuntu-22.04",
             "dx-modelzoo-ubuntu-20.04",
             "dx-modelzoo-ubuntu-18.04",
             "dx-modelzoo-debian-12",
             "dx-modelzoo-debian-13",
+            "dx-runtime-ubuntu-26.04",
             "dx-runtime-ubuntu-24.04",
             "dx-runtime-ubuntu-22.04",
             "dx-runtime-ubuntu-20.04",
@@ -142,6 +165,7 @@ class TestLocalInstallDockerBuild:
         env["OS_TYPE"] = os_type
         env["VERSION"] = version
         env["VERSION_DASH"] = version.replace(".", "-")
+        env["BASE_IMAGE"] = get_base_image(os_type, version)
 
         if not env.get("XAUTHORITY"):
             from pathlib import Path
@@ -215,15 +239,26 @@ class TestLocalInstallDockerRun:
     @pytest.mark.parametrize(
         "component,os_type,version",
         [
+            ("dx-compiler", "ubuntu", "26.04"),
             ("dx-compiler", "ubuntu", "24.04"),
             ("dx-compiler", "ubuntu", "22.04"),
             ("dx-compiler", "ubuntu", "20.04"),
+            ("dx-compiler", "fedora", "42"),
+            ("dx-compiler", "fedora", "43"),
+            ("dx-compiler", "fedora", "44"),
+            ("dx-compiler", "fedora", "45"),
+            ("dx-compiler", "rhel", "9"),
+            ("dx-compiler", "rhel", "10"),
+            ("dx-compiler", "centos", "stream9"),
+            ("dx-compiler", "centos", "stream10"),
+            ("dx-modelzoo", "ubuntu", "26.04"),
             ("dx-modelzoo", "ubuntu", "24.04"),
             ("dx-modelzoo", "ubuntu", "22.04"),
             ("dx-modelzoo", "ubuntu", "20.04"),
             ("dx-modelzoo", "ubuntu", "18.04"),
             ("dx-modelzoo", "debian", "12"),
             ("dx-modelzoo", "debian", "13"),
+            ("dx-runtime", "ubuntu", "26.04"),
             ("dx-runtime", "ubuntu", "24.04"),
             ("dx-runtime", "ubuntu", "22.04"),
             ("dx-runtime", "ubuntu", "20.04"),
@@ -232,15 +267,26 @@ class TestLocalInstallDockerRun:
             ("dx-runtime", "debian", "13"),
         ],
         ids=[
+            "dx-compiler-ubuntu-26.04",
             "dx-compiler-ubuntu-24.04",
             "dx-compiler-ubuntu-22.04",
             "dx-compiler-ubuntu-20.04",
+            "dx-compiler-fedora-42",
+            "dx-compiler-fedora-43",
+            "dx-compiler-fedora-44",
+            "dx-compiler-fedora-45",
+            "dx-compiler-rhel-9",
+            "dx-compiler-rhel-10",
+            "dx-compiler-centos-stream9",
+            "dx-compiler-centos-stream10",
+            "dx-modelzoo-ubuntu-26.04",
             "dx-modelzoo-ubuntu-24.04",
             "dx-modelzoo-ubuntu-22.04",
             "dx-modelzoo-ubuntu-20.04",
             "dx-modelzoo-ubuntu-18.04",
             "dx-modelzoo-debian-12",
             "dx-modelzoo-debian-13",
+            "dx-runtime-ubuntu-26.04",
             "dx-runtime-ubuntu-24.04",
             "dx-runtime-ubuntu-22.04",
             "dx-runtime-ubuntu-20.04",
@@ -296,6 +342,7 @@ class TestLocalInstallDockerRun:
         env["COMPONENT"] = component
         env["LOCAL_VOLUME_PATH"] = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
         env["DOCKER_VOLUME_PATH"] = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
+        env["BASE_IMAGE"] = get_base_image(os_type, version)
 
         if not env.get("XAUTHORITY"):
             dummy_xauth = "/tmp/dummy"
@@ -356,15 +403,26 @@ class TestLocalInstallation:
     @pytest.mark.parametrize(
         "component,os_type,version",
         [
+            ("dx-compiler", "ubuntu", "26.04"),
             ("dx-compiler", "ubuntu", "24.04"),
             ("dx-compiler", "ubuntu", "22.04"),
             ("dx-compiler", "ubuntu", "20.04"),
+            ("dx-compiler", "fedora", "42"),
+            ("dx-compiler", "fedora", "43"),
+            ("dx-compiler", "fedora", "44"),
+            ("dx-compiler", "fedora", "45"),
+            ("dx-compiler", "rhel", "9"),
+            ("dx-compiler", "rhel", "10"),
+            ("dx-compiler", "centos", "stream9"),
+            ("dx-compiler", "centos", "stream10"),
+            ("dx-modelzoo", "ubuntu", "26.04"),
             ("dx-modelzoo", "ubuntu", "24.04"),
             ("dx-modelzoo", "ubuntu", "22.04"),
             ("dx-modelzoo", "ubuntu", "20.04"),
             ("dx-modelzoo", "ubuntu", "18.04"),
             ("dx-modelzoo", "debian", "12"),
             ("dx-modelzoo", "debian", "13"),
+            ("dx-runtime", "ubuntu", "26.04"),
             ("dx-runtime", "ubuntu", "24.04"),
             ("dx-runtime", "ubuntu", "22.04"),
             ("dx-runtime", "ubuntu", "20.04"),
@@ -373,15 +431,26 @@ class TestLocalInstallation:
             ("dx-runtime", "debian", "13"),
         ],
         ids=[
+            "dx-compiler-ubuntu-26.04",
             "dx-compiler-ubuntu-24.04",
             "dx-compiler-ubuntu-22.04",
             "dx-compiler-ubuntu-20.04",
+            "dx-compiler-fedora-42",
+            "dx-compiler-fedora-43",
+            "dx-compiler-fedora-44",
+            "dx-compiler-fedora-45",
+            "dx-compiler-rhel-9",
+            "dx-compiler-rhel-10",
+            "dx-compiler-centos-stream9",
+            "dx-compiler-centos-stream10",
+            "dx-modelzoo-ubuntu-26.04",
             "dx-modelzoo-ubuntu-24.04",
             "dx-modelzoo-ubuntu-22.04",
             "dx-modelzoo-ubuntu-20.04",
             "dx-modelzoo-ubuntu-18.04",
             "dx-modelzoo-debian-12",
             "dx-modelzoo-debian-13",
+            "dx-runtime-ubuntu-26.04",
             "dx-runtime-ubuntu-24.04",
             "dx-runtime-ubuntu-22.04",
             "dx-runtime-ubuntu-20.04",

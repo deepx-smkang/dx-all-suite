@@ -2,11 +2,11 @@
 Docker Build Test Suite for dx-all-suite
 
 This test suite validates Docker image builds for:
-- dx-runtime (Ubuntu 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
-- dx-modelzoo (Ubuntu 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
-- dx-compiler (Ubuntu 24.04, 22.04, 20.04)
+- dx-runtime (Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
+- dx-modelzoo (Ubuntu 26.04, 24.04, 22.04, 20.04, 18.04, Debian 12, Debian 13)
+- dx-compiler (Ubuntu 26.04, 24.04, 22.04, 20.04, Fedora 42-45, RHEL 9-10, CentOS Stream 9-10)
 
-Total: 15 test cases
+Total: 26 test cases
 """
 
 import pytest
@@ -68,7 +68,8 @@ class TestDockerBuild:
     """Docker image build tests"""
 
     @pytest.mark.parametrize("target,os_type,version", [
-        # dx-runtime tests (6 configurations)
+        # dx-runtime tests (7 configurations)
+        ("dx-runtime", "ubuntu", "26.04"),
         ("dx-runtime", "ubuntu", "24.04"),
         ("dx-runtime", "ubuntu", "22.04"),
         ("dx-runtime", "ubuntu", "20.04"),
@@ -76,7 +77,8 @@ class TestDockerBuild:
         ("dx-runtime", "debian", "12"),
         ("dx-runtime", "debian", "13"),
 
-        # dx-modelzoo tests (6 configurations)
+        # dx-modelzoo tests (7 configurations)
+        ("dx-modelzoo", "ubuntu", "26.04"),
         ("dx-modelzoo", "ubuntu", "24.04"),
         ("dx-modelzoo", "ubuntu", "22.04"),
         ("dx-modelzoo", "ubuntu", "20.04"),
@@ -84,10 +86,19 @@ class TestDockerBuild:
         ("dx-modelzoo", "debian", "12"),
         ("dx-modelzoo", "debian", "13"),
 
-        # dx-compiler tests (3 configurations - Ubuntu only)
+        # dx-compiler tests (4 Ubuntu + 8 Red Hat family configurations)
+        ("dx-compiler", "ubuntu", "26.04"),
         ("dx-compiler", "ubuntu", "24.04"),
         ("dx-compiler", "ubuntu", "22.04"),
         ("dx-compiler", "ubuntu", "20.04"),
+        ("dx-compiler", "fedora", "42"),
+        ("dx-compiler", "fedora", "43"),
+        ("dx-compiler", "fedora", "44"),
+        ("dx-compiler", "fedora", "45"),
+        ("dx-compiler", "rhel", "9"),
+        ("dx-compiler", "rhel", "10"),
+        ("dx-compiler", "centos", "stream9"),
+        ("dx-compiler", "centos", "stream10"),
     ])
     def test_docker_build(self, target, os_type, version):
         """
@@ -95,8 +106,8 @@ class TestDockerBuild:
 
         Args:
             target: Docker build target (dx-runtime, dx-modelzoo, dx-compiler)
-            os_type: OS type (ubuntu or debian)
-            version: OS version (24.04, 22.04, 20.04, 18.04, 12, 13)
+            os_type: OS type (ubuntu, debian, fedora, rhel, or centos)
+            version: OS version (24.04, 22.04, 20.04, 18.04, 12, 13, 42, 9, stream9, etc.)
         """
         # Build command
         cmd = [

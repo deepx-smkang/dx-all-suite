@@ -21,10 +21,37 @@
 #
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOCAL_SCRIPT="${SCRIPT_DIR}/test_local/test_local.sh"
 DOCKER_SCRIPT="${SCRIPT_DIR}/test_docker/test_docker.sh"
 VENV_DIR="${SCRIPT_DIR}/venv"
 REQUIREMENTS_FILE="${SCRIPT_DIR}/requirements.txt"
+
+# Restore file permissions that may be changed by Docker containers.
+# Docker entrypoint (init-workspace.sh) runs chmod -R 775 on mounted volumes,
+# which changes 644 files to 775. This function reverts permission-only changes.
+restore_git_permissions() {
+    local repo_root="$REPO_ROOT"
+    [ -d "$repo_root/.git" ] || return 0
+    # Find files where mode changed (e.g., 100644 -> 100755 due to chmod -R 775)
+    git -C "$repo_root" diff --raw 2>/dev/null | while IFS= read -r line; do
+        local old_mode new_mode filepath
+        old_mode=$(echo "$line" | sed 's/^:\([0-9]*\) .*/\1/')
+        new_mode=$(echo "$line" | sed 's/^:[0-9]* \([0-9]*\) .*/\1/')
+        filepath=$(echo "$line" | sed 's/.*\t//')
+        [ -z "$filepath" ] && continue
+        # Only restore if the mode actually changed
+        if [ "$old_mode" != "$new_mode" ]; then
+            if [ "$old_mode" = "100644" ]; then
+                chmod 644 "$repo_root/$filepath" 2>/dev/null
+            elif [ "$old_mode" = "100755" ]; then
+                chmod 755 "$repo_root/$filepath" 2>/dev/null
+            fi
+        fi
+    done
+}
+
+trap restore_git_permissions EXIT
 
 # Color codes
 BLUE='\033[0;34m'
@@ -154,7 +181,7 @@ print_usage() {
     echo -e "Keyword Filters:"
     echo -e "  ${GREEN}Target keywords${NC}     - compiler | modelzoo | runtime (e.g. -k \"compiler\") "
     echo -e "  ${GREEN}OS type keywords${NC}    - ubuntu | debian (e.g. -k \"ubuntu\")"
-    echo -e "  ${GREEN}OS version keywords${NC} - 24.04 | 22.04 | 20.04 | 18.04 | 12 | 13 (e.g. -k \"debian and 12\")"
+    echo -e "  ${GREEN}OS version keywords${NC} - 26.04 | 24.04 | 22.04 | 20.04 | 18.04 | 12 | 13 (e.g. -k \"debian and 12\")"
     echo -e ""
     echo -e "Examples:"
     echo -e "  ./test.sh sanity"
