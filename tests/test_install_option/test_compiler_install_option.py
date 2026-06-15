@@ -2,7 +2,7 @@
 dx-compiler install.sh option coverage test suite (kcov).
 
 Goal: exercise as many install.sh option branches as possible on a single OS
-(Ubuntu 26.04) inside a container, measuring bash line coverage with kcov.
+(Ubuntu 24.04) inside a container, measuring bash line coverage with kcov.
 
 Excluded options (being removed): --venv_symlink_target_path, --docker_volume_path.
 
@@ -30,7 +30,7 @@ from conftest import (  # noqa: E402
 pytestmark = [pytest.mark.install_option, pytest.mark.compiler]
 
 OS_TYPE = "ubuntu"
-VERSION = "26.04"
+VERSION = "24.04"
 COMPONENT = "optcov-compiler"
 
 # Paths inside the container (workspace mounted at /deepx/workspace).
