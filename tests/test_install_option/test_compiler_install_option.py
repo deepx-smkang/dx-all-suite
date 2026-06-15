@@ -110,7 +110,7 @@ def test_compiler_install_option_coverage(
 
     name = compiler_cov_container
     out_dir = f"{COV_ROOT}/run-{combo_id}"
-    script = f"DEBIAN_FRONTEND=noninteractive ./dx-compiler/install.sh {args}".strip()
+    script = f"./dx-compiler/install.sh {args}".strip()
     cmd = f"cd {WS} && " + kcov_run_cmd(out_dir, INCLUDE_PATH, script)
 
     result = run_in_container(
