@@ -459,16 +459,20 @@ class TestLocalInstallation:
             "dx-runtime-debian-13",
         ],
     )
-    def test_install_component(self, component, os_type, version, capsys):
+    def test_install_component(self, component, os_type, version, capsys,
+                               install_host_npu_stack):
         """
         Test component installation in container.
-        For dx-runtime, also installs driver and runtime on host first.
+        For dx-runtime, the host NPU driver (and firmware unless excluded) is ensured
+        once via the install_host_npu_stack fixture (version-gated, lock-serialized),
+        so this per-OS test only validates the in-container dx_rt install.
 
         Args:
             component: Component name (dx-compiler, dx-modelzoo, dx-runtime)
             os_type: OS type (ubuntu, debian)
             version: OS version (24.04, 22.04, etc.)
             capsys: Pytest fixture for capturing output
+            install_host_npu_stack: session prerequisite ensuring host driver/fw once
         """
         container_name_str = container_name(os_type, version, component)
 
@@ -476,54 +480,14 @@ class TestLocalInstallation:
         if not is_container_running(container_name_str):
             pytest.fail(f"Container {container_name_str} is not running. Run docker run test first.")
 
-        # For dx-runtime, install driver and runtime on host first
+        # For dx-runtime, ensure the host NPU stack (driver/fw) exactly once.
+        # Driver is a host kernel-module singleton (orthogonal to the container OS),
+        # so it is installed a single time and version-gated rather than per-OS.
         if component == "dx-runtime":
             print("\n" + "=" * 80)
-            print("Installing dx-runtime dependencies on host")
+            print("Ensuring host NPU stack (driver/fw) once")
             print("=" * 80 + "\n")
-
-            # Step 1: Install dx_rt_npu_linux_driver on host
-            cmd = ["./dx-runtime/install.sh", "--target=dx_rt_npu_linux_driver"]
-            result = run_command(cmd, "Installing dx_rt_npu_linux_driver", cwd=PROJECT_ROOT, capsys=capsys)
-            if result.returncode != 0:
-                pytest.fail(
-                    "\n".join([
-                        "",
-                        "=" * 80,
-                        "DX_RT_NPU_LINUX_DRIVER INSTALL FAILED",
-                        "=" * 80,
-                        f"Exit Code: {result.returncode}",
-                        f"Command: {' '.join(cmd)}",
-                        "",
-                        "STDOUT:",
-                        "-" * 80,
-                        result.stdout or "(no stdout)",
-                        "-" * 80,
-                        "",
-                    ])
-                )
-
-            # Step 2: Install dx-runtime on host
-            cmd = ["./dx-runtime/install.sh", "--target=dx_rt"]
-            result = run_command(cmd, "Installing dx_rt", cwd=PROJECT_ROOT, capsys=capsys)
-
-            if result.returncode != 0:
-                pytest.fail(
-                    "\n".join([
-                        "",
-                        "=" * 80,
-                        "DX_RT INSTALL FAILED",
-                        "=" * 80,
-                        f"Exit Code: {result.returncode}",
-                        f"Command: {' '.join(cmd)}",
-                        "",
-                        "STDOUT:",
-                        "-" * 80,
-                        result.stdout or "(no stdout)",
-                        "-" * 80,
-                        "",
-                    ])
-                )
+            install_host_npu_stack(capsys=capsys)
 
         # Build install command based on component
         if component == "dx-runtime":

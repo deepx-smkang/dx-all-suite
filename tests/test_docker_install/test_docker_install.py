@@ -100,7 +100,7 @@ class TestDockerBuild:
         ("dx-compiler", "centos", "stream9"),
         ("dx-compiler", "centos", "stream10"),
     ])
-    def test_docker_build(self, target, os_type, version):
+    def test_docker_build(self, target, os_type, version, archive_once):
         """
         Test Docker image build for specific target and OS version
 
@@ -108,13 +108,16 @@ class TestDockerBuild:
             target: Docker build target (dx-runtime, dx-modelzoo, dx-compiler)
             os_type: OS type (ubuntu, debian, fedora, rhel, or centos)
             version: OS version (24.04, 22.04, 20.04, 18.04, 12, 13, 42, 9, stream9, etc.)
+            archive_once: session fixture that builds shared archives once (Phase 0),
+                          enabling safe parallel builds with --skip-archive.
         """
-        # Build command
+        # Build command. Archives are produced once by the archive_once fixture,
+        # so every (parallel) build skips archiving to avoid racing on shared files.
         cmd = [
             str(DOCKER_BUILD_SCRIPT),
             f"--target={target}",
             f"--{os_type}_version={version}",
-            # "--skip-archive",  # Skip archiving to speed up tests
+            "--skip-archive",
         ]
 
         # Add --internal flag if DX_TEST_INTERNAL is set

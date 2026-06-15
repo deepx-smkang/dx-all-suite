@@ -5,3 +5,7 @@ pytest-json-report>=1.5.0
 
 # Additional utilities
 pytest-timeout>=2.2.0
+
+# Parallel execution and host-resource locking
+pytest-xdist>=3.5.0
+filelock>=3.13.0

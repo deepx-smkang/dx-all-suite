@@ -3,7 +3,9 @@ Shared utilities and configuration for all test suites.
 """
 
 import os
+import re
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +15,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = REPO_ROOT  # Alias for compatibility
 GETTING_STARTED_DIR = REPO_ROOT / "getting-started"
 DEFAULT_TIMEOUT = int(os.getenv("DX_TEST_GETTING_STARTED_TIMEOUT", "3600"))
+
+# Expected NPU stack version files (authoritative source of truth).
+DRIVER_RELEASE_VER = REPO_ROOT / "dx-runtime" / "dx_rt_npu_linux_driver" / "release.ver"
+FW_RELEASE_VER = REPO_ROOT / "dx-runtime" / "dx_fw" / "release.ver"
+
+# Host-level locks. Shared across xdist workers AND separate test sessions so that
+# NPU driver install / firmware flash never run concurrently (see plan sections 4-1, 4-2, 5-1).
+HOST_NPU_LOCK = os.getenv("DX_HOST_NPU_LOCK", "/tmp/dx-host-npu.lock")
+HOST_EXCLUSIVE_LOCK = os.getenv("DX_HOST_EXCLUSIVE_LOCK", "/tmp/dx-host-exclusive.lock")
+ARCHIVE_LOCK = os.getenv("DX_ARCHIVE_LOCK", "/tmp/dx-archive.lock")
+ARCHIVE_DONE_FLAG = os.getenv("DX_ARCHIVE_DONE_FLAG", "/tmp/dx-archive.done")
 
 
 def is_verbose() -> bool:
@@ -282,3 +295,348 @@ def run_command(
             stdout=combined_output,
             stderr=result.stderr,
         )
+
+
+# ============================================================================
+# Version parsing helpers (NPU driver / firmware / runtime)
+# ============================================================================
+
+def read_first_line(path) -> str | None:
+    """Read and return the first non-empty line of a file, or None if missing."""
+    try:
+        with open(path, "r") as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped:
+                    return stripped
+    except (FileNotFoundError, OSError):
+        return None
+    return None
+
+
+def normalize_version(value: str | None) -> str | None:
+    """Normalize a version string to a canonical 'vX.Y.Z' form for exact comparison."""
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    return value if value.startswith("v") else f"v{value}"
+
+
+def parse_dxrt_cli_versions(output: str) -> dict:
+    """
+    Parse `dxrt-cli -s` output into a dict of normalized versions.
+
+    Returns keys when present: 'dx-rt', 'dx-fw', 'npu-driver'.
+    Expected source lines look like:
+        DXRT vX.Y.Z
+        * FW version   : vX.Y.Z
+        * RT Driver version : vX.Y.Z
+    """
+    versions: dict = {}
+    for line in (output or "").splitlines():
+        m = re.search(r"DXRT\s+v?([0-9][0-9.]*)", line)
+        if m:
+            versions["dx-rt"] = normalize_version(m.group(1))
+        m = re.search(r"FW\s*version\s*:\s*v?([0-9][0-9.]*)", line, re.IGNORECASE)
+        if m:
+            versions["dx-fw"] = normalize_version(m.group(1))
+        m = re.search(r"RT\s*Driver\s*version\s*:\s*v?([0-9][0-9.]*)", line, re.IGNORECASE)
+        if m:
+            versions["npu-driver"] = normalize_version(m.group(1))
+    return versions
+
+
+def get_installed_npu_versions() -> dict:
+    """Query installed NPU stack versions via `dxrt-cli -s`. Empty dict if unavailable."""
+    if shutil.which("dxrt-cli") is None:
+        return {}
+    try:
+        result = subprocess.run(
+            ["dxrt-cli", "-s"], capture_output=True, text=True, timeout=60
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return {}
+    if result.returncode != 0:
+        return {}
+    return parse_dxrt_cli_versions(result.stdout)
+
+
+# ============================================================================
+# Host NPU stack (driver / firmware) — version-gated, lock-serialized install
+# ============================================================================
+
+def _filelock():
+    """Import filelock lazily so collection works even before deps are installed."""
+    from filelock import FileLock
+    return FileLock
+
+
+def _run_host_install(target: str, banner: str, capsys=None):
+    cmd = ["./dx-runtime/install.sh", f"--target={target}"]
+    result = run_command(cmd, banner, cwd=PROJECT_ROOT, capsys=capsys)
+    if result.returncode != 0:
+        pytest.fail(
+            f"Host install failed: {' '.join(cmd)}\n{result.stdout or ''}"
+        )
+
+
+def _ensure_host_npu_stack_impl(capsys=None) -> None:
+    """
+    Ensure the host NPU stack matches the expected release versions, exactly once,
+    serialized across xdist workers / sessions via the shared host NPU lock.
+
+    Version source of truth: dx-runtime/.../release.ver. Installed versions are read
+    from `dxrt-cli -s` (which ships with dx_rt), so dx_rt is bootstrapped on the host
+    first if `dxrt-cli` is missing. Firmware is flashed only when DX_EXCLUDE_FW != 1.
+    """
+    expected_driver = normalize_version(read_first_line(DRIVER_RELEASE_VER))
+    if expected_driver is None:
+        pytest.skip(f"driver release.ver not found: {DRIVER_RELEASE_VER}")
+    expected_fw = normalize_version(read_first_line(FW_RELEASE_VER))
+    flash_fw = os.getenv("DX_EXCLUDE_FW", "0") != "1"
+
+    def _gates_satisfied() -> bool:
+        if shutil.which("dxrt-cli") is None:
+            return False
+        versions = get_installed_npu_versions()
+        if versions.get("npu-driver") != expected_driver:
+            return False
+        if flash_fw and versions.get("dx-fw") != expected_fw:
+            return False
+        return True
+
+    # Fast path: everything already at the expected version, no lock contention.
+    if _gates_satisfied():
+        return
+
+    FileLock = _filelock()
+    with FileLock(HOST_NPU_LOCK):
+        # Double-check inside the lock (another worker may have just finished).
+        if _gates_satisfied():
+            return
+
+        # Bootstrap dxrt-cli (driver + dx_rt) so version gating is possible.
+        if shutil.which("dxrt-cli") is None:
+            _run_host_install("dx_rt_npu_linux_driver",
+                              "Installing NPU driver (host bootstrap)", capsys)
+            _run_host_install("dx_rt", "Installing dx_rt (host bootstrap)", capsys)
+
+        # Driver version gate.
+        if get_installed_npu_versions().get("npu-driver") != expected_driver:
+            _run_host_install("dx_rt_npu_linux_driver",
+                              "Updating NPU driver (host, once)", capsys)
+            installed = get_installed_npu_versions().get("npu-driver")
+            if installed != expected_driver:
+                pytest.fail(
+                    f"Host NPU driver version mismatch after install: "
+                    f"expected {expected_driver}, got {installed}"
+                )
+
+        # Firmware version gate (irreversible flash; strictly serialized).
+        if flash_fw and get_installed_npu_versions().get("dx-fw") != expected_fw:
+            _run_host_install("dx_fw", "Flashing NPU firmware (host, once)", capsys)
+
+
+@pytest.fixture(scope="session")
+def install_host_npu_stack():
+    """
+    Session-scoped prerequisite: ensure host NPU driver/dx_rt (and firmware unless
+    excluded) are present at the expected versions exactly once, serialized across
+    workers.
+
+    Returns a callable so tests can trigger it explicitly inside their own capsys scope.
+    """
+    def _install(capsys=None):
+        _ensure_host_npu_stack_impl(capsys=capsys)
+
+    return _install
+
+
+# ============================================================================
+# host_exclusive serialization (across xdist workers)
+# ============================================================================
+
+@pytest.fixture(autouse=True)
+def _host_exclusive_serialize(request):
+    """Serialize any test marked host_exclusive behind a shared filelock."""
+    if request.node.get_closest_marker("host_exclusive") is None:
+        yield
+        return
+    FileLock = _filelock()
+    with FileLock(HOST_EXCLUSIVE_LOCK):
+        yield
+
+
+# ============================================================================
+# kcov helpers (bash coverage of install.sh, run inside containers)
+# ============================================================================
+
+def kcov_run_cmd(out_dir: str, include_path: str, script_and_args: str) -> str:
+    """
+    Build a kcov command string that instruments a bash script invocation.
+
+    Args:
+        out_dir: kcov output directory (per-combo, under the mounted workspace)
+        include_path: restrict coverage collection to this path (the target script dir)
+        script_and_args: the bash command to run under kcov (e.g. './dx-compiler/install.sh --target=dx_com')
+    """
+    return (
+        f"mkdir -p {shlex.quote(out_dir)} && "
+        f"kcov --bash-method=DEBUG --include-path={shlex.quote(include_path)} "
+        f"{shlex.quote(out_dir)} {script_and_args}"
+    )
+
+
+def kcov_merge_cmd(merged_dir: str, run_glob: str) -> str:
+    """Build a kcov --merge command string combining per-combo run dirs."""
+    return (
+        f"mkdir -p {shlex.quote(merged_dir)} && "
+        f"kcov --merge {shlex.quote(merged_dir)} {run_glob}"
+    )
+
+
+# ============================================================================
+# Auto-assign xdist groups so parallel runs stay safe (see plan section 6)
+# ============================================================================
+
+def pytest_collection_modifyitems(config, items):
+    """
+    Assign xdist_group markers based on suite/parameters so that, under
+    `-n <N> --dist loadgroup`, dependent/host-mutating tests stay on one worker.
+    """
+    for item in items:
+        # local_install: pin each OS-version pipeline (build->run->install) to one worker.
+        if item.get_closest_marker("local_install"):
+            params = getattr(getattr(item, "callspec", None), "params", {}) or {}
+            os_type = params.get("os_type")
+            version = params.get("version")
+            if os_type and version:
+                item.add_marker(pytest.mark.xdist_group(f"{os_type}-{version}"))
+
+        # getting-started: single group + host_exclusive (sequential workflow, host mutating).
+        if item.get_closest_marker("getting_started"):
+            item.add_marker(pytest.mark.xdist_group("getting_started"))
+            item.add_marker(pytest.mark.host_exclusive)
+
+        # install_option (kcov): single group, shared workspace -> serialize within suite.
+        if item.get_closest_marker("install_option"):
+            item.add_marker(pytest.mark.xdist_group("install_option"))
+
+
+# ============================================================================
+# Reusable local-install docker helpers (image build + container start)
+# ============================================================================
+
+def compose_env(component: str, os_type: str, version: str) -> dict:
+    """Build the environment dict used by the local-install docker-compose file."""
+    env = os.environ.copy()
+    env["COMPOSE_BAKE"] = "true"
+    env["HOST_UID"] = str(os.getuid())
+    env["HOST_GID"] = str(os.getgid())
+    env["TARGET_USER"] = "deepx"
+    env["TARGET_HOME"] = "/deepx"
+    env["OS_TYPE"] = os_type
+    env["VERSION"] = version
+    env["VERSION_DASH"] = version.replace(".", "-")
+    env["COMPONENT"] = component
+    env["BASE_IMAGE"] = get_base_image(os_type, version)
+    env["LOCAL_VOLUME_PATH"] = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
+    env["DOCKER_VOLUME_PATH"] = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
+
+    if not env.get("XAUTHORITY"):
+        dummy_xauth = "/tmp/dummy"
+        Path(dummy_xauth).touch(exist_ok=True)
+        env["XAUTHORITY"] = dummy_xauth
+        env["XAUTHORITY_TARGET"] = dummy_xauth
+    else:
+        env["XAUTHORITY_TARGET"] = "/tmp/.docker.xauth"
+
+    for key in ("USE_INTRANET", "CA_FILE_NAME", "DISPLAY"):
+        if not env.get(key):
+            env[key] = ""
+    return env
+
+
+def compose_config_args(env: dict) -> list[str]:
+    """Compose -f config file args, honoring optional GPU/internal overlays."""
+    args = ["-f", "tests/docker/docker-compose.local.install.test.yml"]
+    if env.get("DX_TEST_NVIDIA_GPU", "0").lower() in {"1", "true", "yes", "y"}:
+        args.extend(["-f", "docker/docker-compose.nvidia_gpu.yml"])
+    if env.get("DX_TEST_INTERNAL", "0").lower() in {"1", "true", "yes", "y"}:
+        args.extend(["-f", "docker/docker-compose.internal.yml"])
+    return args
+
+
+def build_local_install_image(component: str, os_type: str, version: str) -> None:
+    """Build the local-install docker image if it does not already exist."""
+    if check_docker_image_exists(os_type, version):
+        return
+    env = compose_env(component, os_type, version)
+    no_cache = []
+    if env.get("DX_TEST_NO_CACHE", "0").lower() in {"1", "true", "yes", "y"}:
+        no_cache = ["--no-cache"]
+    cmd = ["docker", "compose", *compose_config_args(env), "build", *no_cache,
+           "dx-local-install-test"]
+    result = subprocess.run(cmd, capture_output=True, text=True,
+                            cwd=str(PROJECT_ROOT), env=env, timeout=1800)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Failed to build image for {os_type}:{version}\n"
+            f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+        )
+
+
+def start_local_install_container(component: str, os_type: str, version: str) -> str:
+    """(Re)create and start a local-install container, returning its name."""
+    name = container_name(os_type, version, component)
+    subprocess.run(["docker", "rm", "-f", name], capture_output=True, text=True)
+    env = compose_env(component, os_type, version)
+    cmd = ["docker", "compose", *compose_config_args(env), "up", "-d",
+           "dx-local-install-test"]
+    result = subprocess.run(cmd, capture_output=True, text=True,
+                            cwd=str(PROJECT_ROOT), env=env, timeout=600)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Failed to start container {name}\n"
+            f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+        )
+    return name
+
+
+def remove_container(name: str) -> None:
+    """Force-remove a container, ignoring errors."""
+    subprocess.run(["docker", "rm", "-f", name], capture_output=True, text=True)
+
+
+# ============================================================================
+# Archive-once prerequisite for parallel docker_install (see plan section 7, Phase 0)
+# ============================================================================
+
+@pytest.fixture(scope="session")
+def archive_once():
+    """
+    Produce the shared archives/*.tar.gz exactly once, serialized across workers.
+
+    docker_build.sh writes OS-independent archives to the repo-shared archives/ dir;
+    running it per-build in parallel races on those files. This fixture builds them
+    once up front so every parallel docker build can safely pass --skip-archive.
+    """
+    FileLock = _filelock()
+    with FileLock(ARCHIVE_LOCK):
+        if os.path.exists(ARCHIVE_DONE_FLAG):
+            return
+        archive_cmds = [
+            ["./scripts/archive_dx-compiler.sh"],
+            ["./scripts/archive_git_repos.sh", "--target=dx-runtime"],
+            ["./scripts/archive_git_repos.sh", "--target=dx-modelzoo"],
+        ]
+        for cmd in archive_cmds:
+            result = run_command(cmd, f"Archiving (once): {' '.join(cmd)}",
+                                 cwd=PROJECT_ROOT, timeout=7200)
+            if result.returncode != 0:
+                pytest.fail(
+                    f"archive_once failed: {' '.join(cmd)}\n{result.stdout or ''}"
+                )
+        Path(ARCHIVE_DONE_FLAG).touch()
