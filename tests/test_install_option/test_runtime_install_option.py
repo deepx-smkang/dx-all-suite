@@ -1,14 +1,12 @@
 """
-dx-runtime install.sh option coverage test suite (kcov).
+dx-runtime install.sh option test suite.
 
 Goal: exercise as many install.sh option branches as possible on a single OS
-(Ubuntu 26.04) inside a container, measuring bash line coverage with kcov.
+(Ubuntu 24.04) inside a container by running install.sh with various option
+combinations and asserting the expected success/failure outcome.
 
 Because the script runs inside docker (no physical NPU access), every real combo
 ALWAYS appends --exclude-fw --exclude-driver so firmware/driver are never touched.
-
-Coverage output is written under the mounted workspace at
-tests/_coverage/runtime/ so it is collectable on the host, then merged.
 """
 
 import os
@@ -24,30 +22,20 @@ from conftest import (  # noqa: E402
     remove_container,
     is_container_running,
     run_in_container,
-    kcov_run_cmd,
-    kcov_merge_cmd,
 )
 
 pytestmark = [pytest.mark.install_option, pytest.mark.runtime]
 
 OS_TYPE = "ubuntu"
-VERSION = "26.04"
+VERSION = "24.04"
 COMPONENT = "optcov-runtime"
 
 WS = "/deepx/workspace"
-INCLUDE_PATH = f"{WS}/dx-runtime"
-COV_ROOT = f"{WS}/tests/_coverage/runtime"
-MERGED_DIR = f"{COV_ROOT}/merged"
 
 INSTALL_TIMEOUT = 10800
 
 # Mandatory flags for every real combo (docker has no NPU hardware).
 EXCLUDE = "--exclude-fw --exclude-driver"
-
-_APT_PREP = (
-    "sudo apt-get update && "
-    "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y kcov"
-)
 
 # combo_id, install.sh args (EXCLUDE auto-appended unless light), expect_success, heavy
 COMBOS = [
@@ -68,32 +56,16 @@ COMBOS = [
 
 
 @pytest.fixture(scope="module")
-def runtime_cov_container():
-    """Build image + start container, prepare kcov, and merge coverage on teardown."""
+def runtime_container():
+    """Build image + start container; drop the container on teardown."""
     build_local_install_image(COMPONENT, OS_TYPE, VERSION)
     name = start_local_install_container(COMPONENT, OS_TYPE, VERSION)
     if not is_container_running(name):
         remove_container(name)
         pytest.fail(f"Container {name} failed to start")
 
-    prep = run_in_container(
-        name,
-        f"set -e; cd {WS}; rm -rf {COV_ROOT}; mkdir -p {COV_ROOT}; {_APT_PREP}",
-        banner_msg="Preparing kcov + apt (dx-runtime)",
-        timeout=1800,
-    )
-    if prep.returncode != 0:
-        remove_container(name)
-        pytest.fail(f"kcov/apt preparation failed in {name}\n{prep.stdout}")
-
     yield name
 
-    run_in_container(
-        name,
-        kcov_merge_cmd(MERGED_DIR, f"{COV_ROOT}/run-*"),
-        banner_msg="Merging dx-runtime coverage",
-        timeout=600,
-    )
     remove_container(name)
 
 
@@ -102,22 +74,21 @@ def runtime_cov_container():
     COMBOS,
     ids=[c[0] for c in COMBOS],
 )
-def test_runtime_install_option_coverage(
-    runtime_cov_container, combo_id, args, expect_success, heavy, capsys
+def test_runtime_install_option(
+    runtime_container, combo_id, args, expect_success, heavy, capsys
 ):
-    """Run dx-runtime/install.sh under kcov for one option combo (always exclude fw/driver)."""
+    """Run dx-runtime/install.sh for one option combo (always exclude fw/driver)."""
     if heavy and os.getenv("DX_INSTALL_OPTION_HEAVY", "1") == "0":
         pytest.skip("heavy install combos disabled (DX_INSTALL_OPTION_HEAVY=0)")
 
-    name = runtime_cov_container
-    out_dir = f"{COV_ROOT}/run-{combo_id}"
+    name = runtime_container
     script = f"./dx-runtime/install.sh {args}".strip()
-    cmd = f"cd {WS} && " + kcov_run_cmd(out_dir, INCLUDE_PATH, script)
+    cmd = f"cd {WS} && {script}"
 
     result = run_in_container(
         name,
         cmd,
-        banner_msg=f"kcov dx-runtime install.sh [{combo_id}]",
+        banner_msg=f"dx-runtime install.sh [{combo_id}]",
         timeout=INSTALL_TIMEOUT,
         capsys=capsys,
     )

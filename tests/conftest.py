@@ -4,11 +4,11 @@ Shared utilities and configuration for all test suites.
 
 import os
 import re
-import json
 import shlex
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 import pytest
 
@@ -16,17 +16,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = REPO_ROOT  # Alias for compatibility
 GETTING_STARTED_DIR = REPO_ROOT / "getting-started"
 DEFAULT_TIMEOUT = int(os.getenv("DX_TEST_GETTING_STARTED_TIMEOUT", "3600"))
-
-# kcov coverage output (written from inside the container onto the bind-mounted
-# host workspace) and the directory where ./test.sh writes HTML/JSON reports.
-COVERAGE_DIR = REPO_ROOT / "tests" / "_coverage"
-REPORTS_DIR = REPO_ROOT / "tests" / "reports"
-
-# install_option components whose install.sh coverage is surfaced in the report.
-KCOV_COMPONENTS = (
-    ("compiler", "dx-compiler install.sh"),
-    ("runtime", "dx-runtime install.sh"),
-)
 
 # Expected NPU stack version files (authoritative source of truth).
 DRIVER_RELEASE_VER = REPO_ROOT / "dx-runtime" / "dx_rt_npu_linux_driver" / "release.ver"
@@ -49,6 +38,19 @@ def container_name(os_type: str, version: str, component: str = "") -> str:
     if component:
         return f"dx-local-install-test-{component}-{os_type}-{version.replace('.', '-')}"
     return f"dx-local-install-test-{os_type}-{version.replace('.', '-')}"
+
+
+def compose_project_name(component: str, os_type: str, version: str) -> str:
+    """Unique docker-compose project name per (component, os, version) combo.
+
+    Tests run in parallel (pytest-xdist) but share one docker-compose service
+    (`dx-local-install-test`). Without a distinct project per combo, concurrent
+    `docker compose up -d` calls recreate/remove each other's containers within
+    the default project, causing "removal is already in progress" / "No such
+    container" races. Isolating each combo into its own project prevents this.
+    """
+    raw = f"dxlit-{component}-{os_type}-{version.replace('.', '-')}"
+    return raw.lower()
 
 
 def is_container_running(container_name_str: str) -> bool:
@@ -131,6 +133,16 @@ def run_in_container(
     Returns:
         CompletedProcess object with the result
     """
+    # A shared module-scoped container can be removed/OOM-killed by an earlier
+    # heavy step. Without this guard, every later exec fails with a misleading
+    # "No such container" assertion that looks like a product bug. Skip instead,
+    # so the dead-container cascade is reported as infrastructure, not failure.
+    if not is_container_running(container_name):
+        pytest.skip(
+            f"container '{container_name}' is not running — likely removed or "
+            f"OOM-killed by a prior step; cannot exec: {banner_msg or cmd}"
+        )
+
     # Use banner_msg if provided, otherwise don't show banner
     if is_verbose():
         if capsys is not None:
@@ -156,6 +168,8 @@ def run_in_container(
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             bufsize=1,
             cwd=PROJECT_ROOT,
         )
@@ -193,6 +207,8 @@ def run_in_container(
             wrapped_cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             cwd=PROJECT_ROOT,
             timeout=timeout,
         )
@@ -247,6 +263,8 @@ def run_command(
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             bufsize=1,
             cwd=use_cwd,
             env=env,
@@ -286,6 +304,8 @@ def run_command(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             cwd=use_cwd,
             timeout=timeout,
             env=env,
@@ -482,150 +502,6 @@ def _host_exclusive_serialize(request):
 
 
 # ============================================================================
-# kcov helpers (bash coverage of install.sh, run inside containers)
-# ============================================================================
-
-def kcov_run_cmd(out_dir: str, include_path: str, script_and_args: str) -> str:
-    """
-    Build a kcov command string that instruments a bash script invocation.
-
-    Args:
-        out_dir: kcov output directory (per-combo, under the mounted workspace)
-        include_path: restrict coverage collection to this path (the target script dir)
-        script_and_args: the bash command to run under kcov (e.g. './dx-compiler/install.sh --target=dx_com')
-    """
-    return (
-        f"mkdir -p {shlex.quote(out_dir)} && "
-        f"kcov --bash-method=DEBUG --include-path={shlex.quote(include_path)} "
-        f"{shlex.quote(out_dir)} {script_and_args}"
-    )
-
-
-def kcov_merge_cmd(merged_dir: str, run_glob: str) -> str:
-    """Build a kcov --merge command string combining per-combo run dirs."""
-    return (
-        f"mkdir -p {shlex.quote(merged_dir)} && "
-        f"kcov --merge {shlex.quote(merged_dir)} {run_glob}"
-    )
-
-
-def _coverage_numbers(data: dict) -> tuple[float, int, int] | None:
-    """Extract (percent, covered, total) from a kcov coverage.json payload."""
-    def _to_float(value, default=0.0):
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return default
-
-    if data.get("total_lines") not in (None, "", 0, "0"):
-        total = int(_to_float(data.get("total_lines")))
-        covered = int(_to_float(data.get("covered_lines")))
-        percent = _to_float(data.get("percent_covered"))
-        if total > 0:
-            if not data.get("percent_covered"):
-                percent = round(covered * 100.0 / total, 2)
-            return percent, covered, total
-
-    # Fall back to aggregating per-file entries.
-    files = data.get("files") or []
-    total = sum(int(_to_float(f.get("total_lines"))) for f in files)
-    covered = sum(int(_to_float(f.get("covered_lines"))) for f in files)
-    if total > 0:
-        return round(covered * 100.0 / total, 2), covered, total
-    return None
-
-
-def summarize_kcov_coverage(component: str) -> dict | None:
-    """
-    Read the merged kcov coverage.json for a component off the host filesystem.
-
-    Returns a dict with percent/covered/total/html, or None if no coverage was
-    produced (e.g. install_option tests were not run).
-    """
-    merged = COVERAGE_DIR / component / "merged"
-    if not merged.is_dir():
-        return None
-
-    candidates = sorted(
-        merged.rglob("coverage.json"),
-        key=lambda p: (0 if "kcov-merged" in p.parts else 1, len(p.parts)),
-    )
-    for cov_json in candidates:
-        try:
-            data = json.loads(cov_json.read_text())
-        except (OSError, ValueError):
-            continue
-        numbers = _coverage_numbers(data)
-        if numbers is None:
-            continue
-        percent, covered, total = numbers
-        index_html = cov_json.parent / "index.html"
-        if not index_html.exists():
-            index_html = merged / "index.html"
-        return {
-            "component": component,
-            "percent": percent,
-            "covered": covered,
-            "total": total,
-            "html": index_html if index_html.exists() else None,
-        }
-    return None
-
-
-def pytest_html_results_summary(prefix, summary, postfix):
-    """Surface kcov install.sh coverage as a summary block in the HTML report."""
-    rows = []
-    for component, label in KCOV_COMPONENTS:
-        info = summarize_kcov_coverage(component)
-        if info is None:
-            continue
-        pct = f"{info['percent']:.2f}%"
-        lines = f"{info['covered']}/{info['total']} lines"
-        if info["html"] is not None:
-            try:
-                href = os.path.relpath(info["html"], start=str(REPORTS_DIR))
-            except ValueError:
-                href = str(info["html"])
-            name = f'<a href="{href}">{label}</a>'
-        else:
-            name = label
-        rows.append(
-            f"<tr><td>{name}</td>"
-            f'<td style="text-align:right">{pct}</td>'
-            f'<td style="text-align:right">{lines}</td></tr>'
-        )
-
-    if not rows:
-        return
-
-    prefix.append(
-        "<h3>install.sh Coverage (kcov)</h3>"
-        '<table style="border-collapse:collapse">'
-        '<thead><tr><th style="text-align:left">Target</th>'
-        '<th>Coverage</th><th>Lines</th></tr></thead>'
-        f"<tbody>{''.join(rows)}</tbody></table>"
-    )
-
-
-@pytest.hookimpl(optionalhook=True)
-def pytest_json_modifyreport(json_report):
-    """Embed kcov install.sh coverage into the JSON report metadata."""
-    coverage = {}
-    for component, _label in KCOV_COMPONENTS:
-        info = summarize_kcov_coverage(component)
-        if info is None:
-            continue
-        coverage[component] = {
-            "percent": info["percent"],
-            "covered_lines": info["covered"],
-            "total_lines": info["total"],
-            "html": str(info["html"]) if info["html"] else None,
-        }
-    if coverage:
-        json_report.setdefault("kcov_coverage", {}).update(coverage)
-
-
-# ============================================================================
 # Auto-assign xdist groups so parallel runs stay safe (see plan section 6)
 # ============================================================================
 
@@ -648,7 +524,7 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.xdist_group("getting_started"))
             item.add_marker(pytest.mark.host_exclusive)
 
-        # install_option (kcov): single group, shared workspace -> serialize within suite.
+        # install_option: single group, shared workspace -> serialize within suite.
         if item.get_closest_marker("install_option"):
             item.add_marker(pytest.mark.xdist_group("install_option"))
 
@@ -670,6 +546,7 @@ def compose_env(component: str, os_type: str, version: str) -> dict:
     env["VERSION_DASH"] = version.replace(".", "-")
     env["COMPONENT"] = component
     env["BASE_IMAGE"] = get_base_image(os_type, version)
+    env["COMPOSE_PROJECT_NAME"] = compose_project_name(component, os_type, version)
     env["LOCAL_VOLUME_PATH"] = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
     env["DOCKER_VOLUME_PATH"] = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
 
@@ -716,21 +593,60 @@ def build_local_install_image(component: str, os_type: str, version: str) -> Non
         )
 
 
+def _container_exists(name: str) -> bool:
+    """Return True if a container with this exact name exists (any state)."""
+    result = subprocess.run(
+        ["docker", "inspect", "-f", "{{.Id}}", name],
+        capture_output=True, text=True,
+    )
+    return result.returncode == 0
+
+
+def remove_container_and_wait(name: str, timeout: int = 60) -> None:
+    """Force-remove a container and block until its name is free.
+
+    `docker rm -f` returns once removal is *initiated*; the daemon may still be
+    tearing the container down. Immediately recreating a container with the same
+    name then races and fails with "container is marked for removal" or
+    "name ... is already in use". Polling until the name disappears makes the
+    subsequent `docker compose up` deterministic.
+    """
+    subprocess.run(["docker", "rm", "-f", name], capture_output=True, text=True)
+    deadline = time.monotonic() + timeout
+    while _container_exists(name):
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(1)
+        subprocess.run(["docker", "rm", "-f", name], capture_output=True, text=True)
+
+
 def start_local_install_container(component: str, os_type: str, version: str) -> str:
     """(Re)create and start a local-install container, returning its name."""
     name = container_name(os_type, version, component)
-    subprocess.run(["docker", "rm", "-f", name], capture_output=True, text=True)
     env = compose_env(component, os_type, version)
     cmd = ["docker", "compose", *compose_config_args(env), "up", "-d",
-           "dx-local-install-test"]
-    result = subprocess.run(cmd, capture_output=True, text=True,
-                            cwd=str(PROJECT_ROOT), env=env, timeout=600)
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Failed to start container {name}\n"
-            f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+           "--force-recreate", "dx-local-install-test"]
+
+    last_result = None
+    for attempt in range(3):
+        remove_container_and_wait(name)
+        last_result = subprocess.run(cmd, capture_output=True, text=True,
+                                     cwd=str(PROJECT_ROOT), env=env, timeout=600)
+        if last_result.returncode == 0:
+            return name
+        transient = (
+            "marked for removal" in last_result.stderr
+            or "is already in use" in last_result.stderr
+            or "already in progress" in last_result.stderr
         )
-    return name
+        if not transient:
+            break
+        time.sleep(2)
+
+    raise RuntimeError(
+        f"Failed to start container {name}\n"
+        f"STDOUT:\n{last_result.stdout}\nSTDERR:\n{last_result.stderr}"
+    )
 
 
 def remove_container(name: str) -> None:

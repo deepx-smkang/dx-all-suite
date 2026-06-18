@@ -30,6 +30,8 @@ from conftest import (
     run_in_container,
     check_docker_image_exists,
     container_name,
+    compose_project_name,
+    remove_container_and_wait,
     is_container_running,
     run_command,
     get_base_image,
@@ -162,6 +164,7 @@ class TestLocalInstallDockerBuild:
         env["VERSION"] = version
         env["VERSION_DASH"] = version.replace(".", "-")
         env["BASE_IMAGE"] = get_base_image(os_type, version)
+        env["COMPOSE_PROJECT_NAME"] = compose_project_name(component, os_type, version)
 
         if not env.get("XAUTHORITY"):
             from pathlib import Path
@@ -296,26 +299,9 @@ class TestLocalInstallDockerRun:
         """
         container_name_str = container_name(os_type, version, component)
 
-        # Check if container exists (running or stopped)
-        check_result = subprocess.run(
-            ["docker", "inspect", container_name_str],
-            capture_output=True,
-            text=True,
-        )
-
-        # If container exists, remove it
-        if check_result.returncode == 0:
-            remove_result = subprocess.run(
-                ["docker", "rm", "-f", container_name_str],
-                capture_output=True,
-                text=True,
-            )
-            if remove_result.returncode != 0:
-                pytest.fail(
-                    f"Failed to remove existing container {container_name_str}\n"
-                    f"STDOUT:\n{remove_result.stdout}\n"
-                    f"STDERR:\n{remove_result.stderr}"
-                )
+        # Remove any existing container with this name and wait until the name
+        # is free, so the recreate below does not race the teardown.
+        remove_container_and_wait(container_name_str)
 
         # Build image name
         image_name = f"dx-local-install-test-{os_type}:{version}"
@@ -335,6 +321,7 @@ class TestLocalInstallDockerRun:
         env["LOCAL_VOLUME_PATH"] = os.getenv("LOCAL_VOLUME_PATH", str(PROJECT_ROOT))
         env["DOCKER_VOLUME_PATH"] = os.getenv("DOCKER_VOLUME_PATH", "/deepx/workspace")
         env["BASE_IMAGE"] = get_base_image(os_type, version)
+        env["COMPOSE_PROJECT_NAME"] = compose_project_name(component, os_type, version)
 
         if not env.get("XAUTHORITY"):
             dummy_xauth = "/tmp/dummy"
@@ -362,6 +349,7 @@ class TestLocalInstallDockerRun:
             "docker", "compose",
             *config_file_args,
             "up", "-d",
+            "--force-recreate",
             "dx-local-install-test",
         ]
 

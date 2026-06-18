@@ -14,7 +14,7 @@
 #   docker          - Run only docker installation tests
 #   getting_started - Run only getting-started tests
 #   version_compatibility - Run version compatibility tests
-#   install_option  - Run install.sh option coverage tests (kcov)
+#   install_option  - Run install.sh option tests
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -183,7 +183,7 @@ print_usage() {
     echo -e "  ${GREEN}docker_install${NC}  - Run only docker installation tests"
     echo -e "  ${GREEN}getting_started${NC} - Run only getting-started tests"
     echo -e "  ${GREEN}version_compatibility${NC} - Run version compatibility tests"
-    echo -e "  ${GREEN}install_option${NC}  - Run install.sh option coverage tests (kcov, Ubuntu 26.04)"
+    echo -e "  ${GREEN}install_option${NC}  - Run install.sh option tests (Ubuntu 26.04)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -493,7 +493,7 @@ case "$COMMAND" in
         ;;
 
     install_option)
-        print_info "Running install.sh option coverage tests (kcov)..."
+        print_info "Running install.sh option tests..."
         if [ -n "${M_EXPR}" ]; then
             COMBINED_M_ARGS=(-m "install_option and (${M_EXPR})")
         else
