@@ -14,6 +14,7 @@
 #   docker          - Run only docker installation tests
 #   getting_started - Run only getting-started tests
 #   version_compatibility - Run version compatibility tests
+#   install_option  - Run install.sh option tests (local, no Docker)
 #   list            - List all available tests
 #   report          - Run all tests and generate HTML report
 #   json            - Run all tests and generate JSON report
@@ -182,6 +183,7 @@ print_usage() {
     echo -e "  ${GREEN}docker_install${NC}  - Run only docker installation tests"
     echo -e "  ${GREEN}getting_started${NC} - Run only getting-started tests"
     echo -e "  ${GREEN}version_compatibility${NC} - Run version compatibility tests"
+    echo -e "  ${GREEN}install_option${NC}  - Run install.sh option tests (local, no Docker)"
     echo -e ""
     echo -e "Utility Commands:"
     echo -e "  ${GREEN}list${NC}            - List all available tests"
@@ -483,6 +485,21 @@ case "$COMMAND" in
             COMBINED_M_ARGS=(-m version_compatibility)
         fi
         pytest "${SCRIPT_DIR}/test_version_compatibility" -v "${CAPTURE_ARGS[@]}" "${PARALLEL_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        EXIT_CODE=$?
+        if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
+            print_success "HTML report generated: ${REPORT_FILE}"
+        fi
+        exit $EXIT_CODE
+        ;;
+
+    install_option)
+        print_info "Running install.sh option tests (local, no Docker)..."
+        if [ -n "${M_EXPR}" ]; then
+            COMBINED_M_ARGS=(-m "install_option and (${M_EXPR})")
+        else
+            COMBINED_M_ARGS=(-m install_option)
+        fi
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"

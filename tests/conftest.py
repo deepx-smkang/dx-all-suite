@@ -528,6 +528,10 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.xdist_group("getting_started"))
             item.add_marker(pytest.mark.host_exclusive)
 
+        # install_option: single group, shared workspace -> serialize within suite.
+        if item.get_closest_marker("install_option"):
+            item.add_marker(pytest.mark.xdist_group("install_option"))
+
 
 # ============================================================================
 # Reusable local-install docker helpers (image build + container start)
