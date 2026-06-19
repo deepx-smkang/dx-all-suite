@@ -176,6 +176,7 @@ def run_in_container(
 
         output_lines = []
         for line in process.stdout:
+            line = line.replace("\r", "")
             if capsys is not None:
                 with capsys.disabled():
                     print(line, end="", file=sys.stdout, flush=True)
@@ -243,6 +244,8 @@ def run_command(
         env["DX_USERNAME"] = os.getenv("DX_USERNAME")
     if os.getenv("DX_PASSWORD"):
         env["DX_PASSWORD"] = os.getenv("DX_PASSWORD")
+    # ponytail: plain progress avoids ANSI cursor-movement codes in piped output
+    env["BUILDKIT_PROGRESS"] = "plain"
 
     # Show banner when in verbose mode and banner_msg is provided
     if is_verbose() and banner_msg:
@@ -272,6 +275,7 @@ def run_command(
 
         output_lines = []
         for line in process.stdout:
+            line = line.replace("\r", "")
             if capsys is not None:
                 with capsys.disabled():
                     print(line, end="", file=sys.stdout, flush=True)
@@ -524,10 +528,6 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.xdist_group("getting_started"))
             item.add_marker(pytest.mark.host_exclusive)
 
-        # install_option: single group, shared workspace -> serialize within suite.
-        if item.get_closest_marker("install_option"):
-            item.add_marker(pytest.mark.xdist_group("install_option"))
-
 
 # ============================================================================
 # Reusable local-install docker helpers (image build + container start)
@@ -537,6 +537,7 @@ def compose_env(component: str, os_type: str, version: str) -> dict:
     """Build the environment dict used by the local-install docker-compose file."""
     env = os.environ.copy()
     env["COMPOSE_BAKE"] = "true"
+    env["BUILDKIT_PROGRESS"] = "plain"  # ponytail: plain avoids ANSI cursor-movement codes in piped output
     env["HOST_UID"] = str(os.getuid())
     env["HOST_GID"] = str(os.getgid())
     env["TARGET_USER"] = "deepx"
