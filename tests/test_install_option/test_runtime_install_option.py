@@ -4,10 +4,6 @@ dx-runtime install.sh option tests.
 Runs install.sh directly on the host (no Docker) and verifies that each
 option combination succeeds and produces expected output.
 
-Safety defaults appended to every real installation case:
-  --exclude-fw --exclude-driver  (no NPU hardware assumed on test host)
-  --sanity-check=n               (no physical device to sanity-check against)
-
 The --exclude-* tests additionally assert that the corresponding "SKIP"
 line appears in stdout so we know the flag was actually honoured.
 """
@@ -22,17 +18,23 @@ pytestmark = [pytest.mark.install_option, pytest.mark.runtime]
 RUNTIME_DIR = Path(__file__).resolve().parents[2] / "dx-runtime"
 TIMEOUT = 3600
 
-# Safety flags appended to every case that performs a real installation.
-_SAFE = ["--exclude-fw", "--exclude-driver", "--sanity-check=n"]
-
-# (case_id, extra_args, expected_skip_pattern_or_None)
+# (case_id, args, expected_skip_pattern_or_None)
 CASES = [
-    ("runtime-only",         ["--runtime-only",  *_SAFE],                       None),
-    ("all",                  ["--all",            *_SAFE],                       None),
-    ("all-exclude-app",      ["--all", "--exclude-app",    *_SAFE],  "Skipping dx_app"),
-    ("all-exclude-stream",   ["--all", "--exclude-stream", *_SAFE],  "Skipping dx_stream"),
-    ("all-exclude-rt",       ["--all", "--exclude-rt",     *_SAFE],  "Skipping dx_rt"),
-    ("target-dx_rt-stream",  ["--target=dx_rt,dx_stream",  *_SAFE],              None),
+    ("runtime-only",
+     ["--runtime-only"],
+     None),
+    ("all-exclude-all",
+     ["--all", "--exclude-driver", "--exclude-fw", "--exclude-app", "--exclude-stream"],
+     None),
+    ("target-fw-app-exclude-app",
+     ["--target=dx_fw,dx_app", "--exclude-app"],
+     "Skipping dx_app"),
+    ("target-fw-stream-exclude-stream",
+     ["--target=dx_fw,dx_stream", "--exclude-stream"],
+     "Skipping dx_stream"),
+    ("target-rt-stream-exclude-rt",
+     ["--target=dx_rt,dx_stream", "--exclude-rt"],
+     "Skipping dx_rt"),
 ]
 
 
