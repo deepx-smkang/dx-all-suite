@@ -495,7 +495,7 @@ class TestLocalInstallation:
             install_cmd = (
                 "set -e; "
                 "cd /deepx/workspace/dx-modelzoo; "
-                "sudo apt update && sudo apt install -y python3 python3-dev python3-venv; "
+                "sudo apt update && sudo apt install -y python3 python3-dev python3-venv build-essential; "
                 "python3 -m venv venv-dx-modelzoo; "
                 "source venv-dx-modelzoo/bin/activate && pip install '.[cpu]'"
             )
