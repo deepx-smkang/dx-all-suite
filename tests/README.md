@@ -52,6 +52,15 @@ Validates component versions against the compatibility matrix in `docs/source/04
 
 **Total tests:** 13 (4 parser + 7 release.ver + 2 optional CLI tests)
 
+### 5. **test_install_option** — install.sh Option Validation
+Validates that `install.sh` option flags are accepted and behave correctly. Runs directly on the host (no Docker required).
+
+**What it tests:**
+- `dx-compiler/install.sh`: `--pypi=false`
+- `dx-runtime/install.sh`: `--runtime-only`, `--all --exclude-*`, `--target=` combinations with exclude flags
+
+**Total tests:** 6 (1 compiler + 5 runtime)
+
 ## 🎯 Test Scope
 
 ### Build Targets (3 Components)
@@ -92,7 +101,8 @@ Validates component versions against the compatibility matrix in `docs/source/04
 | **local_install** | 3 | 24 | 24 | 24 | - | - | **75** |
 | **getting_started** | - | - | - | - | 11 | - | **11** |
 | **version_compatibility** | - | - | - | - | - | 13 | **13** |
-| **Grand Total** | **7** | **48** | **24** | **24** | **11** | **13** | **127** |
+| **install_option** | - | - | - | - | - | - | **6** |
+| **Grand Total** | **7** | **48** | **24** | **24** | **11** | **13** | **133** |
 
 ## 📁 File Structure
 
@@ -110,6 +120,9 @@ tests/
 ├── 🐍 test_version_compatibility/    # Version compatibility tests
 │   ├── test_version_compatibility.py # 13 tests (parser + release.ver + optional CLI)
 │   └── version_compatibility.py      # Compatibility parsing helpers
+├── 🐍 test_install_option/          # install.sh option tests (local, no Docker)
+│   ├── test_compiler_install_option.py # 1 test (--pypi=false)
+│   └── test_runtime_install_option.py  # 5 tests (--runtime-only, --all --exclude-*, --target= combos)
 ├── 🔧 conftest.py                   # Shared pytest fixtures and utilities
 ├── ⚡ test.sh                       # Unified test command wrapper (main entry point)
 ├── 🐳 docker/                       # Docker compose files for test containers
@@ -149,6 +162,9 @@ cd tests
 
 # Version compatibility tests (13 tests, <1 minute)
 ./test.sh version_compatibility
+
+# install.sh option tests (6 tests, local, no Docker)
+./test.sh install_option
 ```
 
 ### Step 3: Full Test Suite
