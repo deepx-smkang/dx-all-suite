@@ -198,7 +198,7 @@ RUN set -x && \
                     sqlite-devel gdbm-devel bzip2-devel expat-devel \
                     xz-devel tk-devel libffi-devel libuuid-devel; \
             fi && \
-            wget --no-check-certificate https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
+            wget https://www.python.org/ftp/python/${TARGET_INSTALL_PY_VERSION}/Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
             tar xzf Python-${TARGET_INSTALL_PY_VERSION}.tgz && \
             cd Python-${TARGET_INSTALL_PY_VERSION} && \
             ./configure --enable-optimizations --without-tcltk && \
@@ -420,7 +420,7 @@ RUN set -ex; \
                     sqlite-devel gdbm-devel bzip2-devel expat-devel \
                     xz-devel tk-devel libffi-devel libuuid-devel; \
             fi; \
-            wget --no-check-certificate https://www.python.org/ftp/python/${FULL_PY_VERSION}/Python-${FULL_PY_VERSION}.tgz; \
+            wget https://www.python.org/ftp/python/${FULL_PY_VERSION}/Python-${FULL_PY_VERSION}.tgz; \
             tar xzf Python-${FULL_PY_VERSION}.tgz; \
             cd Python-${FULL_PY_VERSION}; \
             ./configure --enable-optimizations --without-tcltk; \

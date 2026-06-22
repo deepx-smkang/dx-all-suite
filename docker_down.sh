@@ -97,7 +97,7 @@ docker_down_impl()
     fi
 
     # Dynamically set the project name based on the Ubuntu or Debian version
-    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${BASE_IMAGE_NAME}-${OS_VERSION}" | sed 's/\./-/g')"
+    export COMPOSE_PROJECT_NAME="dx-all-suite-$(echo "${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}" | sed 's/[\.\/]/-/g')"
     CMD="docker compose ${config_file_args} -p ${COMPOSE_PROJECT_NAME} down dx-${target}"
     echo "${CMD}"
 
@@ -276,9 +276,11 @@ main() {
             10) BASE_IMAGE_NAME="redhat/ubi10"; OS_VERSION="10" ;;
             *)  show_help "error" "Unsupported RHEL version: $RHEL_VERSION. Supported: 9, 10" ;;
         esac
+        IMAGE_TAG_SUFFIX="redhat-ubi${RHEL_VERSION}"
     elif [ -n "$CENTOS_VERSION" ]; then
         BASE_IMAGE_NAME="quay.io/centos/centos"
         OS_VERSION="$CENTOS_VERSION"
+        IMAGE_TAG_SUFFIX="centos-${CENTOS_VERSION}"
     fi
 
     print_colored_v2 "INFO" "BASE_IMAGE_NAME($BASE_IMAGE_NAME) is set."
