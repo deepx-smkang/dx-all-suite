@@ -487,13 +487,13 @@ class TestLocalInstallation:
                 f"DEBIAN_FRONTEND=noninteractive ./{component}/install.sh"
             )
         elif component == "dx-modelzoo":
-            # dx-modelzoo standard install
+            # dx-modelzoo install (no install.sh; install via pip)
             install_cmd = (
                 "set -e; "
-                f"if [ -f /deepx/workspace/{component}/install.sh ]; then "
-                "cd /deepx/workspace; "
-                f"else echo '{component} install.sh not found in container'; exit 2; fi; "
-                f"./{component}/install.sh"
+                "cd /deepx/workspace/dx-modelzoo; "
+                "sudo apt install -y python3 python3-dev python3-venv; "
+                "python3 -m venv venv-dx-modelzoo; "
+                "source venv-dx-modelzoo/bin/activate && pip install '.[cpu]'"
             )
 
         # Run installation
