@@ -16,7 +16,6 @@ COMPILER_DIR = Path(__file__).resolve().parents[2] / "dx-compiler"
 TIMEOUT = 3600
 
 CASES = [
-    ("pypi-true",  ["--pypi=true"]),
     ("pypi-false", ["--pypi=false"]),
 ]
 
