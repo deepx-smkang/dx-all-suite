@@ -484,7 +484,7 @@ class TestLocalInstallation:
                 "cd /deepx/workspace; "
                 f"else echo '{component} install.sh not found in container'; exit 2; fi; "
                 "sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt install -y keyboard-configuration; " # make sure keyboard-configuration is installed to avoid install.sh prompt
-                f"DEBIAN_FRONTEND=noninteractive ./{component}/install.sh"
+                f"DEBIAN_FRONTEND=noninteractive ./{component}/install.sh --pypi=false"
             )
         elif component == "dx-modelzoo":
             # dx-modelzoo install (no install.sh; install via pip)
