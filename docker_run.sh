@@ -506,7 +506,13 @@ main() {
 
     check_xdg_sesstion_type
 
-    case $TARGET_ENV in
+    if [[ "$TARGET_ENV" == "dx-runtime" || "$TARGET_ENV" == "dx-modelzoo" ]]; then
+    if [[ -n "$FEDORA_VERSION" || -n "$RHEL_VERSION" || -n "$CENTOS_VERSION" ]]; then
+        show_help "error" "Unsupported OS version option for $TARGET_ENV. Only Ubuntu/Debian allowed."
+    fi
+fi
+
+case $TARGET_ENV in
         dx-compiler)
             echo "Installing dx-compiler"
             docker_run_dx-compiler || print_colored_v2 "SKIP" "Failed to run dx-compiler container."
