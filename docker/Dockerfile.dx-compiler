@@ -43,6 +43,8 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
       OS_FAM=$(cat /tmp/.os_family) && \
       CA_BUNDLE="" && \
       if [ "$OS_FAM" = "debian" ]; then \
+          command -v update-ca-certificates >/dev/null 2>&1 || \
+              { export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y ca-certificates; } && \
           update-ca-certificates && \
           CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt; \
       elif [ "$OS_FAM" = "rhel" ]; then \
