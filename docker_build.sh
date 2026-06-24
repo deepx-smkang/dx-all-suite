@@ -21,6 +21,7 @@ OS_VERSION=""
 NVIDIA_GPU_MODE=0
 INTERNAL_MODE=0
 RE_ARCHIVE_ARGS=""
+PYPI_ARGS=""
 
 # Properties file path
 VERSION_FILE="$COMPILER_PATH/compiler.properties"
@@ -199,7 +200,7 @@ archive_dx-compiler()
                 20.04) PYTHON_VERSION_ARG="--python_version=3.8" ;;
                 22.04) PYTHON_VERSION_ARG="--python_version=3.10" ;;
                 24.04) PYTHON_VERSION_ARG="--python_version=3.12" ;;
-                26.04) PYTHON_VERSION_ARG="--python_version=3.12" ;;
+                26.04) PYTHON_VERSION_ARG="--python_version=3.14" ;;
                 *)
                     print_colored_v2 "ERROR" "Unsupported OS version: ${BASE_IMAGE_NAME} ${OS_VERSION}. Supported versions: Ubuntu 20.04, 22.04, 24.04, 26.04"
                     return 1
@@ -207,10 +208,19 @@ archive_dx-compiler()
             esac
             ;;
         fedora)
-            PYTHON_VERSION_ARG="--python_version=3.11"
-            ;;
+            case "${OS_VERSION}" in
+	        42) PYTHON_VERSION_ARG="--python_version=3.13" ;;
+	        43) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+	        44) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+	        45) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                *)
+                    print_colored_v2 "ERROR" "Unsupported Fedora version: ${OS_VERSION}. Supported: 42, 43, 44, 45"
+                    return 1
+		    ;;
+	    esac
+	    ;;
         redhat/ubi9)
-            PYTHON_VERSION_ARG="--python_version=3.11"
+            PYTHON_VERSION_ARG="--python_version=3.9"
             ;;
         redhat/ubi10)
             PYTHON_VERSION_ARG="--python_version=3.12"
@@ -229,7 +239,7 @@ archive_dx-compiler()
     print_colored_v2 "INFO" "Using Python version for ${BASE_IMAGE_NAME} ${OS_VERSION}: ${PYTHON_VERSION_ARG:-default}"
 
     # Capture output from archive script
-    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} ${PYTHON_VERSION_ARG})
+    ARCHIVE_OUTPUT=$(${DX_AS_PATH}/scripts/archive_dx-compiler.sh ${RE_ARCHIVE_ARGS} ${PYTHON_VERSION_ARG} ${PYPI_ARGS})
     ARCHIVE_EXIT_CODE=$?
     
     if [ $ARCHIVE_EXIT_CODE -ne 0 ]; then
@@ -519,6 +529,11 @@ while [ $# -gt 0 ]; do
             else
                 RE_ARCHIVE_ARGS="--re-archive"
             fi
+            ;;
+        --pypi=*)
+            # Select dx-com/dx-tron source: true=public PyPI (default), false=DEEPX
+            # release index (e.g. for staging versions not yet published to PyPI).
+            PYPI_ARGS="--pypi=${1#*=}"
             ;;
         *)
             show_help "error" "Invalid option '$1'"
