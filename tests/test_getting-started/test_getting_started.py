@@ -138,7 +138,7 @@ def test_runtime_2_setup_assets():
 @pytest.mark.runtime
 def test_runtime_3_run_example_using_dxrt():
     result = run_command(
-        ["bash", str(GETTING_STARTED_DIR / "runtime-3_run_example_using_dxrt.sh")],
+        ["bash", "-c", "printf '\n' | bash " + str(GETTING_STARTED_DIR / "runtime-3_run_example_using_dxrt.sh") + " --no-display"],
         banner_msg="Running script: runtime-3_run_example_using_dxrt.sh",
         timeout=DEFAULT_TIMEOUT,
         cwd=GETTING_STARTED_DIR

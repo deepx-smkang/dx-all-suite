@@ -488,7 +488,7 @@ class TestLocalInstallation:
                 "cd /deepx/workspace; "
                 f"else echo '{component} install.sh not found in container'; exit 2; fi; "
                 f"{pre_install}"
-                f"DEBIAN_FRONTEND=noninteractive ./{component}/install.sh --pypi=false"
+                f"./{component}/install.sh --pypi=false"
             )
         elif component == "dx-modelzoo":
             # dx-modelzoo install (no install.sh; install via pip)
