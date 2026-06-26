@@ -186,18 +186,30 @@ archive_dx-compiler()
 
     print_colored_v2 "INFO" "Archiving dx-compiler"
 
-    # Internal mode: archive runs pip on the HOST (venv setup upgrades
-    # setuptools/wheel from PyPI). Behind the DeepX intranet SSL-inspection
-    # proxy the host pip can't verify the MITM cert, so point pip at the same
-    # intranet CA the Dockerfile uses (CA_FILE_NAME in docker-compose.internal.yml).
+    # Internal mode: archive runs pip/requests on the HOST (venv setup upgrades
+    # setuptools/wheel from PyPI; downloader.py fetches dx-tron tarball). pip uses
+    # certifi (not the OS trust store), so it can't verify the FortiGate MITM cert
+    # on inspected hosts (pypi.org). But some hosts are NOT MITM'd and serve a real
+    # public cert (sdk.deepx.ai -> Amazon CA), so pointing at the lone FortiGate cert
+    # breaks those. The OS trust bundle already contains BOTH the FortiGate CA (IT
+    # installed it) and the public roots, so build a combined bundle from the OS
+    # bundle + the intranet CA and point pip/requests at that.
     if [ "${INTERNAL_MODE}" -eq 1 ]; then
         local INTRANET_CA="${DX_AS_PATH}/intranet_CA_SSL.crt"
-        if [ -f "${INTRANET_CA}" ]; then
-            print_colored_v2 "INFO" "Internal mode: using intranet CA for host pip (${INTRANET_CA})"
-            export PIP_CERT="${INTRANET_CA}"
-            export REQUESTS_CA_BUNDLE="${INTRANET_CA}"
+        local OS_CA_BUNDLE=""
+        for c in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
+            [ -f "$c" ] && { OS_CA_BUNDLE="$c"; break; }
+        done
+        if [ -f "${INTRANET_CA}" ] && [ -n "${OS_CA_BUNDLE}" ]; then
+            local COMBINED_CA="${OUTPUT_DIR}/.intranet_ca_bundle.crt"
+            mkdir -p "${OUTPUT_DIR}"
+            cat "${OS_CA_BUNDLE}" "${INTRANET_CA}" > "${COMBINED_CA}"
+            print_colored_v2 "INFO" "Internal mode: using combined CA bundle for host pip/requests (${COMBINED_CA})"
+            export PIP_CERT="${COMBINED_CA}"
+            export REQUESTS_CA_BUNDLE="${COMBINED_CA}"
+            export CURL_CA_BUNDLE="${COMBINED_CA}"
         else
-            print_colored_v2 "WARNING" "Internal mode but ${INTRANET_CA} not found. Host pip may fail SSL verification against PyPI."
+            print_colored_v2 "WARNING" "Internal mode but intranet CA (${INTRANET_CA}) or OS CA bundle not found. Host pip/requests may fail SSL verification."
         fi
     fi
 
