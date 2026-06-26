@@ -9,6 +9,11 @@ USER root
 ARG BASE_IMAGE_NAME=ubuntu
 ARG OS_VERSION=24.04
 
+# Build-time only (ARG, not ENV): keep apt/debconf non-interactive so packages
+# like keyboard-configuration/tzdata don't fall back to the Readline frontend and
+# block the build waiting for input. No-op on RHEL (dnf ignores it).
+ARG DEBIAN_FRONTEND=noninteractive
+
 ARG TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ >/etc/timezone
 

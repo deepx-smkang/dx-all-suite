@@ -186,6 +186,21 @@ archive_dx-compiler()
 
     print_colored_v2 "INFO" "Archiving dx-compiler"
 
+    # Internal mode: archive runs pip on the HOST (venv setup upgrades
+    # setuptools/wheel from PyPI). Behind the DeepX intranet SSL-inspection
+    # proxy the host pip can't verify the MITM cert, so point pip at the same
+    # intranet CA the Dockerfile uses (CA_FILE_NAME in docker-compose.internal.yml).
+    if [ "${INTERNAL_MODE}" -eq 1 ]; then
+        local INTRANET_CA="${DX_AS_PATH}/intranet_CA_SSL.crt"
+        if [ -f "${INTRANET_CA}" ]; then
+            print_colored_v2 "INFO" "Internal mode: using intranet CA for host pip (${INTRANET_CA})"
+            export PIP_CERT="${INTRANET_CA}"
+            export REQUESTS_CA_BUNDLE="${INTRANET_CA}"
+        else
+            print_colored_v2 "WARNING" "Internal mode but ${INTRANET_CA} not found. Host pip may fail SSL verification against PyPI."
+        fi
+    fi
+
     # Architecture check (archive downloads x86_64 binaries only)
     arch_check "amd64 x86_64" || {
         print_colored_v2 "SKIP" "Current architecture is not supported. Skip and continue to next target."
