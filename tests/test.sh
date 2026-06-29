@@ -20,17 +20,20 @@
 #   json            - Run all tests and generate JSON report
 #   help            - Show this help message
 #
-# Parallel execution:
-#   Add `-n auto` (or `-n <N>`) to run with pytest-xdist. host_exclusive tests
-#   serialize via a filelock and xdist_group keeps sequential tests on one worker.
-#
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOCAL_SCRIPT="${SCRIPT_DIR}/test_local/test_local.sh"
 DOCKER_SCRIPT="${SCRIPT_DIR}/test_docker/test_docker.sh"
 VENV_DIR="${SCRIPT_DIR}/venv"
 REQUIREMENTS_FILE="${SCRIPT_DIR}/requirements.txt"
+
+# Run pytest with this dir as the working dir so collection is scoped to the
+# tests/ tree (and uses tests/pytest.ini) regardless of where the script is
+# invoked from. Without this, running from the repo root makes bare `pytest`
+# recurse into the submodules (dx-runtime/dx_rt, dx-modelzoo, ...) and fail
+# collection with hundreds of unrelated errors. Subprocess test steps still
+# cd to the repo root themselves (conftest uses an absolute PROJECT_ROOT).
+cd "${SCRIPT_DIR}" || exit 1
 
 # Restore file permissions that may be changed by Docker containers.
 # Docker entrypoint (init-workspace.sh) runs chmod -R 775 on mounted volumes,
@@ -81,8 +84,6 @@ DEBUG_MODE=0
 LIST_MODE=0
 CACHE_CLEAR=0
 INTERNAL_MODE=0
-PARALLEL_N=""
-PARALLEL_ARGS=()
 
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $@"
@@ -170,7 +171,6 @@ print_usage() {
     echo -e "  ${GREEN}--list${NC}           - List tests without running them (--collect-only)"
     echo -e "  ${GREEN}--cache-clear${NC}    - Clear pytest cache before running tests"
     echo -e "  ${GREEN}--internal${NC}       - Use internal network settings (sets USE_INTRANET=true)"
-    echo -e "  ${GREEN}-n <N|auto>${NC}      - Run tests in parallel with pytest-xdist (e.g., -n auto)"
     echo -e "  ${GREEN}-k <expr>${NC}        - Pytest keyword expression filter (e.g., \"ubuntu and 24.04\")"
     echo -e "  ${GREEN}-m <expr>${NC}        - Pytest marker expression filter (e.g., \"local and sanity\")"
     echo -e ""
@@ -273,16 +273,6 @@ while [[ $# -gt 0 ]]; do
             INTERNAL_MODE=1
             shift
             ;;
-        -n|--parallel)
-            if [ -z "$2" ]; then
-                echo -e "Missing argument for $1 (e.g., -n auto)"
-                echo -e ""
-                print_usage
-                exit 1
-            fi
-            PARALLEL_N="$2"
-            shift 2
-            ;;
         -k)
             if [ -z "$2" ]; then
                 echo -e "Missing argument for -k"
@@ -376,12 +366,6 @@ if [ $INTERNAL_MODE -eq 1 ]; then
     print_info "Internal mode enabled (DX_TEST_INTERNAL=1, USE_INTRANET=true, CA_FILE_NAME=intranet_CA_SSL.crt)"
 fi
 
-# Setup parallel execution if requested
-if [ -n "${PARALLEL_N}" ]; then
-    PARALLEL_ARGS=(-n "${PARALLEL_N}" --dist loadgroup)
-    print_info "Parallel execution enabled (pytest-xdist: -n ${PARALLEL_N} --dist loadgroup)"
-fi
-
 # Setup report if requested
 if [ $GENERATE_REPORT -eq 1 ]; then
     if [ -z "${REPORT_FILE}" ]; then
@@ -424,7 +408,7 @@ case "$COMMAND" in
 
     all)
         print_info "Running all tests..."
-        pytest -v "${CAPTURE_ARGS[@]}" "${PARALLEL_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${K_ARGS[@]}" "${M_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${K_ARGS[@]}" "${M_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -439,7 +423,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m local_install)
         fi
-        pytest -v "${CAPTURE_ARGS[@]}" "${PARALLEL_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -454,7 +438,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m docker_install)
         fi
-        pytest -v "${CAPTURE_ARGS[@]}" "${PARALLEL_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -469,7 +453,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m getting_started)
         fi
-        pytest -v "${CAPTURE_ARGS[@]}" "${PARALLEL_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -484,7 +468,7 @@ case "$COMMAND" in
         else
             COMBINED_M_ARGS=(-m version_compatibility)
         fi
-        pytest "${SCRIPT_DIR}/test_version_compatibility" -v "${CAPTURE_ARGS[@]}" "${PARALLEL_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
+        pytest "${SCRIPT_DIR}/test_version_compatibility" -v "${CAPTURE_ARGS[@]}" "${COLLECT_ONLY_ARGS[@]}" "${COMBINED_M_ARGS[@]}" "${K_ARGS[@]}" "${REPORT_ARGS[@]}" "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
         if [ $GENERATE_REPORT -eq 1 ] && [ $EXIT_CODE -eq 0 ]; then
             print_success "HTML report generated: ${REPORT_FILE}"
@@ -519,7 +503,7 @@ case "$COMMAND" in
         TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
         REPORT_FILE="${REPORT_DIR}/test_report_${TIMESTAMP}.html"
 
-        pytest -v "${PARALLEL_ARGS[@]}" "${K_ARGS[@]}" "${M_ARGS[@]}" --html="${REPORT_FILE}" --self-contained-html "${JSON_ARGS[@]}" "$@"
+        pytest -v "${CAPTURE_ARGS[@]}" "${K_ARGS[@]}" "${M_ARGS[@]}" --html="${REPORT_FILE}" --self-contained-html "${JSON_ARGS[@]}" "$@"
         EXIT_CODE=$?
 
         if [ $EXIT_CODE -eq 0 ]; then
@@ -537,7 +521,7 @@ case "$COMMAND" in
             JSON_FILE="${REPORT_DIR}/test_report_${TIMESTAMP}.json"
         fi
 
-        pytest -v "${PARALLEL_ARGS[@]}" "${K_ARGS[@]}" "${M_ARGS[@]}" --json-report --json-report-file="${JSON_FILE}" "$@"
+        pytest -v "${CAPTURE_ARGS[@]}" "${K_ARGS[@]}" "${M_ARGS[@]}" --json-report --json-report-file="${JSON_FILE}" "$@"
         EXIT_CODE=$?
 
         if [ $EXIT_CODE -eq 0 ]; then

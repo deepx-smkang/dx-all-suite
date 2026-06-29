@@ -55,7 +55,9 @@ RUN if [ "$USE_INTRANET" = "true" ]; then \
       elif [ "$OS_FAM" = "rhel" ]; then \
           cp /usr/local/share/ca-certificates/*.crt /etc/pki/ca-trust/source/anchors/ 2>/dev/null || true && \
           update-ca-trust && \
-          CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt; \
+          for c in /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt; do \
+              [ -f "$c" ] && { CA_BUNDLE="$c"; break; }; \
+          done; \
       fi && \
       printf '[global]\ncert = %s\n' "$CA_BUNDLE" > /etc/pip.conf; \
     else \
