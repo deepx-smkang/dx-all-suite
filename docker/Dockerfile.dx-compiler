@@ -102,11 +102,11 @@ RUN OS_FAM=$(cat /tmp/.os_family) && \
     fi
 
 # Install dependencies for dx-compiler
-# Setup Python (minimum 3.8, maximum 3.12)
+# Setup Python (minimum 3.8, maximum 3.14)
 #   - Detect system Python first, install TARGET version if needed
 #   - Unified installation flow for both Debian and Red Hat families
 ENV MIN_PY_VERSION=3.8
-ENV MAX_PY_VERSION=3.12
+ENV MAX_PY_VERSION=3.14
 ARG TARGET_INSTALL_PY_VERSION=""
 RUN set -x && \
     OS_FAM=$(cat /tmp/.os_family) && \
@@ -354,8 +354,7 @@ RUN chown -R "$HOST_UID:$HOST_GID" "$TARGET_HOME"
 RUN echo "deepx:deepx" | chpasswd
 
 # add sudo group
-RUN OS_FAM=$(cat /tmp/.os_family) && \
-    groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
+RUN groupadd -g "$HOST_GID" "$TARGET_USER" || true; \
     usermod -aG sudo "$TARGET_USER" 2>/dev/null || usermod -aG wheel "$TARGET_USER" 2>/dev/null || true; \
     echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers;
 

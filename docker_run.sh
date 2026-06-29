@@ -507,10 +507,10 @@ main() {
     check_xdg_sesstion_type
 
     if [[ "$TARGET_ENV" == "dx-runtime" || "$TARGET_ENV" == "dx-modelzoo" ]]; then
-    if [[ -n "$FEDORA_VERSION" || -n "$RHEL_VERSION" || -n "$CENTOS_VERSION" ]]; then
-        show_help "error" "Unsupported OS version option for $TARGET_ENV. Only Ubuntu/Debian allowed."
+        if [[ -n "$FEDORA_VERSION" || -n "$RHEL_VERSION" || -n "$CENTOS_VERSION" ]]; then
+            show_help "error" "Unsupported OS version option for $TARGET_ENV. Only Ubuntu/Debian allowed."
+        fi
     fi
-fi
 
 case $TARGET_ENV in
         dx-compiler)

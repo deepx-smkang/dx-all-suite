@@ -2,7 +2,8 @@
 dx-compiler install.sh --pypi option tests.
 
 Runs install.sh directly on the host (no Docker) and verifies that
---pypi=true and --pypi=false are accepted and succeed.
+--pypi=false is accepted and succeeds. --pypi=true requires public PyPI
+access and is intentionally not exercised in offline/CI runs.
 """
 
 import subprocess

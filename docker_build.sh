@@ -236,16 +236,16 @@ archive_dx-compiler()
             ;;
         fedora)
             case "${OS_VERSION}" in
-	        42) PYTHON_VERSION_ARG="--python_version=3.13" ;;
-	        43) PYTHON_VERSION_ARG="--python_version=3.14" ;;
-	        44) PYTHON_VERSION_ARG="--python_version=3.14" ;;
-	        45) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                42) PYTHON_VERSION_ARG="--python_version=3.13" ;;
+                43) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                44) PYTHON_VERSION_ARG="--python_version=3.14" ;;
+                45) PYTHON_VERSION_ARG="--python_version=3.14" ;;
                 *)
                     print_colored_v2 "ERROR" "Unsupported Fedora version: ${OS_VERSION}. Supported: 42, 43, 44, 45"
                     return 1
-		    ;;
-	    esac
-	    ;;
+                    ;;
+            esac
+            ;;
         redhat/ubi9)
             PYTHON_VERSION_ARG="--python_version=3.9"
             ;;
@@ -320,7 +320,7 @@ docker_build_dx-compiler()
         if [ "${BASE_IMAGE_NAME}" != "ubuntu" ] && [ "${BASE_IMAGE_NAME}" != "debian" ]; then
             print_colored_v2 "INFO" "DX-Tron not supported on ${BASE_IMAGE_NAME}. Creating dummy archive."
             mkdir -p "$(dirname "${DX_AS_PATH}/${FILE_DXTRON}")"
-            tar czf "${DX_AS_PATH}/${FILE_DXTRON}" --files-from /dev/null
+            tar czf "${DX_AS_PATH}/${FILE_DXTRON}" -T /dev/null
         else
             print_colored_v2 "ERROR" "Archive file not found: ${FILE_DXTRON}. Please run archive step first."
             return 1

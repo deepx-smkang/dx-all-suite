@@ -26,7 +26,6 @@ FW_RELEASE_VER = REPO_ROOT / "dx-runtime" / "dx_fw" / "release.ver"
 HOST_NPU_LOCK = os.getenv("DX_HOST_NPU_LOCK", "/tmp/dx-host-npu.lock")
 HOST_EXCLUSIVE_LOCK = os.getenv("DX_HOST_EXCLUSIVE_LOCK", "/tmp/dx-host-exclusive.lock")
 ARCHIVE_LOCK = os.getenv("DX_ARCHIVE_LOCK", "/tmp/dx-archive.lock")
-ARCHIVE_DONE_FLAG = os.getenv("DX_ARCHIVE_DONE_FLAG", "/tmp/dx-archive.done")
 
 
 def is_verbose() -> bool:
@@ -72,6 +71,7 @@ def path_exists_in_container(container_name_str: str, path: str) -> bool:
     )
     return result.returncode == 0
 
+
 def get_base_image(os_type: str, version: str) -> str:
     """
     Get the base docker image for a given OS type and version.
@@ -90,6 +90,7 @@ def get_base_image(os_type: str, version: str) -> str:
         return f"quay.io/centos/centos:{version}"
     else:
         return f"{os_type}:{version}"
+
 
 def check_docker_image_exists(os_type: str, version: str) -> bool:
     """
@@ -666,7 +667,7 @@ def remove_container(name: str) -> None:
 @pytest.fixture(scope="session")
 def archive_once():
     """
-    Produce the shared archives/*.tar.gz exactly once, serialized across workers.
+    Produce the shared archives/*.tar.gz, serialized across workers via a lock.
 
     docker_build.sh writes OS-independent archives to the repo-shared archives/ dir;
     running it per-build in parallel races on those files. This fixture builds them
@@ -674,8 +675,6 @@ def archive_once():
     """
     FileLock = _filelock()
     with FileLock(ARCHIVE_LOCK):
-        if os.path.exists(ARCHIVE_DONE_FLAG):
-            return
         archive_cmds = [
             ["./scripts/archive_dx-compiler.sh"],
             ["./scripts/archive_git_repos.sh", "--target=dx-runtime"],
@@ -688,4 +687,3 @@ def archive_once():
                 pytest.fail(
                     f"archive_once failed: {' '.join(cmd)}\n{result.stdout or ''}"
                 )
-        Path(ARCHIVE_DONE_FLAG).touch()
