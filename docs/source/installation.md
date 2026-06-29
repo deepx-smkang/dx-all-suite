@@ -65,7 +65,7 @@ The `DX-Compiler` environment provides prebuilt binary outputs and does not incl
 
 `dx_com`'s installation requires Python.
 
-The installation script automatically checks Python version compatibility. Supported Python versions are `3.8`, `3.9`, `3.10`, `3.11`, and `3.12`.
+The installation script automatically checks Python version compatibility. Supported Python versions are `3.8`, `3.9`, `3.10`, `3.11`, and `3.14`.
 
 If the current system's Python version is not compatible, the script will detect this and ask the user whether to install a compatible Python version. You can also specify a specific Python version using the `--python_version` option:
 
@@ -102,7 +102,7 @@ You can use the `dxcom` command after activating the virtual environment:
 
 ```bash
 # Activate virtual environment
-source ./dx-compiler/venv-dx-compiler/bin/activate
+source ./dx-compiler/venv-dx-compiler-local/bin/activate
 
 # Use dxcom
 dxcom -h

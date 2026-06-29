@@ -29,7 +29,7 @@ This environment is used for converting and optimizing trained AI models into DE
 - **Arch**: x86_64  
 - **OS**: Ubuntu 26.04 / 24.04 / 22.04 / 20.04 (LTS), Fedora 42-45, Red Hat Enterprise Linux 9-10, and CentOS Stream 9-10
 -	**Hardware**: x86_64 Host PC  
-- **Software**: Python 3.8~3.12, CUDA (Optional for simulation)
+- **Software**: Python 3.8~3.14, CUDA (Optional for simulation)
 -	**Key Tasks**: AI model (`.onnx`) compilation, Quantization, `.dxnn` generation  
 -	**Action**: DX-Compiler Local Installation Guide [Link]  
 
