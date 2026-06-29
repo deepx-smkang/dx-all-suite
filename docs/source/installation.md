@@ -65,7 +65,7 @@ The `DX-Compiler` environment provides prebuilt binary outputs and does not incl
 
 `dx_com`'s installation requires Python.
 
-The installation script automatically checks Python version compatibility. Supported Python versions are `3.8`, `3.9`, `3.10`, `3.11`, and `3.12`.
+The installation script automatically checks Python version compatibility. Supported Python versions are `3.8`, `3.9`, `3.10`, `3.11`, and `3.14`.
 
 If the current system's Python version is not compatible, the script will detect this and ask the user whether to install a compatible Python version. You can also specify a specific Python version using the `--python_version` option:
 
@@ -310,6 +310,30 @@ dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 
 Use the `--target=<environment_name>` option to build only `dx-runtime` or `dx-compiler` or `dx-modelzoo`.
 
+##### Build dx-compiler on Red Hat Family (Fedora, RHEL, CentOS Stream)
+
+`dx-compiler` additionally supports Fedora, RHEL (UBI), and CentOS Stream:
+
+```bash
+./docker_build.sh --target=dx-compiler --fedora_version=42
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --rhel_version=9
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --centos_version=stream9
+```
+
+Supported versions:
+
+- Fedora: 42, 43, 44, 45
+- RHEL (UBI): 9, 10
+- CentOS Stream: stream9, stream10
+
+> **Note:** `dx-runtime` and `dx-modelzoo` do not support Red Hat family distributions.
+
 #### Run the Docker Container
 
 **(Optional) If `dx_rt` is already installed on the host system, please stop the `dxrt` service daemon before running the Docker container.**  
@@ -486,7 +510,7 @@ Run the following from the `./dx-compiler/dx_com/` directory.
 
 ```bash
 # Activate virtual environment
-source ./dx-compiler/venv-dx-compiler-local/bin/activate
+source ./dx-compiler/venv-dx-compiler/bin/activate
 
 cd ./dx-compiler/dx_com
 

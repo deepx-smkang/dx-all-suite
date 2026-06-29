@@ -2,23 +2,23 @@
 
 ## 📋 Overview
 
-A comprehensive pytest-based test suite for automated verification of the dx-all-suite project, covering three major test categories:
+A comprehensive pytest-based test suite for automated verification of the dx-all-suite project, covering four major test categories:
 
-**Purpose:** End-to-end validation of Docker builds, local installations, and getting-started workflows across multiple components and OS platforms.
+**Purpose:** End-to-end validation of Docker builds, local installations, getting-started workflows, and release version compatibility across multiple components and OS platforms.
 
 ## ✅ Test Suite Categories
 
-This repository includes three primary pytest suites for CI/CD and local validation:
+This repository includes four primary pytest suites for CI/CD and local validation:
 
 ### 1. **test_docker_install** — Docker Image Build Validation
 Validates Docker image builds using `docker_build.sh` for all supported components and OS versions.
 
 **What it tests:**
 - Builds complete Docker images for dx-compiler, dx-modelzoo, and dx-runtime
-- Verifies build success across Ubuntu (24.04, 22.04, 20.04, 18.04) and Debian (12, 13)
+- Verifies build success across Ubuntu (26.04, 24.04, 22.04, 20.04) and Debian (12, 13)
 - Uses the project's official docker build script (`docker_build.sh`)
 
-**Total tests:** 19 (4 sanity + 15 build tests)
+**Total tests:** 22 (4 sanity + 18 build tests)
 
 ### 2. **test_local_install** — Local Installation Validation
 Tests local installation procedures inside clean Docker containers to verify install scripts work correctly.
@@ -30,7 +30,7 @@ Tests local installation procedures inside clean Docker containers to verify ins
 - For dx-runtime: also installs drivers and runtime on the host
 - Verifies installations complete successfully without errors
 
-**Total tests:** 48 (3 sanity + 15 build + 15 run + 15 install tests)
+**Total tests:** 57 (3 sanity + 18 build + 18 run + 18 install tests)
 
 ### 3. **test_getting_started** — End-to-End Workflow Validation
 Validates the complete getting-started user workflow from compilation to execution.
@@ -42,6 +42,25 @@ Validates the complete getting-started user workflow from compilation to executi
 
 **Total tests:** 11 (6 compiler + 5 runtime tests)
 
+### 4. **test_version_compatibility** — Version Matrix Validation
+Validates component versions against the compatibility matrix in `docs/source/04_Version_Compatibility.md`.
+
+**What it tests:**
+- Parses the DX-AllSuite compatibility matrix
+- Compares component `release.ver` files against the expected versions
+- Optionally checks installed `dxcom` and `dxrt-cli` versions when available
+
+**Total tests:** 13 (4 parser + 7 release.ver + 2 optional CLI tests)
+
+### 5. **test_install_option** — install.sh Option Validation
+Validates that `install.sh` option flags are accepted and behave correctly. Runs directly on the host (no Docker required).
+
+**What it tests:**
+- `dx-compiler/install.sh`: `--pypi=false`
+- `dx-runtime/install.sh`: `--runtime-only`, `--all --exclude-*`, `--target=` combinations with exclude flags
+
+**Total tests:** 6 (1 compiler + 5 runtime)
+
 ## 🎯 Test Scope
 
 ### Build Targets (3 Components)
@@ -52,50 +71,58 @@ Validates the complete getting-started user workflow from compilation to executi
 
 ### OS Configurations
 
-#### Docker Install (15 combinations)
+#### Docker Install (24 combinations)
 
-| Target | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
-|--------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
-| dx-compiler | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 3 |
-| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| **Total** | **3** | **3** | **3** | **2** | **2** | **2** | **15** |
+| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Debian 12 | Debian 13 | Fedora 42-45 | RHEL 9-10 | CentOS Stream 9-10 | Total |
+|--------|--------------|--------------|--------------|--------------|-----------|-----------|--------------|-----------|---------------------|-------|
+| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | 12 |
+| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 6 |
+| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 6 |
+| **Total** | | | | | | | | | | **24** |
 
-**Note:** dx-compiler supports Ubuntu only (no Debian)
+**Note:** dx-compiler supports Ubuntu, Fedora, RHEL, and CentOS Stream. dx-runtime and dx-modelzoo support Ubuntu and Debian only.
 
-#### Local Install (15 combinations)
+#### Local Install (24 combinations)
 
-| Target | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Ubuntu 18.04 | Debian 12 | Debian 13 | Total |
-|--------|--------------|--------------|--------------|--------------|-----------|-----------|-------|
-| dx-compiler | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 3 |
-| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 6 |
-| **Total** | **3** | **3** | **3** | **2** | **2** | **2** | **15** |
+| Target | Ubuntu 26.04 | Ubuntu 24.04 | Ubuntu 22.04 | Ubuntu 20.04 | Debian 12 | Debian 13 | Fedora 42-45 | RHEL 9-10 | CentOS Stream 9-10 | Total |
+|--------|--------------|--------------|--------------|--------------|-----------|-----------|--------------|-----------|---------------------|-------|
+| dx-compiler | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | 12 |
+| dx-modelzoo | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 6 |
+| dx-runtime | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | 6 |
+| **Total** | | | | | | | | | | **24** |
 
-**Note:** dx-compiler supports Ubuntu 20.04+ only (no 18.04, no Debian)
+**Note:** dx-compiler supports Ubuntu 20.04+, Fedora 42+, RHEL 9+, CentOS Stream 9+ (no Debian)
 
 ### Test Composition Summary
 
-| Test Suite | Sanity | Build | Run | Install | Workflow | Total |
-|------------|--------|-------|-----|---------|----------|-------|
-| **docker_install** | 4 | 15 | - | - | - | **19** |
-| **local_install** | 3 | 15 | 15 | 15 | - | **48** |
-| **getting_started** | - | - | - | - | 11 | **11** |
-| **Grand Total** | **7** | **30** | **15** | **15** | **11** | **78** |
+| Test Suite | Sanity | Build | Run | Install | Workflow | Version | Total |
+|------------|--------|-------|-----|---------|----------|---------|-------|
+| **docker_install** | 4 | 24 | - | - | - | - | **28** |
+| **local_install** | 3 | 24 | 24 | 24 | - | - | **75** |
+| **getting_started** | - | - | - | - | 11 | - | **11** |
+| **version_compatibility** | - | - | - | - | - | 13 | **13** |
+| **install_option** | - | - | - | - | - | - | **6** |
+| **Grand Total** | **7** | **48** | **24** | **24** | **11** | **13** | **133** |
 
 ## 📁 File Structure
 
 ```
 tests/
 ├── 🐍 test_docker_install/          # Docker build validation tests
-│   ├── test_docker_install.py       # 19 tests (4 sanity + 15 builds)
+│   ├── test_docker_install.py       # 22 tests (4 sanity + 18 builds)
 │   └── README.md                    # Docker install test documentation
 ├── 🐍 test_local_install/           # Local installation tests
-│   ├── test_local_install.py        # 48 tests (3 sanity + 15 build + 15 run + 15 install)
+│   ├── test_local_install.py        # 57 tests (3 sanity + 18 build + 18 run + 18 install)
 │   └── README.md                    # Local install test documentation
 ├── 🐍 test_getting-started/         # Getting-started workflow tests
 │   ├── test_getting_started.py      # 11 tests (6 compiler + 5 runtime)
 │   └── README.md                    # Getting-started test documentation
+├── 🐍 test_version_compatibility/    # Version compatibility tests
+│   ├── test_version_compatibility.py # 13 tests (parser + release.ver + optional CLI)
+│   └── version_compatibility.py      # Compatibility parsing helpers
+├── 🐍 test_install_option/          # install.sh option tests (local, no Docker)
+│   ├── test_compiler_install_option.py # 1 test (--pypi=false)
+│   └── test_runtime_install_option.py  # 5 tests (--runtime-only, --all --exclude-*, --target= combos)
 ├── 🔧 conftest.py                   # Shared pytest fixtures and utilities
 ├── ⚡ test.sh                       # Unified test command wrapper (main entry point)
 ├── 🐳 docker/                       # Docker compose files for test containers
@@ -124,20 +151,26 @@ cd tests
 ### Step 2: Run Specific Test Suites
 
 ```bash
-# Docker installation tests (15 builds, ~6-8 hours)
+# Docker installation tests (18 builds, ~6-8 hours)
 ./test.sh docker_install
 
-# Local installation tests (49 tests, ~8-12 hours)
+# Local installation tests (57 tests, ~8-12 hours)
 ./test.sh local_install
 
 # Getting-started workflow (11 tests, ~30-60 minutes)
 ./test.sh getting_started
+
+# Version compatibility tests (13 tests, <1 minute)
+./test.sh version_compatibility
+
+# install.sh option tests (6 tests, local, no Docker)
+./test.sh install_option
 ```
 
 ### Step 3: Full Test Suite
 
 ```bash
-./test.sh all          # All 79 tests (~12-20 hours)
+./test.sh all          # All 135 tests (~12-20 hours)
 ```
 
 ### Step 4: Generate Reports
@@ -153,7 +186,7 @@ cd tests
 
 ```bash
 ./test.sh sanity           # ⚡ Quick validation (5-10 seconds)
-./test.sh all              # 🔥 Full test suite (12-20 hours, 79 tests)
+./test.sh all              # 🔥 Full test suite (12-20 hours, 135 tests)
 ./test.sh list             # 📋 List all available tests
 ./test.sh help             # ❓ Show detailed help
 ```
@@ -161,9 +194,10 @@ cd tests
 ### Test Suite Commands
 
 ```bash
-./test.sh docker_install   # Docker build tests (15 tests, ~6-8 hours)
-./test.sh local_install    # Local install tests (49 tests, ~8-12 hours)
+./test.sh docker_install   # Docker build tests (26 tests, ~6-8 hours)
+./test.sh local_install    # Local install tests (81 tests, ~8-12 hours)
 ./test.sh getting_started  # Getting-started workflow (11 tests, ~30-60 min)
+./test.sh version_compatibility # Version compatibility tests (13 tests, <1 min)
 ```
 
 ### Advanced Options
@@ -203,7 +237,7 @@ Use `-k` to filter tests by component, OS type, or version:
 
 # By OS version
 ./test.sh -k "24.04" docker_install
-./test.sh -k "18.04" local_install
+./test.sh -k "20.04" local_install
 
 # Combined filters
 ./test.sh -k "runtime and ubuntu and 24.04"
@@ -219,6 +253,7 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh -m "docker_install"      # Only docker install tests
 ./test.sh -m "local_install"       # Only local install tests
 ./test.sh -m "getting_started"     # Only getting-started tests
+./test.sh -m "version_compatibility" # Only version compatibility tests
 ./test.sh -m "compiler"            # Compiler-related tests
 ./test.sh -m "runtime"             # Runtime-related tests
 ```
@@ -274,8 +309,8 @@ Use `-m` to filter tests by pytest markers:
 # Test only Debian distributions
 ./test.sh -k "debian" local_install
 
-# Test only Ubuntu 18.04 across all suites
-./test.sh -k "18.04" all
+# Test only Ubuntu 20.04 across all suites
+./test.sh -k "20.04" all
 ```
 
 ### Example 8: List Tests Without Running
@@ -291,15 +326,23 @@ Use `-m` to filter tests by pytest markers:
 ./test.sh --list --internal -m "sanity" docker_install
 ```
 
+### Example 9: Version Compatibility Validation
+
+```bash
+# Check release.ver files and available installed CLI versions
+./test.sh version_compatibility
+```
+
 ## 📊 Expected Execution Time
 
 | Test Suite | Test Count | Expected Time | Use Case |
 |-----------|------------|---------------|----------|
 | **Sanity** | 7 | ~5-10 seconds | Quick prerequisite check |
 | **docker_install** | 19 | ~6-8 hours | Docker build validation |
-| **local_install** | 49 | ~8-12 hours | Installation script validation |
+| **local_install** | 48 | ~8-12 hours | Installation script validation |
 | **getting_started** | 11 | ~30-60 minutes | End-to-end workflow |
-| **Full Suite (all)** | 79 | ~12-20 hours | Complete validation |
+| **version_compatibility** | 13 | <1 minute | Release compatibility validation |
+| **Full Suite (all)** | 91 | ~12-20 hours | Complete validation |
 
 ### Per-Component Breakdown
 
@@ -317,7 +360,7 @@ Use `-m` to filter tests by pytest markers:
 
 ## 🔍 Test Details
 
-### Test Suite 1: docker_install (19 tests)
+### Test Suite 1: docker_install (30 tests)
 
 #### Sanity Tests (4 tests)
 
@@ -326,32 +369,41 @@ Use `-m` to filter tests by pytest markers:
 - ✅ `test_docker_compose_command_available` - Check docker compose
 - ✅ `test_project_structure` - Verify project directories
 
-#### Docker Build Tests (15 tests)
+#### Docker Build Tests (26 tests)
 
-**dx-compiler (3 tests - Ubuntu only)**
+**dx-compiler (12 tests - Ubuntu, Fedora, RHEL, CentOS Stream)**
+- ✅ `test_docker_build[dx-compiler-ubuntu-26.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-24.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-22.04]`
 - ✅ `test_docker_build[dx-compiler-ubuntu-20.04]`
+- ✅ `test_docker_build[dx-compiler-fedora-42]`
+- ✅ `test_docker_build[dx-compiler-fedora-43]`
+- ✅ `test_docker_build[dx-compiler-fedora-44]`
+- ✅ `test_docker_build[dx-compiler-fedora-45]`
+- ✅ `test_docker_build[dx-compiler-rhel-9]`
+- ✅ `test_docker_build[dx-compiler-rhel-10]`
+- ✅ `test_docker_build[dx-compiler-centos-stream9]`
+- ✅ `test_docker_build[dx-compiler-centos-stream10]`
 
 **dx-modelzoo (6 tests)**
+- ✅ `test_docker_build[dx-modelzoo-ubuntu-26.04]`
 - ✅ `test_docker_build[dx-modelzoo-ubuntu-24.04]`
 - ✅ `test_docker_build[dx-modelzoo-ubuntu-22.04]`
 - ✅ `test_docker_build[dx-modelzoo-ubuntu-20.04]`
-- ✅ `test_docker_build[dx-modelzoo-ubuntu-18.04]`
 - ✅ `test_docker_build[dx-modelzoo-debian-12]`
 - ✅ `test_docker_build[dx-modelzoo-debian-13]`
 
 **dx-runtime (6 tests)**
+- ✅ `test_docker_build[dx-runtime-ubuntu-26.04]`
 - ✅ `test_docker_build[dx-runtime-ubuntu-24.04]`
 - ✅ `test_docker_build[dx-runtime-ubuntu-22.04]`
 - ✅ `test_docker_build[dx-runtime-ubuntu-20.04]`
-- ✅ `test_docker_build[dx-runtime-ubuntu-18.04]`
 - ✅ `test_docker_build[dx-runtime-debian-12]`
 - ✅ `test_docker_build[dx-runtime-debian-13]`
 
 ---
 
-### Test Suite 2: local_install (49 tests)
+### Test Suite 2: local_install (57 tests)
 
 #### Sanity Tests (3 tests)
 
@@ -359,25 +411,25 @@ Use `-m` to filter tests by pytest markers:
 - ✅ `test_docker_compose_command_available` - Check docker compose
 - ✅ `test_project_structure` - Verify project structure
 
-#### Image Build Tests (15 tests)
+#### Image Build Tests (18 tests)
 
 Validates base OS container images build successfully for local install testing.
 
-#### Container Run Tests (15 tests)
+#### Container Run Tests (18 tests)
 
 Validates containers start successfully and are ready for installations.
 
-#### Installation Tests (16 tests)
+#### Installation Tests (18 tests)
 
 **dx-compiler (4 tests)**
-- ✅ Ubuntu 24.04, 22.04, 20.04, 18.04
+- ✅ Ubuntu 26.04, 24.04, 22.04, 20.04
 
 **dx-modelzoo (6 tests)**
-- ✅ Ubuntu 24.04, 22.04, 20.04, 18.04
+- ✅ Ubuntu 26.04, 24.04, 22.04, 20.04
 - ✅ Debian 12, 13
 
 **dx-runtime (6 tests)**
-- ✅ Ubuntu 24.04, 22.04, 20.04, 18.04
+- ✅ Ubuntu 26.04, 24.04, 22.04, 20.04
 - ✅ Debian 12, 13
 
 **Note:** dx-runtime tests also install NPU driver and runtime on the host system.
@@ -412,12 +464,31 @@ Sequential execution ensures proper workflow:
 - YOLOV5S_Face-1 (Face Detection)
 - MobileNetV2-1 (Image Classification)
 
+---
+
+### Test Suite 4: version_compatibility (13 tests)
+
+#### Parser Tests (4 tests)
+
+- ✅ `test_parse_version_matrix_extracts_current_suite_row` - Parse the compatibility matrix row for the current suite version
+- ✅ `test_parse_version_matrix_ignores_unexpected_trailing_cells` - Ignore extra trailing cells after the expected component columns
+- ✅ `test_parse_dxcom_version_normalizes_missing_v_prefix` - Normalize `dxcom -v` output
+- ✅ `test_parse_dxrt_cli_versions_extracts_component_versions` - Parse `dxrt-cli -s` output
+
+#### Release File Tests (7 tests)
+
+Validates `release.ver` for dx-compiler, dx-runtime, npu-driver, dx-rt, dx-fw, dx-app, and dx-stream.
+
+#### Optional CLI Tests (2 tests)
+
+Checks installed `dxcom` and `dxrt-cli` versions when those commands are available; otherwise the tests are skipped.
+
 ## 🛠 Technology Stack
 
 - **Test Framework:** pytest 7.4.3+
 - **Reporting:** pytest-html, pytest-json-report, pytest-timeout
 - **Languages:** Python 3.8+, Bash
-- **Required Tools:** Docker, Docker Compose
+- **Required Tools:** Docker and Docker Compose for install/build suites; `dxcom` and `dxrt-cli` are optional for version compatibility checks
 - **Platform:** Ubuntu/Debian Linux (tested on Ubuntu 20.04, 22.04, 24.04)
 
 ## 📚 Documentation
@@ -444,11 +515,13 @@ source ./venv/bin/activate
 pytest test_docker_install/ -v
 pytest test_local_install/ -v
 pytest test_getting-started/ -v
+pytest test_version_compatibility/ -v
 
 # Filter by markers
 pytest -m "docker_install" -v
 pytest -m "local_install and sanity" -v
 pytest -m "getting_started and compiler" -v
+pytest -m "version_compatibility" -v
 
 # Filter by keywords
 pytest -k "ubuntu and 24.04" -v
@@ -556,7 +629,7 @@ deactivate
 ./run_docker_build_tests.sh -k "not debian"
 
 # Complex condition
-./run_docker_build_tests.sh -k "(runtime or modelzoo) and ubuntu and not 18.04"
+./run_docker_build_tests.sh -k "(runtime or modelzoo) and ubuntu and not 20.04"
 ```
 
 ## 🚨 Troubleshooting
@@ -685,7 +758,6 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 | Ubuntu 24.04 | ✅ (3 comp) | ✅ (3 comp) | Full |
 | Ubuntu 22.04 | ✅ (3 comp) | ✅ (3 comp) | Full |
 | Ubuntu 20.04 | ✅ (3 comp) | ✅ (3 comp) | Full |
-| Ubuntu 18.04 | ✅ (2 comp) | ✅ (3 comp) | Full |
 | Debian 12 | ✅ (2 comp) | ✅ (2 comp) | Partial |
 | Debian 13 | ✅ (2 comp) | ✅ (2 comp) | Partial |
 
@@ -734,6 +806,6 @@ See [CI_CD_EXAMPLES.md](CI_CD_EXAMPLES.md) for detailed examples.
 **Total Tests:**
 78 (docker_install: 19 | local_install: 48 | getting_started: 11)
 **Supported OS:**
-Ubuntu 24.04, 22.04, 20.04, 18.04 | Debian 12, 13
+Ubuntu 24.04, 22.04, 20.04 | Debian 12, 13
 **Components:**
 dx-compiler, dx-modelzoo, dx-runtime

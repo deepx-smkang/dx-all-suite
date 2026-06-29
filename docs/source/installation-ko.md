@@ -64,7 +64,7 @@ sudo apt install python3 python3-dev python3-venv
 
 `dx_com` 설치는 Python을 필요로 합니다.
 
-설치 스크립트는 Python 버전 호환성을 자동으로 확인합니다. 지원되는 Python 버전은 `3.8`, `3.9`, `3.10`, `3.11`, `3.12`입니다.
+설치 스크립트는 Python 버전 호환성을 자동으로 확인합니다. 지원되는 Python 버전은 `3.8`, `3.9`, `3.10`, `3.11`, `3.14`입니다.
 
 현재 시스템의 Python 버전이 호환되지 않는 경우, 스크립트가 이를 감지하고 사용자에게 호환 가능한 Python 버전을 설치할 것인지 묻습니다. `--python_version` 옵션을 사용하여 특정 Python 버전을 지정할 수도 있습니다:
 
@@ -323,6 +323,30 @@ dx-modelzoo        24.04     cb2a92323b41   2 weeks ago     2.11GB
 ```
 
 `--target=<environment_name>` 옵션을 사용하여 `dx-runtime` 또는 `dx-compiler`만 빌드할 수 있습니다.
+
+##### Red Hat 계열에서 dx-compiler 빌드 (Fedora, RHEL, CentOS Stream)
+
+`dx-compiler`는 Fedora, RHEL (UBI), CentOS Stream도 추가로 지원합니다:
+
+```bash
+./docker_build.sh --target=dx-compiler --fedora_version=42
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --rhel_version=9
+```
+
+```bash
+./docker_build.sh --target=dx-compiler --centos_version=stream9
+```
+
+지원 버전:
+
+- Fedora: 42, 43, 44, 45
+- RHEL (UBI): 9, 10
+- CentOS Stream: stream9, stream10
+
+> **참고:** `dx-runtime`과 `dx-modelzoo`는 Red Hat 계열 배포판을 지원하지 않습니다.
 
 #### Docker 컨테이너 실행
 
