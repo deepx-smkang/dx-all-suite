@@ -1,0 +1,35 @@
+name: Pin submodule pointers to main
+
+run-name: Pin dx-all-suite submodule pointers to origin/main
+
+on:
+  workflow_dispatch:
+    inputs:
+      submodule_names:
+        description: 'Comma-separated submodule paths (default: dx-runtime,dx-compiler,dx-modelzoo)'
+        required: false
+        default: 'dx-runtime,dx-compiler,dx-modelzoo'
+        type: string
+      branch:
+        description: 'Branch to update submodule pointers on'
+        required: false
+        default: 'main'
+        type: string
+      commit_message:
+        description: 'Commit message for submodule pointer update'
+        required: false
+        default: 'ci: update submodule pointers to main'
+        type: string
+
+permissions: write-all
+
+jobs:
+  pin:
+    uses: DEEPX-AI/do_workflows-central/.github/workflows/pin-submodules-to-main.yml@main
+    with:
+      target_repo: DEEPX-AI/dx-all-suite
+      submodule_names: ${{ github.event.inputs.submodule_names }}
+      branch: ${{ github.event.inputs.branch }}
+      commit_message: ${{ github.event.inputs.commit_message }}
+    secrets:
+      token: ${{ secrets.GC_DCI_TOKEN }}
