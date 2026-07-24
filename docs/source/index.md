@@ -59,9 +59,7 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
   - Our single script automates the full setup process
   - All DX-Compiler components are ready to use upon completion.
 
-
-**You can install dx-compiler by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#local-installation).**
-
+**You can install dx-compiler by following the instructions at this [LINK](02_Setting_Up_Environment.md#dx-compiler-installation-dx-com-dx-tron).**
 
 ### [AI Model Runtime Environment](https://github.com/DEEPX-AI/dx-runtime) (Deployment Platform)
 
@@ -81,20 +79,28 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
   - Our script automates the entire process
   - One-time reboot is required after installation to finalize the NPU Driver setup
 
-**You can install dx-runtime by following the instructions at this [LINK](https://github.com/DEEPX-AI/dx-all-suite/blob/staging/docs/source/installation.md#install-dx-runtime-environment).**
+**You can install dx-runtime by following the instructions at this [LINK](02_Setting_Up_Environment.md#dx-runtime-installation-rt-driver-fw-app-stream).**
 
 ---
 
-## Installation Guide
-[Link](installation.md)
+## Documentation
 
-## Getting Started
-[Link](getting-started.md)
+### Agent-Driven Development (Beta)
+[Link](00_Agent_Driven_Development.md)
 
-## Version Compatibility
-[Link](version_compatibility.md)
+### Architecture Overview
+[Link](01_DX-AllSuite_Architecture_Overview.md)
 
-## FAQ
-[Link](docs/source/faq.md)
+### Installation Guide
+[Link](02_Setting_Up_Environment.md)
+
+### Getting Started
+[Link](03_Running_Your_First_NPU_Model.md)
+
+### Version Compatibility
+[Link](04_Version_Compatibility.md)
+
+### FAQ & Troubleshooting
+[Link](05_FAQ_Troubleshooting_Guide.md)
 
 ---

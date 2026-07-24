@@ -57,8 +57,8 @@ The following table outlines the supported environments for both the compilation
 | Category | DX-Compiler (Host) | DX-Runtime (Target) |
 | :--- | :--- | :--- |
 | **Architecture** | x86_64 | x86_64, aarch64 |
-| **OS** | Ubuntu 24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04/18.04,<br>Debian 13/12, Windows 11/10 |
-| **Languages** | Python 3.8, 3.9, 3.10, 3.11, 3.12 | Python 3.8 or higher,<br>C++14 or higher (C++17 for MSVC/Windows) |
+| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
+| **Languages** | Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 | Python 3.8 or higher,<br>C++14 or higher (C++17 for MSVC/Windows) |
 
 ### Model & Software Ecosystem
 
@@ -107,7 +107,5 @@ DEEPX ModelZoo is a comprehensive repository providing **over 270 pre-validated 
 -	**Optimized Multi-Profile Support**: All models are quantized and optimized for the DEEPX NPU architecture, ensuring consistent validation from ONNX evaluation to NPU execution.  
 -	**Extensible Registry**: Supports plugin-style extensions for pre/post-processing, datasets, and evaluators, enabling fast onboarding of custom models.  
 -	**Broad Task Coverage**: Extensive support for service-ready CV tasks beyond basic classification and detection, including Face Analysis, OBB, and Image Enhancement.  
-
-Copyright © DEEPX. All rights reserved.  
 
 ---

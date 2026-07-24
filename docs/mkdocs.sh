@@ -27,7 +27,32 @@ show_help() {
   exit 0
 }
 
+check_and_install_deps() {
+    local packages=(
+        mkdocs
+        mkdocs-material
+        mkdocs-video
+        pymdown-extensions
+        mkdocs-to-pdf
+        mkdocs-include-markdown-plugin
+    )
+    local missing=()
+
+    for pkg in "${packages[@]}"; do
+        if ! pip show "$pkg" &>/dev/null; then
+            missing+=("$pkg")
+        fi
+    done
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo -e "${COLOR_YELLOW}Installing missing packages: ${missing[*]}${COLOR_RESET}"
+        pip install "${missing[@]}" || { echo -e "${COLOR_RED}Failed to install packages. Please run 'pip install ${missing[*]}' manually.${COLOR_RESET}"; exit 1; }
+    fi
+}
+
 main() {
+    check_and_install_deps
+
     VERSION=$(head -n 1 ${PROJECT_ROOT}/release.ver | tr -d '\r\n')
     echo "VERSION=${VERSION}"
 
@@ -45,6 +70,20 @@ main() {
 
     unset PDF_FILE_PATH
 
+    # Fold the DX AI Studio manual into this build. Those docs live in the sibling
+    # dx-ai-studio tree (their own source of truth + standalone site); copy them into a
+    # temporary source/ai-studio/ so the nav entries resolve, then remove after build.
+    AI_STUDIO_SRC="${PROJECT_ROOT}/dx-ai-studio/docs/source"
+    AI_STUDIO_DST="${SCRIPT_DIR}/source/ai-studio"
+    rm -rf "$AI_STUDIO_DST"
+    if [ -d "$AI_STUDIO_SRC" ]; then
+        mkdir -p "$AI_STUDIO_DST"
+        cp "$AI_STUDIO_SRC"/*.md "$AI_STUDIO_DST"/
+        [ -d "$AI_STUDIO_SRC/resources" ] && cp -r "$AI_STUDIO_SRC/resources" "$AI_STUDIO_DST/resources"
+    else
+        echo -e "${COLOR_YELLOW}WARNING: dx-ai-studio docs not found at $AI_STUDIO_SRC — AI Studio section will be missing${COLOR_RESET}"
+    fi
+
     if [ $USE_SERVE -eq 1 ]; then
         # Run mkdocs build
         mkdocs serve
@@ -55,6 +94,7 @@ main() {
 
     # Clean up
     rm mkdocs.yml
+    rm -rf "$AI_STUDIO_DST"
 }
 
 # parse args

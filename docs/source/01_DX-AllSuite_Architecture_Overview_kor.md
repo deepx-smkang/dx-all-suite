@@ -57,8 +57,8 @@
 | 카테고리 | DX-Compiler (호스트) | DX-Runtime (타겟) |
 | :--- | :--- | :--- |
 | **아키텍처** | x86_64 | x86_64, aarch64 |
-| **OS** | Ubuntu 24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04/18.04,<br>Debian 13/12, Windows 11/10 |
-| **언어** | Python 3.8, 3.9, 3.10, 3.11, 3.12 | Python 3.8 이상,<br>C++14 이상 (C++17 for MSVC/Windows) |
+| **OS** | Ubuntu 26.04/24.04/22.04/20.04,<br>Fedora, Redhat, CentOS | Ubuntu 24.04/22.04/20.04,<br>Debian 13/12, Windows 11/10 |
+| **언어** | Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 | Python 3.8 이상,<br>C++14 이상 (C++17 for MSVC/Windows) |
 
 ### Model & Software Ecosystem
 
@@ -107,7 +107,5 @@ DEEPX ModelZoo는 **270개 이상의 사전 검증된 모델**을 제공하는 �
 -	**최적화된 멀티 프로파일 지원**: 모든 모델은 DEEPX NPU 아키텍처에 맞게 양자화 및 최적화되어, ONNX 평가부터 NPU 실행까지 일관된 검증을 보장합니다.  
 -	**확장 가능한 레지스트리**: 전/후처리, 데이터셋 및 평가기에 대한 플러그인 방식의 확장을 지원하여 커스텀 모델의 빠른 온보딩이 가능합니다.  
 -	**광범위한 작업 지원**: 단순 분류 및 탐지를 넘어 얼굴 분석, OBB, 이미지 향상 등 서비스 준비가 완료된 다양한 비전 작업을 폭넓게 지원합니다.  
-
-Copyright © DEEPX. All rights reserved.  
 
 ---

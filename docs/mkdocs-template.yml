@@ -10,8 +10,8 @@ theme:
     #text: Noto Serif
     #code: Noto Sans 
     code: Roboto Mono 
-  logo: ./img/deepx.png
-  favicon: ./img/favicon.png
+  logo: img/deepx.png
+  #favicon: img/favicon.png
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -35,11 +35,31 @@ theme:
      - content.code.copy
 site_url: 'https://developer.deepx.ai/'
 nav:
+  - Home: index.md
+  - Agent-Driven Development (Beta): 00_Agent_Driven_Development.md
+  - Agent-Driven Development Showcases: 00b_Agent_Driven_Development_Showcases.md
   - DX-AllSuite Architecture Overview: 01_DX-AllSuite_Architecture_Overview.md
   - Setting Up Environment: 02_Setting_Up_Environment.md
   - Running Your First NPU Model: 03_Running_Your_First_NPU_Model.md
   - Version Compatibility: 04_Version_Compatibility.md
   - FAQ Troubleshooting Guide: 05_FAQ_Troubleshooting_Guide.md
+  - DX AI Studio:
+      # Copied from dx-ai-studio/docs/source at build time by mkdocs.sh (into
+      # source/ai-studio/, then removed after build). Studio docs stay the single
+      # source of truth in the dx-ai-studio tree — this only surfaces them here.
+      - Installation & Launch: ai-studio/01_Installation_and_Launch.md
+      - The Hub: ai-studio/02_The_Hub.md
+      - DX Model Zoo: ai-studio/03_DX_Model_Zoo.md
+      - DX Compiler: ai-studio/04_DX_Compiler.md
+      - DX App: ai-studio/05_DX_App.md
+      - DX Stream: ai-studio/06_DX_Stream.md
+      - DX Monitor: ai-studio/07_DX_Monitor.md
+      - DX Benchmark: ai-studio/08_DX_Benchmark.md
+      - DX EdgeGuide: ai-studio/09_DX_EdgeGuide.md
+      - DX Agent Dev: ai-studio/10_DX_Agent_Dev.md
+      - SDK Library & About: ai-studio/11_SDK_Library_and_About.md
+      - Third-Party License: ai-studio/12_Appendix_Third_Party_License.md
+      - Change Log: ai-studio/Appendix_Change_Log.md
 
 plugins:
   - search
@@ -50,9 +70,9 @@ plugins:
       #
       #cover: false
       cover_title: DXNN All Suite (DX-AllSuite) User Manual
-      cover_subtitle: 2026/04/10 (v2.3.0)
+      cover_subtitle: 2026/07/14 (v2.4.0)
       cover_logo : img/deepx.png
-      custom_template_path: docs/stylesheets
+      custom_template_path: source/stylesheets
       #back_cover: true
       #
       #toc_title: TOC TITLE TEXT
@@ -76,7 +96,7 @@ plugins:
       #render_js: true
       #headless_chrome_path: headless-chromium
       #
-      output_path: ../DEEPX_DX-AllSuite_UM_v2.3.0_APR_2026.pdf
+      output_path: ../DEEPX_DX-AllSuite_UM_v2.4.0_JUL_2026.pdf
       #enabled_if_env: ENABLE_PDF_EXPORT
       #
       #debug_html: true
@@ -128,7 +148,5 @@ markdown_extensions:
   - attr_list
   - md_in_html
 extra_javascript:
-  - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 copyright: ⓒ Copyright 2026 <a href="http://deepx.ai">DEEPX</a>. All Rights Reserved.

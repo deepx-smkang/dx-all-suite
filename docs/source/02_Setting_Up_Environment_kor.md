@@ -342,7 +342,7 @@ sudo apt-get install -y --no-install-recommends libgl1-mesa-glx libglib2.0-0 mak
 **지원 환경**  
 
 - **OS**: Linux (x86_64)  
-- **Python 버전**: 3.8, 3.9, 3.10, 3.11, 3.12 (설치 스크립트가 버전을 자동으로 감지함)  
+- **Python 버전**: 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 (설치 스크립트가 버전을 자동으로 감지함)
 
 **통합 패키지 설치**  
 제공된 `install.sh` 스크립트는 Python 버전 감지 및 패키지 설치를 포함한 모든 과정을 한 번에 처리합니다.  
@@ -448,7 +448,5 @@ dxrt-cli -s
 
 !!! note "팁"  
     어떤 항목이라도 **FAIL** 또는 **Not Found**를 반환하는 경우, 모듈 설치 단계(섹션 3-2)를 다시 방문하여 모든 구성 요소가 올바르게 컴파일되었는지 확인하십시오.  
-    
-Copyright © DEEPX. All rights reserved.
 
 ---
