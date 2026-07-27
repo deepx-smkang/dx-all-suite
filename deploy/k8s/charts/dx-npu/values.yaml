@@ -17,6 +17,14 @@ devicePlugin:
   privileged: true
   resources: {}
 
+# Prometheus metrics (deepx_npu_*) served in-process by the device plugin.
+metrics:
+  enabled: true
+  port: 9400
+  serviceMonitor:
+    enabled: false      # requires prometheus-operator CRDs
+    interval: 30s
+
 # NodeFeatureRule that labels nodes carrying a DEEPX M1 (PCI vendor 1ff4).
 # Requires node-feature-discovery installed in the cluster (nfd.enabled or external).
 nodeFeatureRule:

@@ -55,10 +55,28 @@ kubectl apply -f samples/test-pod.yaml && kubectl logs -f dx-m1-test
 | `devicePlugin.image.tag` | `latest` | plugin image (ghcr) |
 | `devicePlugin.nodeSelectorLabel` | `deepx.ai/dx-m1.present` | NFD gate |
 | `nodeFeatureRule.enabled` | `true` | apply the PCI 1ff4 label rule |
-| `nfd.enabled` | `false` | also deploy NFD itself |
+| `nfd.enabled` | `false` | also deploy node-feature-discovery (chart dependency) |
+| `metrics.enabled` | `true` | serve `deepx_npu_*` on `:9400` + headless Service |
+| `metrics.serviceMonitor.enabled` | `false` | Prometheus-operator ServiceMonitor |
 
-## Not yet included
+## NFD
 
-`nfd.enabled` currently only reserves the toggle — wire NFD as a chart dependency (or
-document an external install) before relying on it. A `deepx_npu_*` Prometheus metrics
-exporter is planned in the plugin repo.
+The chart declares `node-feature-discovery` as an optional dependency (`condition:
+nfd.enabled`). To deploy NFD with the chart:
+
+```bash
+helm dependency build ./charts/dx-npu   # fetch the NFD subchart
+helm install dx-npu ./charts/dx-npu -n dx-system --create-namespace --set nfd.enabled=true
+```
+
+If the cluster already runs NFD, leave `nfd.enabled=false` — only the NodeFeatureRule
+is applied. Without any NFD, label nodes manually:
+`kubectl label node <n> deepx.ai/dx-m1.present=true`.
+
+## Metrics
+
+The device plugin serves Prometheus metrics in-process on `:9400/metrics`:
+`deepx_npu_up`, `deepx_npu_device_healthy`, and per-core
+`deepx_npu_core_{temperature_celsius,voltage_millivolts,clock_mhz}`. A headless
+Service (`<release>-metrics`) exposes them; enable `metrics.serviceMonitor.enabled`
+with prometheus-operator present.

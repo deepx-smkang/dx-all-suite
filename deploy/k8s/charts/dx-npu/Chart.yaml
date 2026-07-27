@@ -12,3 +12,11 @@ keywords:
   - npu
   - dx-m1
   - device-plugin
+dependencies:
+  # Optional: deploy node-feature-discovery so the NodeFeatureRule can label
+  # NPU nodes. Disabled by default; enable if the cluster has no NFD.
+  # Run `helm dependency build` before packaging when nfd.enabled=true.
+  - name: node-feature-discovery
+    version: "0.17.3"
+    repository: https://kubernetes-sigs.github.io/node-feature-discovery/charts
+    condition: nfd.enabled

@@ -28,11 +28,18 @@ spec:
         - name: device-plugin
           image: "{{ .Values.devicePlugin.image.repository }}:{{ .Values.devicePlugin.image.tag }}"
           imagePullPolicy: {{ .Values.devicePlugin.image.pullPolicy }}
+          {{- if .Values.metrics.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+          {{- end }}
           env:
             - name: PATH
               value: /usr/local/bin:/usr/bin:/bin
             - name: LD_LIBRARY_PATH
               value: /usr/local/lib
+            - name: METRICS_ADDR
+              value: {{ if .Values.metrics.enabled }}":{{ .Values.metrics.port }}"{{ else }}""{{ end }}
           securityContext:
             privileged: {{ .Values.devicePlugin.privileged }}
           resources:
