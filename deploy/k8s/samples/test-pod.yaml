@@ -1,0 +1,19 @@
+# Smoke test: requests one DX-M1 NPU and prints device + dxrt-cli status.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dx-m1-test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: probe
+      image: debian:bookworm-slim
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          echo "=== /dev/dxrt* ===";  ls -l /dev/dxrt* || echo "no NPU injected"
+          echo "=== dxrt-cli -s ==="; LD_LIBRARY_PATH=/usr/local/lib /usr/local/bin/dxrt-cli -s || echo "dxrt-cli unavailable"
+          sleep 120
+      resources:
+        limits:
+          deepx.ai/dx-m1: 1
