@@ -196,6 +196,48 @@ DXStream.pipelineValidate = async function () {
     }
 };
 
+// Show the MJPEG <img> stream in the pipeline preview (creating the element if needed) and
+// hide the WebRTC <video>. Reused by the normal MJPEG path and the WebRTC→MJPEG fallback.
+DXStream._wirePipelineMjpeg = function () {
+    var videoSection = DXStream.$('pipeline-video-section');
+    if (videoSection) videoSection.style.display = '';
+    var pipeVideo = DXStream.$('pipeline-webrtc-video');
+    if (pipeVideo) pipeVideo.style.display = 'none';
+    var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
+    if (!mjpegImg) {
+        mjpegImg = document.createElement('img');
+        mjpegImg.id = 'pipeline-mjpeg-stream';
+        mjpegImg.style.cssText = 'width:100%;height:auto;border-radius:8px;background:#000;';
+        var container = pipeVideo ? pipeVideo.parentNode : videoSection;
+        if (container) container.appendChild(mjpegImg);
+    }
+    mjpegImg.style.display = '';
+    mjpegImg.src = '/api/stream/mjpeg?' + Date.now();
+    if (videoSection) videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function _clearPipelinePlaybackUi() {
+    var videoSection = DXStream.$('pipeline-video-section');
+    if (videoSection) videoSection.style.display = 'none';
+    var pipeVideo = DXStream.$('pipeline-webrtc-video');
+    if (pipeVideo) { pipeVideo.srcObject = null; pipeVideo.style.display = ''; }
+    var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
+    if (mjpegImg) { mjpegImg.src = ''; mjpegImg.style.display = 'none'; }
+    var statsOverlay = DXStream.$('webrtc-stats-overlay');
+    if (statsOverlay) statsOverlay.textContent = '';
+    var badge = DXStream.$('pipeline-status');
+    if (badge) { badge.textContent = T('Idle'); badge.className = 'status-pill pill-idle'; }
+}
+
+function _resetPipelineAfterFallbackFailure(error) {
+    DXStream._pipeRunning = false;
+    _updatePipelineButtons();
+    if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect();
+    if (DXStream._fmp4Stop) DXStream._fmp4Stop();
+    _clearPipelinePlaybackUi();
+    DXStream.toast(T('MJPEG fallback failed: ') + error, 'error');
+}
+
 DXStream.pipelineRun = async function () {
     if (DXStream._pipeRunning) return;
     DXStream._pipeRunning = true;
@@ -208,17 +250,26 @@ DXStream.pipelineRun = async function () {
         edges: st.edges,
         webrtcPayloadTypes: webrtcPayloadTypes,
     };
-    // Same Local/Remote choice as the demo page: remote (SSH tunnel/NAT) → HW H264 over HTTP
-    // (fMP4 + MSE), or MJPEG if the browser lacks MSE. Local keeps WebRTC.
+    // Same Local/Remote choice as the demo page: remote → MJPEG directly (fMP4/MSE renders
+    // nothing across the SSH tunnel). Local keeps WebRTC (lowest latency on the same LAN).
     if (DXStream._playbackMode === 'remote') {
-        if (DXStream._mseSupported && DXStream._mseSupported()) _runBody.output = 'fmp4';
-        else _runBody.forceMjpeg = true;
+        _runBody.forceMjpeg = true;
     }
     const resp = await DXStream.postJ('/api/pipeline/run', _runBody);
     if (resp.error) {
         DXStream._pipeRunning = false;
         _updatePipelineButtons();
-        DXStream.toast(resp.error, 'error');
+        if (resp.playback_active === false) {
+            if (DXStream.webrtc && DXStream.webrtc.disconnect) DXStream.webrtc.disconnect();
+            if (DXStream._fmp4Stop) DXStream._fmp4Stop();
+            _clearPipelinePlaybackUi();
+        }
+        // Prefer the human-readable message (e.g. "Model not installed: … Download from
+        // Setup") over the bare error code so a missing-asset run isn't a cryptic toast.
+        var message = resp.message || resp.error;
+        if (resp.detail) message += ' ' + resp.detail;
+        if (resp.remediation) message += ' ' + resp.remediation;
+        DXStream.toast(message, 'error');
         return;
     }
     DXStream.toast(T('Pipeline started'), 'success');
@@ -235,19 +286,7 @@ DXStream.pipelineRun = async function () {
         }
 
         if (resp.output_mode === 'mjpeg') {
-            var pipeVideo = DXStream.$('pipeline-webrtc-video');
-            if (pipeVideo) pipeVideo.style.display = 'none';
-            var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
-            if (!mjpegImg) {
-                mjpegImg = document.createElement('img');
-                mjpegImg.id = 'pipeline-mjpeg-stream';
-                mjpegImg.style.cssText = 'width:100%;height:auto;border-radius:8px;background:#000;';
-                var container = pipeVideo ? pipeVideo.parentNode : videoSection;
-                if (container) container.appendChild(mjpegImg);
-            }
-            mjpegImg.style.display = '';
-            mjpegImg.src = '/api/stream/mjpeg?' + Date.now();
-            videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            DXStream._wirePipelineMjpeg();
         } else if (resp.output_mode === 'fmp4') {
             // Remote (tunnel/NAT): HW H264 over HTTP via MSE — reuses the demo page's player.
             var pipeVideo = DXStream.$('pipeline-webrtc-video');
@@ -257,7 +296,27 @@ DXStream.pipelineRun = async function () {
             if (videoSection) videoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
             var pipeVideo = DXStream.$('pipeline-webrtc-video');
-            if (pipeVideo) DXStream.webrtc.connect(pipeVideo);
+            if (pipeVideo) {
+                // Local WebRTC, but auto-fall back to MJPEG if it can't connect within the
+                // deadline (air-gapped/tunnel → ICE stalls forever, video stays black). Re-run
+                // the pipeline forcing MJPEG, then wire the <img> stream.
+                DXStream.webrtc.connect(pipeVideo, false, function (reason) {
+                    DXStream.toast(T('WebRTC could not connect — switching to MJPEG'), 'info');
+                    DXStream.postJ('/api/pipeline/run',
+                        Object.assign({}, _runBody, { forceMjpeg: true })
+                    ).then(function (r2) {
+                        if (r2 && !r2.error && r2.output_mode === 'mjpeg') {
+                            DXStream._wirePipelineMjpeg();
+                        } else {
+                            _resetPipelineAfterFallbackFailure(
+                                (r2 && r2.error) || 'Forced MJPEG did not start'
+                            );
+                        }
+                    }).catch(function (error) {
+                        _resetPipelineAfterFallbackFailure(error && error.message ? error.message : error);
+                    });
+                });
+            }
         }
     } else if (resp.output_mode === 'native') {
         DXStream.toast(T('Native display mode (fpsdisplaysink)'), 'info');
@@ -271,26 +330,12 @@ DXStream.pipelineStop = async function () {
     DXStream._pipeRunning = false;
     _updatePipelineButtons();
     if (resp.error) {
-        DXStream.toast(resp.error, 'error');
+        DXStream.toast(resp.message || resp.error, 'error');
         return;
     }
     DXStream.toast(T('Pipeline stopped'), 'info');
 
-    // 비디오 섹션 숨김 및 정리
-    var videoSection = DXStream.$('pipeline-video-section');
-    if (videoSection) {
-        videoSection.style.display = 'none';
-    }
-    var pipeVideo = DXStream.$('pipeline-webrtc-video');
-    if (pipeVideo) { pipeVideo.srcObject = null; pipeVideo.style.display = ''; }
-    var mjpegImg = DXStream.$('pipeline-mjpeg-stream');
-    if (mjpegImg) { mjpegImg.src = ''; mjpegImg.style.display = 'none'; }
-    var statsOverlay = DXStream.$('webrtc-stats-overlay');
-    if (statsOverlay) statsOverlay.textContent = '';
-
-    // 파이프라인 상태 배지 즉시 갱신
-    var badge = DXStream.$('pipeline-status');
-    if (badge) { badge.textContent = T('Idle'); badge.className = 'status-pill pill-idle'; }
+    _clearPipelinePlaybackUi();
 };
 
 function _updatePipelineButtons() {

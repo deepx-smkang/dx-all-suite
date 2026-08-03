@@ -25,11 +25,11 @@ DX-RT uses the DX NPU Driver to send input data to the NPU via the PCIe interfac
 
 **DX-ModelZoo**
 
-DEEPX aims to provide developers with an effortless experience using DeepX NPUs through DeepX Open Modelzoo, which offers a variety of neural network models supported by DeepX NPUs.
+DEEPX aims to provide developers with an effortless experience using DEEPX NPUs through DEEPX Open Modelzoo, which offers a variety of neural network models supported by DEEPX NPUs.
 
-All featured models are provided with pre-trained ONNX models, configuration json files, and pre-compiled binaries named DXNN(DeepX Neural Network).
+All featured models are provided with pre-trained ONNX models, configuration json files, and pre-compiled binaries named DXNN(DEEPX Neural Network).
 
-Developers can also compile featured ONNXs to DXNN, which enables rapid application development accelerated by DeepX NPUs. Comprehensive performance benchmark tools are available for comparing models of quantized INT8 on DeepX NPUs with full precision FP32 on GPUs or CPUs.
+Developers can also compile featured ONNXs to DXNN, which enables rapid application development accelerated by DEEPX NPUs. Comprehensive performance benchmark tools are available for comparing models of quantized INT8 on DEEPX NPUs with full precision FP32 on GPUs or CPUs.
 
 **DX-APP**
 
@@ -59,7 +59,7 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
   - Our single script automates the full setup process
   - All DX-Compiler components are ready to use upon completion.
 
-**You can install dx-compiler by following the instructions at this [LINK](02_Setting_Up_Environment.md#dx-compiler-installation-dx-com-dx-tron).**
+**You can install dx-compiler by following the instructions at this [LINK](02_Setting_Up_Environment.md).**
 
 ### [AI Model Runtime Environment](https://github.com/DEEPX-AI/dx-runtime) (Deployment Platform)
 
@@ -79,7 +79,7 @@ DX-Stream is a GStreamer Custom Plugin designed to simplify the development of V
   - Our script automates the entire process
   - One-time reboot is required after installation to finalize the NPU Driver setup
 
-**You can install dx-runtime by following the instructions at this [LINK](02_Setting_Up_Environment.md#dx-runtime-installation-rt-driver-fw-app-stream).**
+**You can install dx-runtime by following the instructions at this [LINK](02_Setting_Up_Environment.md).**
 
 ---
 

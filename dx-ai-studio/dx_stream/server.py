@@ -10,11 +10,18 @@ import logging
 import os
 import re
 import threading
+import uuid
 from pathlib import Path
 
 from shared.dx_server import DXBaseHandler, DXServer, RequestBodyError
 from shared.chat import ChatEngine
-from dx_stream.core import config, status, demos, models, elements, setup
+from shared.runtime_context import RuntimeContextError, resolve_active_runtime_context
+from shared.runtime_contract import ContractResult, validate_stream_contract
+from shared.runtime_environment import build_child_environment
+from shared.runtime_gate import module_start_policy
+from shared.runtime_profile import ContractCheck
+from shared.runtime_validation import validate_stream_pipeline
+from dx_stream.core import config, demos, elements, gst_env, models, setup, status
 from dx_stream.core.config import DEFAULT_PORT, STATIC_DIR, TEMPLATES_DIR, SERVER_NAME
 
 log = logging.getLogger(__name__)
@@ -35,6 +42,75 @@ except Exception:
 _playback_lock = threading.RLock()
 _current_output_mode = None
 _current_pipeline_id = None
+
+def _active_stream_context() -> tuple[ContractResult, object | None]:
+    """Resolve the validated profile context shared by every Stream launch path."""
+    policy = module_start_policy("dx_stream")
+    if not policy.allowed:
+        assert policy.reason is not None
+        return ContractResult((policy.reason,)), None
+    try:
+        return ContractResult(()), resolve_active_runtime_context()
+    except RuntimeContextError as exc:
+        return ContractResult((ContractCheck(
+            check_id="profile.context",
+            required="resolved active runtime launch context",
+            observed=str(exc),
+            passed=False,
+            remediation="Complete Runtime Setup to repair the active runtime profile.",
+        ),)), None
+
+
+def _contract_failure_detail(failure: ContractCheck) -> str:
+    return "{}: {}; {}".format(
+        failure.check_id,
+        failure.observed,
+        failure.remediation,
+    )
+
+
+def _stream_launch_contract(demo: dict) -> tuple[ContractResult, object | None]:
+    """Return the active-profile contract and launch context for one selected demo."""
+    activation, context = _active_stream_context()
+    if not activation.passed:
+        return activation, None
+    assert context is not None
+
+    selected = dict(demo)
+    if isinstance(demo.get("model"), str):
+        selected["model_file"] = demos._model_file(demo["model"])
+    if isinstance(demo.get("models"), list):
+        selected["model_files"] = [demos._model_file(name) for name in demo["models"]]
+    contract = validate_stream_contract(
+        context,
+        selected,
+        models_dir=config.MODELS_DIR,
+        videos_dir=config.VIDEOS_DIR,
+        configs_dir=config.CONFIGS_DIR,
+        pipelines_dir=config.PIPELINES_DIR,
+    )
+    return ContractResult(activation.checks + contract.checks), context
+
+
+def _deepx_element_types(body: object) -> set[str]:
+    """Return DX element types from Pipeline Builder nodes, never rendered properties."""
+    if not isinstance(body, dict):
+        return set()
+    nodes = body.get("nodes")
+    if not isinstance(nodes, list):
+        return set()
+
+    deepx_types = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        element_type = node.get("type")
+        if not isinstance(element_type, str):
+            continue
+        normalized = element_type.strip()
+        if len(normalized) > 2 and normalized.lower().startswith("dx"):
+            deepx_types.add(normalized)
+    return deepx_types
 
 
 def _check_webrtc_available() -> bool:
@@ -69,6 +145,18 @@ def _stop_all_playback() -> None:
             log.debug("fMP4 pipeline stop failed during cleanup", exc_info=True)
         _current_output_mode = None
         _current_pipeline_id = None
+
+
+def _demo_launch_failure_payload(attempted_modes: list[str]) -> dict:
+    """Return a stable, browser-safe error after demo playback was stopped."""
+    return {
+        "error": "pipeline_error",
+        "message": "Unable to start demo playback.",
+        "detail": "No output backend became ready.",
+        "attempted_modes": attempted_modes,
+        "remediation": "Verify the selected input and Stream output dependencies, then retry.",
+        "playback_active": False,
+    }
 
 
 def _apply_webrtc_payload_types(encoder: dict, payload_types) -> dict:
@@ -408,6 +496,9 @@ class DXStreamHandler(DXBaseHandler):
                 self._drain_request_body()
                 return self.send_json(setup.stop_step())
 
+            if path == "/api/models/upload":
+                return self._handle_model_upload()
+
             if path == "/api/custom-library/upload":
                 return self._handle_custom_upload()
             if path.startswith("/api/custom-library/") and path.endswith("/build"):
@@ -435,6 +526,8 @@ class DXStreamHandler(DXBaseHandler):
     def _handle_demo_start(self, path: str):
         """데모 파이프라인 시작 — WebRTC 우선, MJPEG 폴백."""
         global _current_output_mode, _current_pipeline_id
+        attempted_modes: list[str] = []
+        playback_stopped = False
         body = self._safe_read_json()
         if body is None:
             return
@@ -454,6 +547,18 @@ class DXStreamHandler(DXBaseHandler):
             self._error(503, "unavailable", "GStreamer not available")
             return
 
+        contract, runtime_context = _stream_launch_contract(demos.DEMOS[demo_id])
+        if not contract.passed:
+            failure = contract.first_failure
+            assert failure is not None
+            self._error(
+                424,
+                "contract_failed",
+                "Runtime contract failed: {}".format(failure.check_id),
+                _contract_failure_detail(failure),
+            )
+            return
+
         try:
             from dx_stream.core import mjpeg, fmp4
             encoder = _apply_webrtc_payload_types(detect_encoder(), payload_types)
@@ -466,7 +571,22 @@ class DXStreamHandler(DXBaseHandler):
                 _vuri = f"file://{_vp}" if _vp else (_sel if "://" in _sel else None)
             pipeline_str = demos.build_pipeline_str(demo_id, encoder, video_uri=_vuri, webrtc_ok=True)
 
-            extra_env = None
+            assert runtime_context is not None
+            extra_env = build_child_environment(runtime_context)
+            pipeline_contract = validate_stream_pipeline(
+                pipeline_str,
+                python_executable=runtime_context.python_executable,
+                environment=extra_env,
+            )
+            if not pipeline_contract.passed:
+                failure = pipeline_contract.first_failure
+                assert failure is not None
+                return self._error(
+                    424,
+                    "contract_failed",
+                    "Runtime contract failed: {}".format(failure.check_id),
+                    _contract_failure_detail(failure),
+                )
 
             # Remote viewers (SSH tunnel / NAT) can't use WebRTC (UDP) and MJPEG saturates the
             # link, so they request output="fmp4" — HW H264 over HTTP via MSE. forceMjpeg is the
@@ -477,9 +597,12 @@ class DXStreamHandler(DXBaseHandler):
 
             with _playback_lock:
                 _stop_all_playback()
+                playback_stopped = True
 
-                pid = (None if (force_mjpeg or want_fmp4)
-                       else _try_start_webrtc_pipeline(pipeline_str, extra_env=extra_env))
+                pid = None
+                if not force_mjpeg and not want_fmp4:
+                    attempted_modes.append("webrtc")
+                    pid = _try_start_webrtc_pipeline(pipeline_str, extra_env=extra_env)
                 if pid is not None:
                     return self.send_json({
                         "started": True, "pipeline_id": pid,
@@ -487,6 +610,7 @@ class DXStreamHandler(DXBaseHandler):
                     })
 
                 if want_fmp4:
+                    attempted_modes.append("fmp4")
                     fmp4_pipeline = fmp4.build_fmp4_pipeline(pipeline_str)
                     fmp4.start(fmp4_pipeline, extra_env=extra_env)
                     ready, error = fmp4.wait_until_ready(timeout=20.0)
@@ -502,12 +626,14 @@ class DXStreamHandler(DXBaseHandler):
                                 error, demo_id)
 
                 log.info("WebRTC unavailable, falling back to MJPEG for demo %d", demo_id)
+                attempted_modes.append("mjpeg")
                 mjpeg_pipeline = mjpeg.build_mjpeg_pipeline(pipeline_str)
                 mjpeg.start(mjpeg_pipeline, extra_env=extra_env)
                 ready, error = mjpeg.wait_until_ready(timeout=15.0, require_frame=True)
                 if not ready:
                     mjpeg.stop()
-                    return self._error(500, "pipeline_error", error or "MJPEG pipeline failed to start")
+                    log.warning("Demo %d output start failed after %s", demo_id, attempted_modes)
+                    return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
 
                 _current_output_mode = "mjpeg"
                 _current_pipeline_id = "mjpeg-demo-" + str(demo_id)
@@ -515,8 +641,11 @@ class DXStreamHandler(DXBaseHandler):
                     "started": True, "pipeline_id": _current_pipeline_id,
                     "demo_id": demo_id, "output_mode": "mjpeg"
                 })
-        except Exception as e:
-            self._error(500, "pipeline_error", str(e))
+        except Exception:
+            log.exception("Demo %s start failed", demo_id)
+            if playback_stopped:
+                return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
+            self._error(500, "pipeline_error", "Unable to prepare the demo pipeline.")
 
     def _handle_demo_stop(self, path: str):
         """데모 파이프라인 중지 — 양쪽 백엔드 모두 정리."""
@@ -642,19 +771,92 @@ class DXStreamHandler(DXBaseHandler):
         except Exception as e:
             self._error(400, "validation_error", str(e))
 
+    @staticmethod
+    def _missing_pipeline_assets(gst_str):
+        """Basenames of model/video files the pipeline references but that don't exist
+        on disk — so a run can fail fast with a clear message instead of a raw GStreamer
+        preroll error. Mirrors pipeline._resolve_props' MODELS_DIR/VIDEOS_DIR resolution."""
+        from dx_stream.core.config import MODELS_DIR, VIDEOS_DIR
+        missing = []
+        for raw in re.findall(r'model-path=(\S+)', gst_str or ""):
+            p = Path(raw)
+            if not p.is_absolute():
+                cand = MODELS_DIR / raw
+                if not cand.exists() and not raw.endswith(".dxnn"):
+                    cand = MODELS_DIR / (raw + ".dxnn")
+                p = cand
+            if not p.exists():
+                missing.append(Path(raw).name)
+        for raw in re.findall(r'location=(\S+)', gst_str or ""):
+            if not re.search(r'\.(mp4|mov|avi|mkv|webm)$', raw, re.I):
+                continue  # only sample-video locations, not config/other file props
+            p = Path(raw)
+            if not p.is_absolute():
+                p = VIDEOS_DIR / raw
+            if not p.exists():
+                missing.append(Path(raw).name)
+        seen, out = set(), []
+        for m in missing:
+            if m not in seen:
+                seen.add(m)
+                out.append(m)
+        return out
+
     def _handle_pipeline_run(self):
         """파이프라인 JSON 정의로 파이프라인 시작 — WebRTC 우선, MJPEG 폴백."""
         global _current_output_mode, _current_pipeline_id
+        attempted_modes = []
+        playback_stopped = False
         body = self._safe_read_json()
         if body is None:
             return
         if _pipeline_mgr is None:
             self._error(503, "unavailable", "GStreamer not available")
             return
+        activation, runtime_context = _active_stream_context()
+        if not activation.passed:
+            failure = activation.first_failure
+            assert failure is not None
+            return self._error(
+                424,
+                "contract_failed",
+                "Runtime contract failed: {}".format(failure.check_id),
+                _contract_failure_detail(failure),
+            )
         try:
             from dx_stream.core import mjpeg
 
             gst_str = pipeline_json_to_gst(body)
+            if not gst_str or not gst_str.strip():
+                return self._error(
+                    400,
+                    "empty_pipeline",
+                    "Pipeline is empty — add elements (or choose a Preset) before running.",
+                )
+
+            deepx_types = _deepx_element_types(body)
+            if deepx_types and not gst_env.plugin_available():
+                return self._error(
+                    424,
+                    "missing_dxstream_plugin",
+                    "This pipeline uses DEEPX elements ("
+                    + ", ".join(sorted(deepx_types))
+                    + ") but the dxstream GStreamer plugin (libgstdxstream.so) is not "
+                    "installed. Run the Build / Runtime-Deps setup step, then retry.",
+                )
+
+            # Pre-flight: a preset/pipeline may reference a model .dxnn (or sample video)
+            # that isn't downloaded yet. Without this, GStreamer fails deep inside dxinfer
+            # ("model-path file does not exist" → "pipeline doesn't want to preroll") and the
+            # user only sees a cryptic 500. Fail fast with a clear, actionable message.
+            missing_assets = self._missing_pipeline_assets(gst_str)
+            if missing_assets:
+                return self._error(
+                    424,
+                    "missing_asset",
+                    "Required file(s) not installed: " + ", ".join(missing_assets)
+                    + '. Download them from the Setup panel ("Model & Video Download"), then retry.',
+                )
 
             # 싱크 분류
             sink_keywords = [
@@ -687,11 +889,29 @@ class DXStreamHandler(DXBaseHandler):
             want_fmp4 = (_out == "fmp4")
             force_mjpeg = bool(body.get("forceMjpeg")) if isinstance(body, dict) else False
 
-            extra_env = None
+            assert runtime_context is not None
+            extra_env = build_child_environment(runtime_context)
+            pipeline_contract = validate_stream_pipeline(
+                gst_str,
+                python_executable=runtime_context.python_executable,
+                environment=extra_env,
+            )
+            if not pipeline_contract.passed:
+                failure = pipeline_contract.first_failure
+                assert failure is not None
+                return self._error(
+                    424,
+                    "contract_failed",
+                    "Runtime contract failed: {}".format(failure.check_id),
+                    _contract_failure_detail(failure),
+                )
+
             with _playback_lock:
                 _stop_all_playback()
+                playback_stopped = True
 
                 if webrtc_pipeline is not None and not want_fmp4 and not force_mjpeg:
+                    attempted_modes.append("webrtc")
                     pid = _try_start_webrtc_pipeline(webrtc_pipeline, extra_env=extra_env)
                     if pid is not None:
                         return self.send_json({
@@ -704,6 +924,7 @@ class DXStreamHandler(DXBaseHandler):
 
                 if want_fmp4:
                     from dx_stream.core import fmp4
+                    attempted_modes.append("fmp4")
                     if not has_sink:
                         fmp4_str = gst_str + " ! " + fmp4.get_sink_str()
                     elif has_webrtcbin or has_display_sink:
@@ -730,11 +951,13 @@ class DXStreamHandler(DXBaseHandler):
                 else:
                     fallback_str = gst_str
 
+                attempted_modes.append("mjpeg")
                 mjpeg.start(fallback_str, extra_env=extra_env)
                 ready, error = mjpeg.wait_until_ready(timeout=15.0, require_frame=True)
                 if not ready:
                     mjpeg.stop()
-                    return self._error(500, "pipeline_error", error or "MJPEG pipeline failed to start")
+                    log.warning("Pipeline Builder output start failed after %s: %s", attempted_modes, error)
+                    return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
 
                 _current_output_mode = "mjpeg"
                 _current_pipeline_id = "mjpeg-pipeline"
@@ -743,6 +966,9 @@ class DXStreamHandler(DXBaseHandler):
                     "pipeline": fallback_str, "output_mode": "mjpeg"
                 })
         except Exception as e:
+            log.exception("Pipeline Builder start failed")
+            if playback_stopped:
+                return self.send_json(_demo_launch_failure_payload(attempted_modes), 500)
             self._error(500, "pipeline_error", str(e))
 
     def _handle_pipeline_stop(self):
@@ -793,6 +1019,51 @@ class DXStreamHandler(DXBaseHandler):
         except Exception as e:
             self._error(500, "server_error", str(e))
 
+    def _handle_model_upload(self):
+        """Store a user-supplied DXNN file without transforming its binary contents."""
+        from dx_stream.core.config import MODELS_DIR
+
+        try:
+            _fields, files = self.parse_multipart()
+        except RequestBodyError as exc:
+            return self._error(exc.status_code, "bad_request", exc.message)
+
+        uploaded = files.get("model") if isinstance(files, dict) else None
+        if uploaded is None and isinstance(files, dict) and files:
+            uploaded = next(iter(files.values()))
+        if not isinstance(uploaded, dict) or "data" not in uploaded:
+            return self._error(400, "bad_request", "No model file uploaded")
+
+        raw_name = str(uploaded.get("filename") or "").replace("\\", "/").rsplit("/", 1)[-1]
+        safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", raw_name)
+        if (
+            not safe_name
+            or safe_name.startswith(".")
+            or ".." in safe_name
+            or not safe_name.lower().endswith(".dxnn")
+        ):
+            return self._error(400, "bad_request", "Model file must have a valid .dxnn name")
+
+        target = MODELS_DIR / safe_name
+        temporary = MODELS_DIR / f".upload-{uuid.uuid4().hex}"
+        try:
+            MODELS_DIR.mkdir(parents=True, exist_ok=True)
+            with temporary.open("xb") as stream:
+                stream.write(uploaded["data"])
+            os.link(temporary, target)
+        except FileExistsError:
+            return self._error(409, "conflict", f"Model already exists: {safe_name}")
+        except OSError as exc:
+            return self._error(500, "write_failed", f"Failed to save model: {exc}")
+        finally:
+            try:
+                temporary.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                log.warning("Failed to remove temporary upload %s", temporary, exc_info=True)
+        return self.send_json({"uploaded": True, "name": safe_name})
+
     def _handle_custom_upload(self):
         """커스텀 라이브러리 소스 업로드 (JSON body with base64 content)."""
         from dx_stream.core.custom_library import CustomLibraryManager
@@ -804,7 +1075,14 @@ class DXStreamHandler(DXBaseHandler):
         files_b64 = body.get("files", {})
         if not name or not files_b64:
             return self._error(400, "bad_request", "Missing 'name' or 'files'")
-        files = {k: base64.b64decode(v).decode("utf-8") for k, v in files_b64.items()}
+        try:
+            files = {k: base64.b64decode(v).decode("utf-8") for k, v in files_b64.items()}
+        except (UnicodeDecodeError, ValueError):
+            return self._error(
+                400,
+                "bad_request",
+                "Custom library files must be text source (.c/.cpp/.h), not a binary file.",
+            )
         mgr = CustomLibraryManager()
         try:
             result = mgr.save_upload(name, files)
@@ -830,6 +1108,94 @@ class DXStreamHandler(DXBaseHandler):
             self._error(500, "server_error", str(e))
 
 
+def _prepare_runtime_env():
+    """Two startup fixups so GStreamer demos work regardless of how the server was launched:
+
+    1) CWD → DX_STREAM_ROOT. The multi/secondary demos (8, 10) run config JSONs whose
+       `model_path` is RELATIVE ("./dx_stream/samples/models/...") and dxinfer resolves it
+       against the process CWD. The mjpeg/fmp4 subprocess paths already pass cwd=DX_STREAM_ROOT,
+       but the in-process WebRTC path (Gst.parse_launch) inherits the server's CWD — so if the
+       server was started elsewhere those demos fail with "model-path ... does not exist"
+       (surfaces as an internal data-stream error). Pinning CWD here fixes it for every path.
+    2) DISPLAY/XAUTHORITY adoption. dxosd renders the OSD overlay on the GPU and needs access
+       to the primary DRM node, which requires an authenticated X session. When the server is
+       launched from a bare SSH shell (no DISPLAY) the overlay demos fail to preroll
+       (amdgpu ACCEL_WORKING -13). If a local X session is running, adopt its DISPLAY + auth so
+       the pipelines can reach the GPU the same way a desktop-launched run does.
+    """
+    from dx_stream.core.config import DX_STREAM_ROOT
+    try:
+        if DX_STREAM_ROOT.is_dir():
+            os.chdir(str(DX_STREAM_ROOT))
+            log.info("CWD pinned to DX_STREAM_ROOT: %s", DX_STREAM_ROOT)
+    except OSError as e:
+        log.warning("Could not chdir to DX_STREAM_ROOT (%s): %s", DX_STREAM_ROOT, e)
+
+    if not os.environ.get("DISPLAY"):
+        disp, xauth = _detect_local_x_session()
+        if disp:
+            os.environ["DISPLAY"] = disp
+            if xauth:
+                os.environ["XAUTHORITY"] = xauth
+            # Headless/SSH-launched: the adopted DISPLAY gives dxosd GPU access via DRI3 (clears
+            # the amdgpu ACCEL_WORKING -13), but with a DISPLAY present decodebin auto-plugs the
+            # HW VAAPI decoder, whose GPU-surface buffers dxosd CANNOT map ("Failed to map video
+            # frame for OSD rendering"). Demote the VAAPI *decoders* so decodebin uses software
+            # decode → CPU-mappable buffers → dxosd maps and renders. VAAPI *encoders* stay ranked
+            # (HW H264 for fMP4 is unaffected). This makes every overlay demo work over SSH, not
+            # just from the local desktop session. Verified: demos 0/8/10 preroll→PLAYING.
+            _demote = "vaapih264dec:0,vaapidecodebin:0,vah264dec:0,vaapih265dec:0,vah265dec:0"
+            _existing = os.environ.get("GST_PLUGIN_FEATURE_RANK", "")
+            os.environ["GST_PLUGIN_FEATURE_RANK"] = (
+                _existing + "," + _demote if _existing else _demote)
+            log.info("Adopted local X session for GPU access: DISPLAY=%s XAUTHORITY=%s "
+                     "(+ VAAPI decoders demoted so dxosd can map frames headless)",
+                     disp, xauth or "(none)")
+        else:
+            log.info("No local X session found; overlay (dxosd) demos need a desktop session "
+                     "or a launcher-provided DISPLAY to reach the GPU.")
+
+
+def _detect_local_x_session():
+    """Best-effort discovery of a running local X server's DISPLAY + XAUTHORITY.
+    Returns (display, xauthority) or (None, None). Reads the Xorg process's own -auth/-display
+    args first (most reliable), then falls back to common socket + auth locations."""
+    import glob
+    try:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    parts = f.read().split(b"\0")
+            except OSError:
+                continue
+            if not parts or not parts[0].endswith(b"Xorg"):
+                continue
+            args = [p.decode("utf-8", "replace") for p in parts if p]
+            disp = next((a for a in args if re.fullmatch(r":\d+", a)), None)
+            xauth = None
+            if "-auth" in args:
+                i = args.index("-auth")
+                if i + 1 < len(args):
+                    xauth = args[i + 1]
+            if disp:
+                return disp, (xauth if xauth and os.path.exists(xauth) else None)
+    except OSError:
+        pass
+    # Fallback: a socket in /tmp/.X11-unix + a discoverable auth file.
+    socks = sorted(glob.glob("/tmp/.X11-unix/X*"))
+    if socks:
+        disp = ":" + socks[0].rsplit("X", 1)[-1]
+        uid = os.getuid()
+        for cand in (f"/run/user/{uid}/gdm/Xauthority",
+                     os.path.expanduser("~/.Xauthority")):
+            if os.path.exists(cand):
+                return disp, cand
+        return disp, None
+    return None, None
+
+
 def create_server(port=DEFAULT_PORT):
     """테스트용 서버 팩토리: HTTPServer 인스턴스를 반환."""
     from http.server import ThreadingHTTPServer
@@ -839,4 +1205,5 @@ def create_server(port=DEFAULT_PORT):
 
 
 if __name__ == "__main__":
+    _prepare_runtime_env()
     DXServer(DXStreamHandler, SERVER_NAME, DEFAULT_PORT).start()

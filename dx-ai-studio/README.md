@@ -5,6 +5,31 @@ specialized tools — model catalog, compiler, inference, streaming, benchmarkin
 hardware monitor, deployment planner, and an agent-driven builder — in one browser
 experience, in six languages.
 
+![The DX AI Studio hub — eight module tiles orbiting the launcher home, each with a live status dot and port.](docs/source/resources/hub.png)
+
+## The hub
+
+The **hub** is the studio's home screen and the single place everything launches from.
+Eight **module tiles** orbit the center in a constellation; each shows a **live status dot**
+(green when its server is up) and the local **port** it's serving on. The center badge names
+the suite — module count, the bundled **DXNN SDK** version, the studio **build**, and the
+launcher port (`:8890`).
+
+- **One boot, all tools.** The launcher starts every module server for you on a short boot
+  screen; when it clears, click any tile to open that tool.
+- **Everything stays in one place.** Tiles open the module **embedded** in the hub (not a new
+  tab), and a shared **NPU monitor** float follows you across tools, so you never lose the
+  telemetry or the home.
+- **Tutorial Mode** (top-left toggle) auto-starts an interactive walkthrough the first time you
+  open each tool — handy for a first tour, off by default.
+- **Built-in references.** The **SDK Library** (DEEPX docs & brochures, fully in-app) and
+  **About DEEPX** open right from the hub, alongside the Physical-AI-ecosystem and product
+  (DX-M1 / DX-M2) cards.
+- **Always reachable.** The top bar carries the **language switch** (6 locales), the store
+  (**Buy**), and per-module status dots; the bottom bar has quick links (Homepage, Tech Docs,
+  Model Zoo, S/W & Document downloads, GitHub); and the **💬 assistant** (bottom-right) answers
+  SDK/module questions from any screen.
+
 ## Getting started
 
 **Prerequisites:** Linux (Debian 12/13, Ubuntu 20.04–26.04) with **Python 3.8+** —
@@ -28,6 +53,38 @@ it starts all the tools for you — then click any tile on the hub to begin.
 `./launcher.sh` uses `.venv/bin/python` if a virtual environment is present, otherwise
 your system `python3`. See [`docs/development.md`](docs/development.md) for options
 (`--port`, `--no-browser`, …) and environment variables.
+
+## Managed runtime profiles
+
+DX AI Studio treats the DEEPX runtime as an external, versioned host dependency. It
+does not modify `dx-runtime` sources. The Studio-owned compatibility matrix in
+`config/runtime_profiles.json` declares the supported runtime/driver package pairs,
+immutable GitHub revision URLs, and SHA-256 digests. Package discovery uses installed
+Debian package metadata, not the version of a source checkout.
+
+- **Supported migration:** Studio can reconcile the declared `2.3.0` rollback profile
+  to the target `2.4.1` profile on `x86_64` and `aarch64` hosts.
+- **Trust boundary:** packages are staged under Studio's `var/runtime/artifacts/`
+  cache only after their declared SHA-256 digest matches. A digest mismatch never
+  reaches a privileged package command.
+- **Explicit authorization:** installing packages requires an explicit authorized
+  Runtime Setup action. Studio invokes a non-interactive privileged `dpkg` command
+  only after that authorization; browsing diagnostics and Setup remains available
+  without it.
+- **Launch gate:** App and Stream inference launches require a journaled `ACTIVE`
+  profile that passed full validation. A failure returns a stable contract check ID
+  and remediation rather than starting a child process with inherited shell paths.
+- **Environment isolation:** inference children receive the Studio-selected Python,
+  virtual environment, native library paths, GStreamer plugin directory, and
+  postprocess path. `PYTHONPATH`, `VIRTUAL_ENV`, `LD_LIBRARY_PATH`, and
+  `GST_PLUGIN_PATH` from the parent shell are not inherited.
+- **Recovery:** a failed candidate validation triggers a verified reinstall and
+  validation of the prior declared runtime profile. Studio outputs and its artifact
+  cache are not runtime-install targets and are preserved during rollback.
+
+Installing or changing a DKMS driver can require a reboot before NPU device nodes are
+available. After a reboot, return to Runtime Setup to validate and activate the
+installed profile before starting inference.
 
 ## What you can do
 

@@ -64,7 +64,67 @@ def test_normalize_source_value_preserves_real_values():
 
 
 
-from dx_modelzoo.metadata.adapters import local_runtime_adapter
+from dx_modelzoo.metadata.adapters import local_runtime_adapter, studio_enrichment_adapter
+
+
+def test_studio_enrichment_adapter_fills_curated_gaps():
+    result = studio_enrichment_adapter(SUITE_ROOT)
+    assert result["ok"] is True
+    ppu = result["models"]["scrfd500m_ppu"]
+    assert ppu["evaluation.raw.accuracy"] == "91.072/88.458/69.374"
+    assert ppu["artifacts.qlite_dxnn.remote_url"].endswith("SCRFD500M_PPU.dxnn")
+    deit = result["models"]["deit_base384_distilled"]
+    assert deit["performance.fps"] == 26
+    assert deit["artifacts.onnx.remote_url"].endswith("deit-b_384x384_distilled.onnx")
+
+
+def test_local_studio_catalog_sets_processor_from_dx_app_baseline():
+    from dx_modelzoo.metadata.adapters import local_studio_catalog_adapter
+
+    result = local_studio_catalog_adapter(SUITE_ROOT)
+    assert result["ok"] is True
+    sample = next(iter(result["models"].values()))
+    assert sample["processor.supported_devices"] == ["dx_m1"]
+
+
+def test_internal_gap_fill_does_not_clobber_existing_public_qpro():
+    from dx_modelzoo.metadata.merge import merge_adapter_results
+
+    runtime = {
+        "adapter": "local_studio_catalog",
+        "ok": True,
+        "models": {"yolov5s": {"display.name": "YOLOv5s", "display.task": "object_detection"}},
+        "errors": [],
+        "warnings": [],
+    }
+    public = {
+        "adapter": "public_modelzoo",
+        "ok": True,
+        "models": {
+            "yolov5s": {
+                "performance.fps": 324.0,
+                "artifacts.qpro_dxnn.remote_url": "https://sdk.deepx.ai/modelzoo/dxnn/2_2_0/q-pro/YOLOV5S-1.dxnn",
+            }
+        },
+        "errors": [],
+        "warnings": [],
+    }
+    internal = {
+        "adapter": "internal_modelzoo",
+        "ok": True,
+        "models": {
+            "yolov5s": {
+                "performance.fps": 999.0,
+                "artifacts.qpro_dxnn.remote_url": "https://internal.example/q-pro/other.dxnn",
+            }
+        },
+        "errors": [],
+        "warnings": [],
+    }
+    catalog = merge_adapter_results([runtime, public, internal], source_profile="public")
+    model = next(m for m in catalog["models"] if m["id"] == "yolov5s")
+    assert model["performance"]["fps"] == 324.0
+    assert model["artifacts"]["qpro_dxnn"]["remote_url"].endswith("YOLOV5S-1.dxnn")
 
 
 def test_local_runtime_adapter_reads_registry_manifest_and_examples(tmp_path):
@@ -676,6 +736,9 @@ dataset:
 
 
 def test_local_modelzoo_repo_adapter_reads_real_model_sources():
+    models_dir = SUITE_ROOT / "dx-modelzoo" / "src" / "dx_modelzoo" / "models"
+    if not models_dir.is_dir():
+        pytest.skip(f"dx-modelzoo repo not present: {models_dir}")
     result = local_modelzoo_repo_adapter(SUITE_ROOT)
     assert result["adapter"] == "local_modelzoo_repo"
     assert result["ok"] is True
@@ -929,7 +992,7 @@ class NoSource:
 from dx_modelzoo.metadata.merge import merge_adapter_results
 
 
-def test_merge_prefers_internal_for_accuracy_but_runtime_for_model_list():
+def test_merge_uses_network_profile_for_model_list_and_internal_metadata():
     runtime = {
         "adapter": "local_runtime", "ok": True, "models": {
             "alexnet": {
@@ -952,8 +1015,8 @@ def test_merge_prefers_internal_for_accuracy_but_runtime_for_model_list():
         }, "errors": [], "warnings": []
     }
     catalog = merge_adapter_results([runtime, internal], source_profile="internal")
-    assert [m["id"] for m in catalog["models"]] == ["alexnet"]
-    model = catalog["models"][0]
+    assert [m["id"] for m in catalog["models"]] == ["alexnet", "not_in_sdk"]
+    model = next(model for model in catalog["models"] if model["id"] == "alexnet")
     assert model["evaluation"]["raw"]["accuracy"] == "56.54 / 79.09"
     assert model["performance"]["fps"] == 226.354
     assert model["legal"]["license"] == "BSD-3-Clause"
@@ -1021,6 +1084,7 @@ def test_sync_metadata_cli_local_writes_only_dx_ai_studio(tmp_path):
     cache = tmp_path / "generated_catalog.cache.json"
     # I1: 소스 트리에 캐시가 남지 않도록 --cache를 tmp_path로 지정
     default_cache = ROOT / "dx_modelzoo" / "data" / "generated_catalog.cache.json"
+    previous_default_cache = default_cache.read_bytes() if default_cache.exists() else None
     cmd = [
         sys.executable,
         str(ROOT / "dx_modelzoo" / "tools" / "sync_metadata.py"),
@@ -1033,8 +1097,11 @@ def test_sync_metadata_cli_local_writes_only_dx_ai_studio(tmp_path):
     assert result.returncode == 0, result.stderr
     assert out.exists()
     assert report.exists()
-    # 소스 트리의 기본 캐시 경로에 파일이 생성되지 않아야 함
-    assert not default_cache.exists(), "CLI should not write cache to source tree default path"
+    # 명시한 --cache 외의 기본 캐시 경로를 생성하거나 변경해서는 안 됨
+    if previous_default_cache is None:
+        assert not default_cache.exists(), "CLI should not create the default cache when --cache is explicit"
+    else:
+        assert default_cache.read_bytes() == previous_default_cache, "CLI should not modify the default cache when --cache is explicit"
 
 
 from dx_modelzoo.metadata.sync import run_sync, adapter_names_for_profile
@@ -1068,8 +1135,10 @@ def test_sync_failure_keeps_prior_cache_and_marks_stale(tmp_path):
         output_path=tmp_path / "generated_catalog.json",
         report_path=tmp_path / "sync_report.json",
         adapter_overrides={
+            "local_studio_catalog": failing_adapter("local_studio_catalog"),
             "local_runtime": failing_adapter("local_runtime"),
             "local_modelzoo_repo": failing_adapter("local_modelzoo_repo"),
+            "studio_enrichment": failing_adapter("studio_enrichment"),
             "benchmark_cache": failing_adapter("benchmark_cache"),
             "internal_modelzoo": failing_adapter("internal_modelzoo"),
         },
@@ -1082,10 +1151,49 @@ def test_sync_failure_keeps_prior_cache_and_marks_stale(tmp_path):
 
 def test_offline_mode_skips_network_adapters():
     assert adapter_names_for_profile("internal", offline=True) == [
+        "local_studio_catalog",
         "local_runtime",
         "local_modelzoo_repo",
+        "studio_enrichment",
         "benchmark_cache",
     ]
+
+
+def test_local_sync_cannot_downgrade_existing_public_catalog(tmp_path):
+    """local-only sync must not wipe accuracy/artifact data from a prior public snapshot."""
+    from dx_modelzoo.metadata.sync import is_catalog_downgrade, run_sync
+
+    output = tmp_path / "generated_catalog.json"
+    rich = {
+        "schema_version": "2.0",
+        "source_profile": "public",
+        "models": [
+            {
+                "id": f"model_{i}",
+                "evaluation": {"raw": {"accuracy": "1.0"}},
+                "performance": {"fps": 100.0},
+                "artifacts": {"onnx": {"remote_url": f"https://sdk.deepx.ai/modelzoo/onnx/m{i}.onnx"}},
+            }
+            for i in range(60)
+        ],
+    }
+    atomic_write_json(output, rich)
+    sparse = {
+        "models": [
+            {"id": f"model_{i}", "missing": ["onnx", "performance.fps"]}
+            for i in range(60)
+        ]
+    }
+    assert is_catalog_downgrade(rich, sparse)
+
+    result = run_sync(
+        source_profile="local",
+        suite_root=ROOT.parent,
+        output_path=output,
+        offline=True,
+    )
+    assert result["report"].get("skipped_write") == "downgrade prevented — kept existing catalog"
+    assert result["catalog"]["models"][0]["artifacts"]["onnx"]["remote_url"].endswith("m0.onnx")
 
 
 
@@ -1576,15 +1684,15 @@ def test_sync_metadata_config_path_falls_back_to_legacy_when_preferred_absent(tm
     assert resolve_source_profile(config_path=config_path) == "public"
 
 
-def test_sync_metadata_config_path_defaults_local_when_configs_absent(tmp_path):
-    """config 파일이 모두 없으면 preferred 경로를 반환하고 source는 local로 fallback해야 한다."""
+def test_sync_metadata_config_path_defaults_public_when_configs_absent(tmp_path):
+    """config 파일이 모두 없으면 preferred 경로를 반환하고 source는 public으로 fallback해야 한다."""
     from dx_modelzoo.tools.sync_metadata import _resolve_metadata_config_path
 
     dx_ai_studio_root = tmp_path / "dx-ai-studio"
     config_path = _resolve_metadata_config_path(dx_ai_studio_root)
 
     assert config_path == dx_ai_studio_root / "dx_modelzoo" / "data" / "metadata_sync_config.json"
-    assert resolve_source_profile(config_path=config_path) == "local"
+    assert resolve_source_profile(config_path=config_path) == "public"
 
 
 def test_internal_adapter_passes_verify_tls_to_fetch(monkeypatch):
@@ -1650,6 +1758,44 @@ def test_run_sync_passes_adapter_kwargs_to_internal_adapter(tmp_path):
 
     assert captured["suite_root"] == tmp_path
     assert captured["verify_tls"] is False
+
+
+def test_adapter_kwargs_from_config_merges_defaults_with_cli_overrides(tmp_path):
+    from dx_modelzoo.metadata.sync import _adapter_kwargs_from_config
+
+    config_path = tmp_path / "metadata_sync_config.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "adapter_kwargs": {
+                    "internal_modelzoo": {
+                        "verify_tls": False,
+                        "timeout": 15,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    merged = _adapter_kwargs_from_config(
+        "internal",
+        adapter_kwargs={
+            "internal_modelzoo": {
+                "publish_url": "https://override.example/modelzoo",
+                "timeout": 30,
+            }
+        },
+        config_path=config_path,
+    )
+
+    assert merged == {
+        "internal_modelzoo": {
+            "verify_tls": False,
+            "timeout": 30,
+            "publish_url": "https://override.example/modelzoo",
+        }
+    }
 
 
 def test_sync_metadata_cli_no_verify_tls_passes_adapter_kwargs(tmp_path, monkeypatch):

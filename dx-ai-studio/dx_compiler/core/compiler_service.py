@@ -3,6 +3,7 @@ import logging
 import os
 import queue
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -11,8 +12,10 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from shared.paths import var_dir
+from dx_compiler.core.config import SCRIPT_DIR
 from dx_compiler.core.log_capture import LogBuffer, LogCapture
 
 _log = logging.getLogger(__name__)
@@ -35,11 +38,41 @@ def _phase_name(phase: Any) -> str:
     return getattr(phase, "name", str(phase))
 
 
+# Iteration/tqdm progress from a raw dx_com stdout line (e.g. Q-PRO tuning "27/28").
+# Conservative: only fires when the line clearly looks like a progress bar (a fraction PLUS
+# a %, a bar '|', an ETA bracket, or 'it/s'), so ordinary log text never yields a false bar.
+# Marker the compile_worker prefixes each JSON event with, so we can pull events back out
+# of a stdout stream that dx_com's \r-based tqdm bars are also writing to (keep in sync
+# with compile_worker.EVENT_PREFIX).
+_EVENT_PREFIX = "__DXEVENT__"
+_TQDM_FRAC_RE = re.compile(r"(\d+)\s*/\s*(\d+)")
+_TQDM_SIG_RE = re.compile(r"%|\||it/s|\[\d|\d+:\d\d")
+
+
+def _parse_tqdm_sub(line: str):
+    """Return {label, percent, current, total} for a tqdm-style line, else None."""
+    if not line or not _TQDM_SIG_RE.search(line):
+        return None
+    m = _TQDM_FRAC_RE.search(line)
+    if not m:
+        return None
+    cur, tot = int(m.group(1)), int(m.group(2))
+    if tot <= 0 or cur < 0 or cur > tot:
+        return None
+    head = line[:40]
+    label = head.split(":")[0].strip()[:32] if ":" in head else "Q-PRO"
+    return {"label": label or "Q-PRO", "percent": round(cur / tot * 100, 1),
+            "current": cur, "total": tot}
+
+
 NODE_SELECTION_UNSUPPORTED_KEY = "node_selection_unsupported_subprocess"
 NODE_SELECTION_UNSUPPORTED_MESSAGE = (
     "Node selection is unavailable in subprocess compile mode. "
     "Compilation will continue without range selection."
 )
+DEFAULT_COMPLETED_JOB_TTL_SECONDS = 24 * 60 * 60
+DEFAULT_COMPLETED_JOB_MAX_COUNT = 100
+_COMPLETION_MARKER = ".completed"
 
 
 @dataclass
@@ -50,7 +83,13 @@ class CompileJob:
     current_phase: str = ""
     error: Optional[str] = None
     output_dir: str = ""
+    requested_output_dir: str = ""
+    work_dir: str = ""
     model_path: str = ""
+    dxnn_path: Optional[str] = None
+    canonical_dxnn_path: Optional[str] = None
+    artifact_ready: bool = False
+    completed_at: Optional[float] = None
     start_time: float = field(default_factory=time.time)
     start_monotonic: float = field(default_factory=time.monotonic)
     log_buffer: Optional[LogBuffer] = field(default=None, repr=False)
@@ -70,6 +109,7 @@ class CompileJob:
     last_cpu_reasons: Optional[Dict[str, Any]] = field(default=None, repr=False)
     # QXNN quant debug metadata discovered from QUANTIZATION phase events
     qxnn_path: Optional[str] = None
+    qxnn_work_path: Optional[str] = field(default=None, repr=False)
     qxnn_debug_graphs: List[str] = field(default_factory=list)
     qxnn_metadata: Dict[str, Any] = field(default_factory=dict)
     diagnosis_report_path: Optional[str] = None
@@ -96,6 +136,13 @@ class CompileJob:
     warnings: List[Dict[str, str]] = field(default_factory=list)
     status_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
+    def __post_init__(self) -> None:
+        """Keep the legacy public output directory compatible with new job data."""
+        if not self.requested_output_dir:
+            self.requested_output_dir = self.output_dir
+        elif not self.output_dir:
+            self.output_dir = self.requested_output_dir
+
     def mark_error(self, error: str) -> bool:
         with self.status_lock:
             if self.status in ("done", "error"):
@@ -113,7 +160,7 @@ class CompileJob:
 
     def mark_done(self) -> bool:
         with self.status_lock:
-            if self.status == "error":
+            if self.status == "error" or not self.artifact_ready:
                 return False
             self.status = "done"
             self.progress = 100.0
@@ -121,11 +168,267 @@ class CompileJob:
 
 
 class CompilerService:
-    def __init__(self):
+    def __init__(self, job_root: Optional[Path] = None):
         self.jobs: Dict[str, CompileJob] = {}
+        self._direct_compile_lock = threading.Lock()
+        self.job_root = Path(job_root) if job_root is not None else var_dir("compiler", "jobs")
+        self.job_root.mkdir(parents=True, exist_ok=True)
+        self.job_root = self.job_root.resolve()
+        self.cleanup_completed_jobs()
 
     def get_job(self, job_id: str) -> Optional[CompileJob]:
         return self.jobs.get(job_id)
+
+    def _job_directory(self, job: CompileJob) -> Path:
+        if Path(job.job_id).name != job.job_id:
+            raise ValueError("Invalid compiler job ID")
+        path = (self.job_root / job.job_id).resolve()
+        try:
+            path.relative_to(self.job_root)
+        except ValueError as exc:
+            raise ValueError("Invalid compiler job directory") from exc
+        return path
+
+    def _prepare_job_staging(
+        self, job: CompileJob, requested_output_dir: Optional[str] = None
+    ) -> bool:
+        """Allocate this job's private compiler work directory."""
+        requested = (
+            job.requested_output_dir
+            or job.output_dir
+            or requested_output_dir
+            or ""
+        )
+        if not requested:
+            job.mark_error("Requested output directory is required")
+            return False
+        try:
+            work_dir = self._job_directory(job) / "work"
+            work_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, ValueError) as exc:
+            job.mark_error(f"Failed to create compiler staging directory: {exc}")
+            return False
+        job.requested_output_dir = requested
+        job.output_dir = requested
+        job.work_dir = str(work_dir)
+        return True
+
+    @staticmethod
+    def _is_final_dxnn(path: Path) -> bool:
+        name = path.name.lower()
+        return (
+            path.is_file()
+            and name.endswith(".dxnn")
+            and "checkpoint" not in name
+            and "optimized_ckpt" not in name
+        )
+
+    def _final_dxnn_candidates(self, job: CompileJob) -> List[Path]:
+        if not job.work_dir:
+            return []
+        try:
+            work_dir = Path(job.work_dir).resolve()
+            expected_work_dir = self._job_directory(job) / "work"
+            if work_dir != expected_work_dir:
+                return []
+            candidates = []
+            for path in work_dir.glob("*.dxnn"):
+                if not self._is_final_dxnn(path):
+                    continue
+                # Freshness gate: only accept a .dxnn actually produced by THIS run. A failed
+                # compile (e.g. dx_com logs an ONNX-parse error but does not raise) can leave a
+                # stale/leftover .dxnn in the work dir; without this check it would be published
+                # and the job falsely reported "finished successfully". 2s grace for fs mtime
+                # granularity / clock skew.
+                try:
+                    if path.stat().st_mtime < job.start_time - 2.0:
+                        continue
+                except OSError:
+                    continue
+                resolved = path.resolve()
+                try:
+                    resolved.relative_to(work_dir)
+                except ValueError:
+                    continue
+                candidates.append(resolved)
+            return candidates
+        except (OSError, ValueError):
+            return []
+
+    def _write_completion_marker(self, job: CompileJob) -> bool:
+        """Persist a conservative cleanup marker for an already-finalized job."""
+        if job.completed_at is None:
+            return False
+        try:
+            job_dir = self._job_directory(job)
+            marker = job_dir / _COMPLETION_MARKER
+            temporary = job_dir / f"{_COMPLETION_MARKER}.{uuid.uuid4().hex}.tmp"
+            temporary.write_text(f"{job.completed_at:.6f}\n", encoding="ascii")
+            os.replace(temporary, marker)
+            return True
+        except (OSError, ValueError) as exc:
+            _log.warning("Failed to write completion marker for job %s: %s", job.job_id, exc)
+            return False
+
+    # dx_com sometimes LOGS a fatal phase error (e.g. a corrupt ONNX in PREPARE) to its own
+    # log without raising — run_compile then returns normally and the worker emits "done", so
+    # the studio can't see the failure via an exception/error-event. Scan the captured compile
+    # output for these unambiguous dx_com failure markers as a second line of defense.
+    _COMPILE_ERROR_MARKERS = (
+        "Wire format was corrupt",
+        "Error parsing message with type",
+        "Failed to load ONNX model",
+        "InvalidONNXError",
+        "InvalidModelError",
+    )
+
+    def _compile_log_error(self, job: CompileJob) -> Optional[str]:
+        """Return a short error string if the captured compile output shows a dx_com failure
+        marker, else None. Scans the in-memory log buffer and a compiler.log in the work dir."""
+        texts = []
+        try:
+            if job.log_buffer is not None:
+                texts.append("\n".join(job.log_buffer.get_new_lines(0)))
+        except Exception:
+            pass
+        try:
+            if job.work_dir:
+                logf = Path(job.work_dir) / "compiler.log"
+                if logf.is_file():
+                    texts.append(logf.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            pass
+        blob = "\n".join(texts)
+        for marker in self._COMPILE_ERROR_MARKERS:
+            if marker in blob:
+                return f"Compilation failed: {marker} (see compiler log)."
+        return None
+
+    def _finalize_success(self, job: CompileJob) -> bool:
+        """Publish exactly one staged DXNN before making a job externally complete."""
+        with job.status_lock:
+            if job.status in ("done", "error"):
+                return False
+            marker_err = self._compile_log_error(job)
+            if marker_err:
+                job.status = "error"
+                job.error = marker_err
+                return False
+            candidates = self._final_dxnn_candidates(job)
+            if not candidates:
+                job.status = "error"
+                job.error = "Compilation produced a missing final DXNN artifact."
+                return False
+            if len(candidates) != 1:
+                job.status = "error"
+                job.error = "Compilation produced ambiguous final DXNN artifacts."
+                return False
+
+            canonical = candidates[0]
+            requested_dir = Path(job.requested_output_dir)
+            destination = requested_dir / canonical.name
+            temporary = requested_dir / f".{canonical.name}.{uuid.uuid4().hex}.tmp"
+            try:
+                requested_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(canonical, temporary)
+                os.replace(temporary, destination)
+            except OSError as exc:
+                try:
+                    temporary.unlink(missing_ok=True)
+                except OSError as cleanup_exc:
+                    _log.warning(
+                        "Failed to clean temporary compiler artifact for job %s: %s",
+                        job.job_id,
+                        cleanup_exc,
+                    )
+                job.status = "error"
+                job.error = f"Failed to publish compiler artifact: {exc}"
+                return False
+
+            job.canonical_dxnn_path = str(canonical)
+            job.dxnn_path = job.canonical_dxnn_path
+            job.artifact_ready = True
+            job.completed_at = time.time()
+            # Record the QXNN + diagnosis artifacts BEFORE flipping status to "done".
+            # The /progress SSE loop polls job.status every 0.5s and, the moment it sees
+            # "done", it emits the terminal `complete` event (with a qxnn payload computed
+            # from job.diagnosis_report_path) and breaks — it never polls again. If these
+            # stores ran AFTER status="done" (as they used to, from the callers), an SSE
+            # poll landing in that window would send `complete` with the report still
+            # unrecorded, so the freshly-generated diagnosis_report.html — which does exist
+            # on disk under work_dir/quant_diagnosis/ — was reported as "not generated".
+            # Ordering these first (same thread, before the status write) closes the race.
+            try:
+                self._store_qxnn_artifact(job)
+                self._store_diagnosis_report(job)
+            except Exception:
+                _log.warning("Failed to store QXNN/diagnosis artifacts for job %s",
+                             job.job_id, exc_info=True)
+            job.status = "done"
+            job.progress = 100.0
+            self._write_completion_marker(job)
+            return True
+
+    def is_ready_artifact(self, job: CompileJob) -> bool:
+        """Return whether a job exposes an authorized canonical DXNN artifact."""
+        if job.status != "done" or not job.artifact_ready:
+            return False
+        canonical_path = job.canonical_dxnn_path or job.dxnn_path
+        if not canonical_path:
+            return False
+        try:
+            canonical = Path(canonical_path).resolve()
+            canonical.relative_to(self._job_directory(job))
+            return self._is_final_dxnn(canonical)
+        except (OSError, ValueError):
+            return False
+
+    def cleanup_completed_jobs(
+        self,
+        *,
+        now: Optional[float] = None,
+        ttl_seconds: int = DEFAULT_COMPLETED_JOB_TTL_SECONDS,
+        max_count: int = DEFAULT_COMPLETED_JOB_MAX_COUNT,
+    ) -> List[str]:
+        """Conservatively delete only completed job-owned staging directories."""
+        now = time.time() if now is None else now
+        completed: List[Tuple[float, str, Path]] = []
+        try:
+            directories = list(self.job_root.iterdir())
+        except OSError as exc:
+            _log.warning("Unable to scan compiler job staging root: %s", exc)
+            return []
+
+        for directory in directories:
+            marker = directory / _COMPLETION_MARKER
+            if not directory.is_dir() or not marker.is_file():
+                continue
+            try:
+                directory.resolve().relative_to(self.job_root)
+                completed_at = float(marker.read_text(encoding="ascii").strip())
+            except (OSError, ValueError):
+                continue
+            completed.append((completed_at, directory.name, directory))
+
+        expired = [
+            entry for entry in completed if now - entry[0] > ttl_seconds
+        ]
+        retained = sorted(
+            (entry for entry in completed if entry not in expired),
+            key=lambda entry: entry[0],
+            reverse=True,
+        )
+        expired.extend(retained[max_count:])
+        removed: List[str] = []
+        for _completed_at, job_id, directory in expired:
+            try:
+                shutil.rmtree(directory)
+            except OSError as exc:
+                _log.warning("Failed to remove completed compiler job %s: %s", job_id, exc)
+                continue
+            self.jobs.pop(job_id, None)
+            removed.append(job_id)
+        return removed
 
     def _terminate_process(self, job: CompileJob) -> bool:
         """Terminate the compile worker process tracked on ``job.process``.
@@ -202,12 +505,12 @@ class CompilerService:
         stored_graphs = [str(name) for name in debug_graphs]
         debug_level_policy = metadata.get("debug_level_policy") or {}
         with job.qxnn_lock:
-            job.qxnn_path = str(qxnn_path)
+            job.qxnn_work_path = str(qxnn_path)
             job.qxnn_debug_graphs = stored_graphs
             job.qxnn_metadata = {
                 "phase": "QUANTIZATION",
                 "status": metadata.get("status"),
-                "qxnn_path": job.qxnn_path,
+                "qxnn_filename": Path(qxnn_path).name,
                 "debug_graphs": list(job.qxnn_debug_graphs),
                 "debug_level_policy": debug_level_policy,
             }
@@ -218,8 +521,8 @@ class CompilerService:
         if already_stored or not job.output_dir:
             return
         search_dirs = [
-            Path(job.output_dir) / "quant_diagnosis",
-            Path(job.output_dir) / "quant_debug",
+            Path(job.work_dir) / "quant_diagnosis",
+            Path(job.work_dir) / "quant_debug",
         ]
 
         def _mtime(path: Path) -> float:
@@ -239,19 +542,35 @@ class CompilerService:
                 key=_mtime,
                 reverse=True,
             )
-        except OSError:
+        except OSError as exc:
+            _log.warning("Failed to inspect staged QXNN artifacts for job %s: %s", job.job_id, exc)
             return
+        with job.qxnn_lock:
+            metadata_candidate = Path(job.qxnn_work_path) if job.qxnn_work_path else None
+        if metadata_candidate is not None and metadata_candidate.is_file():
+            candidates.insert(0, metadata_candidate)
         if not candidates:
             return
-        fresh = [path for path in candidates if _mtime(path) >= job.start_time]
-        selected = fresh[0] if fresh else (candidates[0] if len(candidates) == 1 else None)
-        if selected is not None:
-            self._store_qxnn_metadata(job, {"status": "completed", "qxnn_path": str(selected)})
+        selected = candidates[0]
+        try:
+            work_dir = Path(job.work_dir).resolve()
+            selected = selected.resolve()
+            relative = selected.relative_to(work_dir)
+            target = Path(job.requested_output_dir) / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.parent / f".{target.name}.{uuid.uuid4().hex}.tmp"
+            shutil.copyfile(selected, temporary)
+            os.replace(temporary, target)
+        except (OSError, ValueError) as exc:
+            _log.warning("Failed to publish QXNN artifact for job %s: %s", job.job_id, exc)
+            return
+        with job.qxnn_lock:
+            job.qxnn_path = str(target)
 
     def _store_diagnosis_report(self, job: CompileJob) -> None:
-        if not job.output_dir:
+        if not job.work_dir:
             return
-        report_path = Path(job.output_dir) / "quant_diagnosis" / "diagnosis_report.html"
+        report_path = Path(job.work_dir) / "quant_diagnosis" / "diagnosis_report.html"
         if not report_path.is_file():
             return
         with job.qxnn_lock:
@@ -277,6 +596,8 @@ class CompilerService:
                     if compile_finished.is_set():
                         break
                     continue
+                if event is None:
+                    break
                 try:
                     phase_name = _phase_name(getattr(event, "phase", ""))
                     metadata = getattr(event, "metadata", {}) or {}
@@ -350,8 +671,14 @@ class CompilerService:
         node_selection: bool = False,
         use_q_pro: bool = False,
     ) -> CompileJob:
-        job_id = uuid.uuid4().hex[:12]
-        job = CompileJob(job_id=job_id, output_dir=output_dir, model_path=model_path)
+        self.cleanup_completed_jobs()
+        job_id = str(uuid.uuid4())
+        job = CompileJob(
+            job_id=job_id,
+            output_dir=output_dir,
+            requested_output_dir=output_dir,
+            model_path=model_path,
+        )
         job.capabilities["node_selection"] = True
         job.node_selection_enabled = node_selection
         job.config_path = config_path
@@ -362,6 +689,8 @@ class CompilerService:
         job.use_q_pro = use_q_pro
         job.enhanced_scheme = enhanced_scheme
         self.jobs[job_id] = job
+        if not self._prepare_job_staging(job):
+            return job
 
         thread = threading.Thread(
             target=self._run_compile,
@@ -395,8 +724,14 @@ class CompilerService:
         dataset_path: Optional[str] = None,
     ) -> CompileJob:
         """Submit a QXNN resume (re-quantization) job."""
-        job_id = uuid.uuid4().hex[:12]
-        job = CompileJob(job_id=job_id, output_dir=output_dir, model_path=qxnn_path)
+        self.cleanup_completed_jobs()
+        job_id = str(uuid.uuid4())
+        job = CompileJob(
+            job_id=job_id,
+            output_dir=output_dir,
+            requested_output_dir=output_dir,
+            model_path=qxnn_path,
+        )
         job.mode = "resume"
         job.qxnn_checkpoint_path = qxnn_path
         job.recalibration_method = recalibration_method
@@ -404,6 +739,8 @@ class CompilerService:
         job.use_q_pro = use_q_pro
         job.enhanced_scheme = enhanced_scheme
         self.jobs[job_id] = job
+        if not self._prepare_job_staging(job):
+            return job
 
         thread = threading.Thread(
             target=self._run_resume,
@@ -437,9 +774,42 @@ class CompilerService:
         enhanced_scheme=None,
         use_q_pro: bool = False,
     ):
-
+        if not self._prepare_job_staging(job, output_dir):
+            return
         if not job.mark_running():
             return
+        self._run_compile_locked(
+            job,
+            model_path,
+            config_path,
+            job.work_dir,
+            opt_level,
+            aggressive_partitioning,
+            gen_log,
+            quant_debug,
+            quant_diagnosis,
+            input_nodes,
+            output_nodes,
+            enhanced_scheme,
+            use_q_pro,
+        )
+
+    def _run_compile_locked(
+        self,
+        job: CompileJob,
+        model_path: str,
+        config_path: str,
+        output_dir: str,
+        opt_level: int,
+        aggressive_partitioning: bool,
+        gen_log: bool,
+        quant_debug: bool,
+        quant_diagnosis: bool,
+        input_nodes,
+        output_nodes,
+        enhanced_scheme,
+        use_q_pro: bool,
+    ):
 
         # venv에만 dx_com이 있는 경우 → subprocess 방식
         from dx_compiler.core.setup_service import setup_service
@@ -462,68 +832,71 @@ class CompilerService:
                 input_nodes, output_nodes,
             )
 
-        # Capture stdout/stderr into shared buffer for log streaming.
-        # stderr uses CR-aware mode to collapse tqdm progress bar updates.
-        log_buf = LogBuffer()
-        stdout_cap = LogCapture(sys.stdout, log_buf)
-        stderr_cap = LogCapture(sys.stderr, log_buf, handle_cr=True, job=job)
-        job.log_buffer = log_buf
-        old_stdout, old_stderr = sys.stdout, sys.stderr
-        sys.stdout = stdout_cap
-        sys.stderr = stderr_cap
+        from dx_compiler.core.compiler_bridge import mask_compile_error, run_compile
 
-        # Phase output: dx_com populates events at phase boundaries.
-        # A consumer thread reads events and stores parsed graphs for the viewer.
-        event_queue = queue.Queue()
-        selection_done = threading.Event()
-        selection_result = {}
-        compile_finished = threading.Event()
-        consumer = self._start_phase_event_consumer(
-            job,
-            event_queue,
-            compile_finished,
-            selection_done=selection_done,
-            selection_result=selection_result,
-        )
+        # stdout/stderr are process-global; retain exclusive ownership until the
+        # in-process compiler and the capture cleanup have both completed.
+        with self._direct_compile_lock:
+            # Capture stdout/stderr into shared buffer for log streaming.
+            # stderr uses CR-aware mode to collapse tqdm progress bar updates.
+            log_buf = LogBuffer()
+            stdout_cap = LogCapture(sys.stdout, log_buf)
+            stderr_cap = LogCapture(sys.stderr, log_buf, handle_cr=True, job=job)
+            job.log_buffer = log_buf
+            old_stdout, old_stderr = sys.stdout, sys.stderr
+            sys.stdout = stdout_cap
+            sys.stderr = stderr_cap
 
-        compile_succeeded = False
-        try:
-            from dx_compiler.core.compiler_bridge import mask_compile_error, run_compile
-
-            run_compile(
-                model=model_path,
-                config=config_path,
-                output_dir=output_dir,
-                opt_level=opt_level,
-                aggressive_partitioning=aggressive_partitioning,
-                gen_log=gen_log,
-                quant_debug=quant_debug,
-                quant_diagnosis=quant_diagnosis,
-                input_nodes=input_nodes,
-                output_nodes=output_nodes,
-                enhanced_scheme=enhanced_scheme,
-                use_q_pro=use_q_pro,
-                event_queue=event_queue,
-                pause_for_selection=job.node_selection_enabled,
-                selection_done=selection_done,
-                selection_result=selection_result,
-            )
-            compile_succeeded = job.mark_done()
-        except Exception as e:
-            job.mark_error(mask_compile_error(e))
-        finally:
-            compile_finished.set()
-            consumer.join(timeout=5)
-            if compile_succeeded:
-                try:
-                    self._store_qxnn_artifact(job)
-                    self._store_diagnosis_report(job)
-                except Exception:
-                    _log.warning("Failed to store QXNN/diagnosis artifacts", exc_info=True)
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
-            stderr_cap.flush_pending()
-            job.tqdm_sub = None
+            # Phase output: dx_com populates events at phase boundaries.
+            # A consumer thread reads events and stores parsed graphs for the viewer.
+            event_queue = queue.Queue()
+            selection_done = threading.Event()
+            selection_result = {}
+            compile_finished = threading.Event()
+            consumer = None
+            compile_succeeded = False
+            try:
+                consumer = self._start_phase_event_consumer(
+                    job,
+                    event_queue,
+                    compile_finished,
+                    selection_done=selection_done,
+                    selection_result=selection_result,
+                )
+                run_compile(
+                    model=model_path,
+                    config=config_path,
+                    output_dir=output_dir,
+                    opt_level=opt_level,
+                    aggressive_partitioning=aggressive_partitioning,
+                    gen_log=gen_log,
+                    quant_debug=quant_debug,
+                    quant_diagnosis=quant_diagnosis,
+                    input_nodes=input_nodes,
+                    output_nodes=output_nodes,
+                    enhanced_scheme=enhanced_scheme,
+                    use_q_pro=use_q_pro,
+                    event_queue=event_queue,
+                    pause_for_selection=job.node_selection_enabled,
+                    selection_done=selection_done,
+                    selection_result=selection_result,
+                )
+                compile_succeeded = True
+            except Exception as e:
+                job.mark_error(mask_compile_error(e))
+            finally:
+                compile_finished.set()
+                event_queue.put(None)
+                if consumer is not None:
+                    consumer.join(timeout=5)
+                # _finalize_success records QXNN + diagnosis artifacts internally,
+                # before flipping status to "done" (see the race note there).
+                if compile_succeeded:
+                    self._finalize_success(job)
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+                stderr_cap.flush_pending()
+                job.tqdm_sub = None
 
     def _is_dx_com_available(self) -> bool:
         """현재 프로세스에서 dx_com을 import할 수 있는지 확인"""
@@ -538,8 +911,9 @@ class CompilerService:
                                  quant_debug, quant_diagnosis, enhanced_scheme, use_q_pro,
                                  input_nodes=None, output_nodes=None):
         """venv Python의 compile_worker.py를 subprocess로 실행."""
-        from dx_compiler.core.config import SCRIPT_DIR
-
+        if not self._prepare_job_staging(job, output_dir):
+            return
+        output_dir = job.work_dir
         if not job.log_buffer:
             job.log_buffer = LogBuffer()
         job._completed_phases = 0
@@ -580,11 +954,31 @@ class CompilerService:
             proc.stdin.close()
 
             for line in proc.stdout:
-                line = line.strip()
+                line = line.rstrip("\r\n")
                 if not line:
                     continue
+                # The worker prefixes each JSON event with _EVENT_PREFIX. dx_com's tqdm bars
+                # (\r-based) share the stream and can glue onto an event line, so extract the
+                # JSON *after* the marker rather than json.loads-ing the whole line (which the
+                # tqdm prefix would break — that was why NO events parsed → empty graphs +
+                # stuck "0% Initializing"). Text before the marker is tqdm/log noise.
+                idx = line.rfind(_EVENT_PREFIX)
+                if idx < 0:
+                    job.log_buffer.append(line)
+                    # Q-PRO tuning etc. only emit tqdm bars (N/M) inside one phase — surface
+                    # the iteration count as the sub-progress bar so the UI shows live movement.
+                    _sub = _parse_tqdm_sub(line)
+                    if _sub is not None:
+                        job.tqdm_sub = _sub
+                    continue
+                _pre = line[:idx].strip()
+                if _pre:
+                    job.log_buffer.append(_pre)
+                    _sub = _parse_tqdm_sub(_pre)
+                    if _sub is not None:
+                        job.tqdm_sub = _sub
                 try:
-                    event = json.loads(line)
+                    event = json.loads(line[idx + len(_EVENT_PREFIX):])
                 except json.JSONDecodeError:
                     job.log_buffer.append(line)
                     continue
@@ -596,7 +990,7 @@ class CompilerService:
                     job.mark_error(event.get("message", "Unknown error"))
                     return
                 if event_type == "done":
-                    compile_succeeded = job.mark_done()
+                    compile_succeeded = True
                     break
 
                 meta = event.get("metadata", {})
@@ -608,27 +1002,48 @@ class CompilerService:
                     job._completed_phases += 1
                     job.progress = min(99.0, (job._completed_phases / job._total_phases) * 100)
                     job.current_phase = phase
+                    job.tqdm_sub = None   # phase boundary → clear the sub-progress bar
+                elif phase:
+                    # Phase started/running (not just completed) → advance the label
+                    # immediately so it never stays stuck on "Initializing".
+                    job.current_phase = phase
+
+                # Phase graph parsed by the worker (venv has onnx) — store it so
+                # _sse_progress emits model_ready and the viewer tabs populate, exactly
+                # like the in-process consumer does. PREPARE maps to the "prepared" tab.
+                graph_data = event.get("graph")
+                if graph_data:
+                    cpu_reasons = meta.get("cpu_reasons")
+                    if cpu_reasons:
+                        job.last_cpu_reasons = cpu_reasons
+                        for sg in graph_data.get("subgraphs", []):
+                            if sg["id"] in cpu_reasons:
+                                sg["cpu_reasons"] = cpu_reasons[sg["id"]]
+                    graph_key = "prepared" if phase == "PREPARE" else phase
+                    with job.gui_graphs_lock:
+                        job.gui_graphs[graph_key] = graph_data
+                        job.gui_graphs_ready.append(graph_key)
 
             proc.wait()
             if proc.returncode != 0:
                 # stderr is merged into stdout and already captured in log_buffer; surface
                 # its tail (proc.stderr is None under stderr=STDOUT).
-                tail = "\n".join(job.log_buffer[-20:]) if getattr(job, "log_buffer", None) else ""
+                # LogBuffer is not subscriptable — read its tail via get_new_lines(0).
+                # (Slicing it directly raised TypeError and masked the real crash output.)
+                _lb = getattr(job, "log_buffer", None)
+                tail = "\n".join(_lb.get_new_lines(0)[-20:]) if _lb else ""
                 job.mark_error(tail or f"Worker exited with code {proc.returncode}")
-            elif job.status != "error" and not compile_succeeded:
-                job.mark_done()
-                compile_succeeded = job.status == "done"
+            elif job.status != "error":
+                compile_succeeded = True
 
         except Exception as e:
             job.mark_error(str(e))
         finally:
             job.process = None
-            if job.status == "done":
-                try:
-                    self._store_qxnn_artifact(job)
-                    self._store_diagnosis_report(job)
-                except Exception:
-                    _log.warning("Failed to store QXNN/diagnosis artifacts", exc_info=True)
+            # _finalize_success records QXNN + diagnosis artifacts internally, before
+            # flipping status to "done" (see the race note there).
+            if compile_succeeded:
+                self._finalize_success(job)
 
     _RESUME_MARKERS = (
         ("QXNN resume: loading", 10.0, "LOADING"),
@@ -648,9 +1063,31 @@ class CompilerService:
         use_q_pro: bool,
         dataset_path: Optional[str],
     ):
-        """Run a QXNN resume re-quantization in a fresh subprocess."""
+        if not self._prepare_job_staging(job, output_dir):
+            return
         if not job.mark_running():
             return
+        self._run_resume_locked(
+            job,
+            qxnn_path,
+            job.work_dir,
+            recalibration_method,
+            enhanced_scheme,
+            use_q_pro,
+            dataset_path,
+        )
+
+    def _run_resume_locked(
+        self,
+        job: CompileJob,
+        qxnn_path: str,
+        output_dir: str,
+        recalibration_method: Optional[str],
+        enhanced_scheme: Optional[Dict],
+        use_q_pro: bool,
+        dataset_path: Optional[str],
+    ):
+        """Run a QXNN resume re-quantization in a fresh subprocess."""
         job.current_phase = "RESUME"
         job.progress = 5.0
 
@@ -703,9 +1140,11 @@ class CompilerService:
             job.mark_error(f"Failed to launch resume subprocess: {e}")
         finally:
             job.process = None
+            # _finalize_success records QXNN + diagnosis artifacts internally, before
+            # flipping status to "done" (see the race note there).
             if resume_succeeded:
-                job.mark_done()
-                job.current_phase = "DONE"
+                if self._finalize_success(job):
+                    job.current_phase = "DONE"
             job.tqdm_sub = None
 
     def _consume_subprocess_output(self, job: CompileJob, proc, log_buf: LogBuffer) -> None:

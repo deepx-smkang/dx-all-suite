@@ -204,7 +204,7 @@
   <!-- Playback mode: WebRTC for local/same-LAN (low latency), MJPEG for remote access -->
   <div class="playback-mode-bar" id="playback-mode-bar">
     <span class="txt-xs txt-dim playback-mode-label"><span class="ko">재생 방식</span><span class="en">Playback</span><span class="es">Reproducción</span><span class="ja">再生方式</span><span class="zh-CN">播放方式</span><span class="zh-TW">播放方式</span></span>
-    <button class="btn btn-ghost btn-sm active" data-mode="local" onclick="DXStream.setPlaybackMode('local',this)"><span class="ko">🖥 로컬 (WebRTC)</span><span class="en">🖥 Local (WebRTC)</span><span class="es">🖥 Local (WebRTC)</span><span class="ja">🖥 ローカル (WebRTC)</span><span class="zh-CN">🖥 本地 (WebRTC)</span><span class="zh-TW">🖥 本機 (WebRTC)</span></button>
+    <button class="btn btn-ghost btn-sm active" data-mode="local" onclick="DXStream.setPlaybackMode('local',this)"><span class="ko">🖥 로컬 (WebRTC)</span><span class="en">🖥 Local (WebRTC)</span><span class="es">🖥 Equipo local (WebRTC)</span><span class="ja">🖥 ローカル (WebRTC)</span><span class="zh-CN">🖥 本地 (WebRTC)</span><span class="zh-TW">🖥 本機 (WebRTC)</span></button>
     <button class="btn btn-ghost btn-sm" data-mode="remote" onclick="DXStream.setPlaybackMode('remote',this)"><span class="ko">🌐 원격 (MJPEG)</span><span class="en">🌐 Remote (MJPEG)</span><span class="es">🌐 Remoto (MJPEG)</span><span class="ja">🌐 リモート (MJPEG)</span><span class="zh-CN">🌐 远程 (MJPEG)</span><span class="zh-TW">🌐 遠端 (MJPEG)</span></button>
     <span class="txt-xs txt-dim playback-mode-hint" id="playback-mode-hint-local">
       <span class="ko">보드와 같은 PC·LAN에서 볼 때 (저지연, 재인코딩 없음)</span><span class="en">Viewing on the board's own PC / same LAN (low latency, no re-encode)</span><span class="es">Al ver en el PC de la placa / misma LAN (baja latencia, sin recodificar)</span><span class="ja">ボードと同じPC・LANで視聴する場合 (低遅延・再エンコードなし)</span><span class="zh-CN">在开发板本机 / 同一 LAN 观看时 (低延迟, 无重编码)</span><span class="zh-TW">在開發板本機 / 同一 LAN 觀看時 (低延遲, 無重編碼)</span>
@@ -263,6 +263,14 @@
 <div class="page" id="page-pipeline">
   <h1>🔧 <span class="accent"><span class="ko">파이프라인 빌더</span><span class="en">Pipeline Builder</span><span class="es">Constructor de pipeline</span><span class="ja">パイプラインビルダー</span><span class="zh-CN">管道构建器</span><span class="zh-TW">管線建置器</span></span></h1>
   <p class="txt-dim txt-sm mb16"><span class="ko">GStreamer 요소를 드래그 앤 드롭으로 파이프라인을 구성하세요.</span><span class="en">Drag and drop GStreamer elements to build your pipeline.</span><span class="es">Arrastre y suelte elementos GStreamer para construir su pipeline.</span><span class="ja">GStreamerエレメントをドラッグ＆ドロップしてパイプラインを構築します。</span><span class="zh-CN">拖放GStreamer元素来构建管道。</span><span class="zh-TW">拖放GStreamer元素來建置管線。</span></p>
+
+  <!-- Playback mode (shared with the Demo page): Local=WebRTC (same PC/LAN), Remote=MJPEG
+       (SSH tunnel / remote browser). Same DXStream.setPlaybackMode, synced across both bars. -->
+  <div class="playback-mode-bar" id="pipeline-playback-mode-bar" style="margin-bottom:10px">
+    <span class="txt-dim txt-sm" style="margin-right:8px"><span class="ko">재생 모드:</span><span class="en">Playback:</span><span class="es">Reproducción:</span><span class="ja">再生モード:</span><span class="zh-CN">播放模式:</span><span class="zh-TW">播放模式:</span></span>
+    <button class="btn btn-ghost btn-sm active" data-mode="local" onclick="DXStream.setPlaybackMode('local',this)"><span class="ko">🖥 로컬 (WebRTC)</span><span class="en">🖥 Local (WebRTC)</span><span class="es">🖥 Equipo local (WebRTC)</span><span class="ja">🖥 ローカル (WebRTC)</span><span class="zh-CN">🖥 本地 (WebRTC)</span><span class="zh-TW">🖥 本機 (WebRTC)</span></button>
+    <button class="btn btn-ghost btn-sm" data-mode="remote" onclick="DXStream.setPlaybackMode('remote',this)"><span class="ko">🌐 원격 (MJPEG)</span><span class="en">🌐 Remote (MJPEG)</span><span class="es">🌐 Remoto (MJPEG)</span><span class="ja">🌐 リモート (MJPEG)</span><span class="zh-CN">🌐 远程 (MJPEG)</span><span class="zh-TW">🌐 遠端 (MJPEG)</span></button>
+  </div>
 
   <!-- Pipeline Toolbar -->
   <div class="pipeline-actions">
@@ -745,6 +753,15 @@
       <div class="card mt8" id="custom-build-log-card" style="display:none">
         <h4><span class="ko">빌드 로그</span><span class="en">Build Log</span><span class="es">Registro de compilación</span><span class="ja">ビルドログ</span><span class="zh-CN">构建日志</span><span class="zh-TW">建置日誌</span></h4>
         <pre id="custom-build-log" class="metadata-raw"></pre>
+      </div>
+      <h4 class="mt8"><span class="ko">모델 업로드 (.dxnn)</span><span class="en">Upload Model (.dxnn)</span><span class="es">Subir modelo (.dxnn)</span><span class="ja">モデルをアップロード (.dxnn)</span><span class="zh-CN">上传模型 (.dxnn)</span><span class="zh-TW">上傳模型 (.dxnn)</span></h4>
+      <div class="card">
+        <label><span class="ko">DxInfer의 model-path에서 선택 가능해집니다</span><span class="en">Becomes selectable in DxInfer's model-path</span><span class="es">Disponible en model-path de DxInfer</span><span class="ja">DxInfer の model-path で選択可能になります</span><span class="zh-CN">上传后可在 DxInfer 的 model-path 中选择</span><span class="zh-TW">上傳後可在 DxInfer 的 model-path 中選擇</span></label>
+        <input type="file" id="model-upload-file" accept=".dxnn" class="input mt8">
+        <button class="btn btn-accent mt8" onclick="DXStream.uploadModel()">
+          <span class="ko">업로드</span><span class="en">Upload</span><span class="es">Subir</span><span class="ja">アップロード</span><span class="zh-CN">上传</span><span class="zh-TW">上傳</span>
+        </button>
+        <span id="model-upload-status" class="mt8" style="display:block"></span>
       </div>
     </div>
   </div>

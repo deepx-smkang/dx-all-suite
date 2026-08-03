@@ -20,6 +20,26 @@ from shared.paths import DX_RUNTIME_ROOT, SUITE_ROOT
 
 DX_RT_ROOT = DX_RUNTIME_ROOT / "dx_rt"
 
+# Studio-owned inference venv (Option 1). Holds numpy+cv2+dx_engine in ONE interpreter for the
+# python-variant demos, WITHOUT modifying dx-runtime or the base interpreter. Created lazily by
+# ensure_inference_venv() only when no existing interpreter already has all three. Lives under
+# the studio tree (shared/ is dx-ai-studio/shared).
+STUDIO_ROOT = Path(__file__).resolve().parent.parent          # dx-ai-studio/
+STUDIO_INFER_VENV = STUDIO_ROOT / "venv-dx-studio-infer"
+_INSTALLED_RUNTIME_LIBRARY_DIRS = (
+    Path("/usr/local/lib"),
+    Path("/usr/lib"),
+)
+
+
+def installed_runtime_lib_dirs() -> list[Path]:
+    """Native library locations supplied by installed runtime packages only.
+
+    This deliberately excludes checkout paths.  It is for validated App/Stream
+    launch contexts; legacy callers retain ``runtime_lib_dirs()`` below.
+    """
+    return list(_INSTALLED_RUNTIME_LIBRARY_DIRS)
+
 
 def runtime_lib_dirs() -> list[Path]:
     """Candidate directories to prepend to LD_LIBRARY_PATH for NPU inference
@@ -55,16 +75,20 @@ def runtime_venv_roots() -> list[Path]:
     return [DX_RUNTIME_ROOT / "venv-dx-runtime", SUITE_ROOT / "venv-dx-runtime"]
 
 
-def runtime_python() -> str:
-    """The dx-runtime venv python if it can actually import numpy+cv2, else the
-    current interpreter / a python3-on-PATH fallback.
+def runtime_python() -> str | None:
+    """Return an interpreter that imports numpy, cv2, and dx_engine together.
 
-    Ports dx_app/core/config.py's _find_runtime_python() verbatim: python_example
-    demo scripts hard-depend on numpy+cv2, but venv-dx-runtime is frequently an
-    otherwise-empty venv (dx_engine is injected via PYTHONPATH, not pip-installed),
-    so every candidate is probed and skipped if it can't import numpy+cv2 — falling
-    back all the way to the gui server's own python if none qualify."""
+    A Python demo cannot safely run with a partial numpy/cv2 interpreter and an
+    injected source-tree dx_engine: that combination can shadow the compiled
+    extension and fail at runtime.  Callers must repair the Studio-owned inference
+    venv when no complete interpreter exists.
+    """
     cands = []
+    # The studio-owned inference venv (Option 1), if built, is the FIRST choice — it is the one
+    # interpreter we can guarantee has numpy+cv2+dx_engine together.
+    _studio_py = STUDIO_INFER_VENV / "bin" / "python3"
+    if _studio_py.is_file():
+        cands.append(str(_studio_py))
     for root in runtime_venv_roots():
         for name in ("python3", "python"):
             p = root / "bin" / name
@@ -75,18 +99,131 @@ def runtime_python() -> str:
         p = shutil.which(name)
         if p:
             cands.append(p)
+    ordered = []
     seen = set()
     for py in cands:
-        if not py or py in seen:
-            continue
-        seen.add(py)
+        if py and py not in seen:
+            seen.add(py)
+            ordered.append(py)
+
+    # The python-variant demos need all three imports.  A full probe is mandatory;
+    # returning a partial candidate creates a child that is guaranteed to fail later.
+    for py in ordered:
+        if _has_numpy_cv2_dxengine(py):
+            return py
+    return None
+
+
+def telemetry_python() -> str | None:
+    """Return the first interpreter compatible with telemetry imports.
+
+    Unlike ``runtime_python()``, this selection intentionally tests the telemetry
+    API surface itself.  It is used only by the telemetry worker so Studio never
+    imports native ``dx_engine`` modules in its own interpreter.
+    """
+    candidates: list[str] = []
+    for root in runtime_venv_roots():
+        for name in ("python3", "python"):
+            python = root / "bin" / name
+            if python.is_file():
+                candidates.append(str(python))
+    candidates.append(sys.executable)
+    for name in ("python3", "python"):
+        python = shutil.which(name)
+        if python:
+            candidates.append(python)
+
+    probe = (
+        "from dx_engine.device_status import DeviceStatus; "
+        "from dx_engine.configuration import Configuration; "
+        "print(DeviceStatus.get_device_count())"
+    )
+    for python in dict.fromkeys(candidates):
         try:
-            if subprocess.run([py, "-c", "import numpy,cv2"],
-                               capture_output=True, timeout=15).returncode == 0:
-                return py
+            result = subprocess.run(
+                [python, "-c", probe],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
         except Exception:
-            pass
-    return shutil.which("python3") or sys.executable
+            continue
+        if result.returncode == 0:
+            return python
+    return None
+
+
+def _has_numpy_cv2_dxengine(python: str) -> bool:
+    """True if `python` can import numpy + cv2 + a WORKING dx_engine, all on its own."""
+    try:
+        return subprocess.run(
+            [python, "-c", "import numpy, cv2; from dx_engine import InferenceEngine"],
+            capture_output=True, timeout=25).returncode == 0
+    except Exception:
+        return False
+
+
+def ensure_inference_venv(log=None) -> str | None:
+    """Guarantee ONE interpreter with numpy+cv2+dx_engine for the python-variant demos, without
+    modifying dx-runtime or any base interpreter (Option 1).
+
+        - Reuses the Studio-owned venv when it already imports numpy+cv2+dx_engine.
+        - Otherwise builds that Studio-owned venv seeded (`--system-site-packages`) from an interpreter
+      that HAS a working dx_engine (so the compiled `_pydxrt` is inherited, ABI-matched), then
+      pip-installs opencv-python-headless + numpy INTO that venv only. The base interpreter and
+      dx-runtime's venv are never touched.
+    - Returns the ready interpreter path, or None if no dx_engine-capable interpreter exists yet
+      (the runtime must be installed first — dx_engine is not on PyPI).
+
+    Idempotent and safe to call repeatedly (a satisfied state is a fast no-op)."""
+    def _say(m):
+        if log:
+            log(m)
+
+    venv_py = STUDIO_INFER_VENV / "bin" / "python3"
+    if venv_py.is_file() and _has_numpy_cv2_dxengine(str(venv_py)):
+        return str(venv_py)
+
+    # Find an interpreter with a WORKING dx_engine to seed from (system python, venv-dx-runtime…).
+    seeds = []
+    for root in runtime_venv_roots():
+        p = root / "bin" / "python3"
+        if p.is_file():
+            seeds.append(str(p))
+    seeds.append(sys.executable)
+    for name in ("python3", "python"):
+        w = shutil.which(name)
+        if w:
+            seeds.append(w)
+    seed = next((s for s in dict.fromkeys(seeds) if runtime_python_has_dx_engine(s)), None)
+    if not seed:
+        _say("No interpreter with a working dx_engine found — install the DX runtime first "
+             "(dx_engine is not on PyPI).")
+        return None
+
+    try:
+        _say(f"Creating studio inference venv (seed: {seed}) …")
+        r = subprocess.run([seed, "-m", "venv", "--system-site-packages", str(STUDIO_INFER_VENV)],
+                           capture_output=True, text=True, timeout=180)
+        if r.returncode != 0:
+            _say("venv creation failed: " + (r.stderr or "")[-300:])
+            return None
+        _say("Installing opencv-python-headless + numpy into the inference venv …")
+        r = subprocess.run([str(venv_py), "-m", "pip", "install", "--upgrade",
+                            "opencv-python-headless", "numpy"],
+                           capture_output=True, text=True, timeout=900)
+        if r.returncode != 0:
+            _say("pip install failed: " + (r.stderr or "")[-300:])
+            return None
+    except (OSError, subprocess.SubprocessError) as exc:
+        _say(f"inference venv setup error: {exc}")
+        return None
+
+    if _has_numpy_cv2_dxengine(str(venv_py)):
+        _say("Inference venv ready: " + str(venv_py))
+        return str(venv_py)
+    _say("Inference venv still missing numpy/cv2/dx_engine after install.")
+    return None
 
 
 def runtime_python_has_dx_engine(python: str | None = None) -> bool:
@@ -99,6 +236,8 @@ def runtime_python_has_dx_engine(python: str | None = None) -> bool:
     has a compiled dx_engine SHADOWS the working install and breaks every
     python-variant example subprocess with `ImportError: _pydxrt`."""
     py = python or runtime_python()
+    if not py:
+        return False
     try:
         return subprocess.run(
             [py, "-c", "from dx_engine import InferenceEngine"],
@@ -140,6 +279,24 @@ def dx_engine_pythonpath_dirs(python: str | None = None) -> list[Path]:
     if runtime_python_has_dx_engine(python):
         return []
     return [DX_RT_ROOT / "python_package" / "src", DX_RT_ROOT / "python_package"]
+
+
+def telemetry_worker_env(python: str) -> dict[str, str]:
+    """Build an isolated environment for the telemetry worker subprocess.
+
+    Native runtime paths and the source-tree ``dx_engine`` fallback are applied
+    only to this child environment; the Studio server environment is unchanged.
+    """
+    env = os.environ.copy()
+    env["LD_LIBRARY_PATH"] = ld_library_path()
+    if not runtime_python_has_dx_engine(python):
+        pythonpath_dirs = [str(path) for path in dx_engine_pythonpath_dirs(python)]
+        if pythonpath_dirs:
+            existing_pythonpath = env.get("PYTHONPATH")
+            env["PYTHONPATH"] = ":".join(
+                pythonpath_dirs + ([existing_pythonpath] if existing_pythonpath else [])
+            )
+    return env
 
 
 def dx_rt_cli_python() -> str:

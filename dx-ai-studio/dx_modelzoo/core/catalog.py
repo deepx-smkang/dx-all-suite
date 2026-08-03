@@ -9,6 +9,7 @@ from collections import defaultdict
 from dx_modelzoo.core.config import (CATALOG_FILE, CONFIG_FILE, CATEGORIES, EXAMPLE_TYPES,
                          DX_APP_ROOT, MODELS_DIR, CPP_DIR, PY_DIR, BUILD_DIR, DATA_DIR,
                          SAMPLE_IMAGES, MODEL_IMAGE_OVERRIDE, SAMPLE_IMG_DIR)
+from dx_modelzoo.core.postprocessor_paths import resolve_postprocessor_path
 from shared.catalog_sources import parse_test_models_conf as _shared_parse_test_models_conf
 
 
@@ -24,7 +25,13 @@ def _resolve_sample(model_id, category):
     raw = MODEL_IMAGE_OVERRIDE.get(model_id) or SAMPLE_IMAGES.get(category, "")
     if not raw:
         return None, None
-    fname = Path(raw).name
+    p = Path(raw)
+    fname = p.name
+    # Pair/gallery tasks and cross-dir inputs have no flat sample/img file.
+    if not p.suffix:
+        return None, None
+    if str(raw).startswith("sample/img/"):
+        return "sample/img", fname
     if (SAMPLE_IMG_DIR / fname).is_file():
         return "sample/img", fname
     return None, None
@@ -46,6 +53,7 @@ _LICENSE_TEXT_REF = {
     "No License": "No license declared by the source repository (all rights reserved by default)",
     "Public Domain": "Public domain dedication — Darknet \"YOLO LICENSE\" (no rights reserved)",
     "Apple ML Research License": "Apple proprietary research license — use/reproduce/modify/redistribute with notice retention; see the source repository LICENSE",
+    "Apple Sample Code License": "Apple Sample Code License — see https://developer.apple.com/sample-code/ (permissive sample redistribution with attribution)",
 }
 
 # Commercial-use classification per license, so the UI can flag models that cannot be
@@ -58,6 +66,7 @@ _LICENSE_COMMERCIAL = {
     "GPL-3.0": "copyleft", "AGPL-3.0": "copyleft", "LGPL-3.0": "copyleft",
     "CC BY-NC 4.0": "non-commercial", "Non-commercial": "non-commercial",
     "Apple ML Research License": "restricted", "No License": "restricted",
+    "Apple Sample Code License": "allowed",
 }
 
 # source-host org slug → display copyright holder (else the slug verbatim = repo owner).
@@ -138,6 +147,17 @@ def _enrich_input_shape(model):
     if res and re.match(r"^\d+x\d+x\d+$", str(res)):
         w, h, c = (int(x) for x in str(res).split("x"))
         tech["input_shape"] = [1, h, w, c]
+
+
+def _enrich_postprocessor(model):
+    """Fill technical.postprocessor with a dx_app source path when official sync has none."""
+    tech = model.setdefault("technical", {})
+    current = tech.get("postprocessor")
+    if isinstance(current, str) and current.startswith("dx_app/"):
+        return
+    path = resolve_postprocessor_path(model)
+    if path:
+        tech["postprocessor"] = path
 
 
 def _representative_input(model_id, category):
@@ -271,6 +291,23 @@ def _metadata_source_from_generated(generated_catalog):
     if generated_catalog.get("generated_at"):
         source["generated_at"] = generated_catalog["generated_at"]
     return source
+
+
+# Public ModelZoo ids carry quant / instance suffixes (_q_lite / _q_pro / _q_master / _1) that
+# the local catalog ids don't, so an exact-id merge left many models unenriched ("update
+# pending" for fps, fps/watt, artifacts, …). Match exact first, then the local id + a KNOWN
+# suffix — directional so meaningful resolution variants (e.g. *_1280) are never collapsed.
+_GEN_ID_SUFFIXES = ("_q_lite", "_q_pro", "_q_master", "_1")
+
+def _match_generated(model_id, gen_map):
+    g = gen_map.get(model_id)
+    if g is not None:
+        return g
+    for suf in _GEN_ID_SUFFIXES:
+        g = gen_map.get(model_id + suf)
+        if g is not None:
+            return g
+    return None
 
 
 def _has_metadata_value(value):
@@ -564,7 +601,7 @@ def reload_catalog():
         gen_map = {m["id"]: m for m in generated.get("models", [])}
         metadata_source = _metadata_source_from_generated(generated)
         for model in merged:
-            enriched = gen_map.get(model["id"])
+            enriched = _match_generated(model["id"], gen_map)
             if enriched:
                 _enrich_model_entry(model, enriched, metadata_source=metadata_source)
         # 기본 processor/specification 보장 (생성된 카탈로그에 없는 모델용)
@@ -580,6 +617,7 @@ def reload_catalog():
     for model in merged:
         _enrich_legal(model)
         _enrich_input_shape(model)
+        _enrich_postprocessor(model)
         _enrich_summary(model)
     next_cache = {
         "models": merged,
@@ -606,11 +644,12 @@ def apply_generated_catalog(generated_catalog):
         next_models = []
         for model in _catalog_cache["models"]:
             next_model = copy.deepcopy(model)
-            enriched = gen_map.get(next_model["id"])
+            enriched = _match_generated(next_model["id"], gen_map)
             if enriched:
                 _enrich_model_entry(next_model, enriched, metadata_source=metadata_source)
             _enrich_legal(next_model)
             _enrich_input_shape(next_model)
+            _enrich_postprocessor(next_model)
             _enrich_summary(next_model)
             next_models.append(next_model)
         _catalog_cache = {

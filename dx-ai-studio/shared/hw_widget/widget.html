@@ -1,11 +1,17 @@
 <!-- DX HW Float Widget — auto-injected by launcher proxy -->
 <style>
-.hw-float{position:fixed;bottom:20px;right:20px;z-index:9000;
+/* Fixed width + own box-sizing so the float renders identically in EVERY module
+   iframe. It used to be min-width only (content-driven), so its size drifted per
+   tab as values populated (--→numbers), the MOCK badge toggled, or a module's
+   font fallback differed. A fixed width pins the outer box regardless of host CSS
+   or content; slightly-long values just fit/wrap instead of widening it. */
+.hw-float{box-sizing:border-box;position:fixed;bottom:20px;right:20px;z-index:9000;
   background:rgba(15,23,42,.85);backdrop-filter:blur(12px);
   border:1px solid rgba(99,140,255,.15);border-radius:12px;
   padding:10px 14px;box-shadow:0 4px 24px rgba(0,0,0,.4);
-  min-width:200px;font-size:11px;transition:opacity .3s;
-  user-select:none;font-family:Inter,sans-serif;color:#e2e8f0}
+  width:212px;font-size:11px;transition:opacity .3s;
+  user-select:none;font-family:Inter,-apple-system,'Segoe UI',Roboto,system-ui,sans-serif;color:#e2e8f0}
+.hw-float *{box-sizing:border-box}
 .hw-float.dragging{opacity:.85;transition:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .hw-float.minimized .hw-float-body{display:none}
 .hw-float-header{display:flex;justify-content:space-between;align-items:center;
@@ -74,6 +80,14 @@
   var _MODES = ['temp','volt','clock','ctemp','cpu','mem','dram','util'];
   var _LABELS = {temp:'NPU Temp',volt:'Voltage',clock:'Clock',ctemp:'Core Temp',
                  cpu:'CPU Load',mem:'Memory',dram:'NPU DRAM',util:'NPU Util'};
+  var _MOCK_BADGE_TITLES = {
+    en:'Simulated data — DX Engine unavailable in this module. Values are not from the NPU.',
+    ko:'시뮬레이션 데이터 — 이 모듈에서 DX Engine을 사용할 수 없습니다. 값은 NPU에서 가져온 것이 아닙니다.',
+    ja:'シミュレーションデータ — このモジュールでは DX Engine を利用できません。値は NPU から取得したものではありません。',
+    es:'Datos simulados: DX Engine no está disponible en este módulo. Los valores no proceden de la NPU.',
+    'zh-CN':'模拟数据：此模块中 DX Engine 不可用。数值并非来自 NPU。',
+    'zh-TW':'模擬資料：此模組中 DX Engine 無法使用。數值並非來自 NPU。'
+  };
 
   /* ── State variables and helpers ── */
   var _lastPayload = null;
@@ -88,6 +102,8 @@
   function _fmtRound(v,suffix){return _isNum(v)?Math.round(v)+(suffix||''):'N/A';}
   function _avg(arr){return Array.isArray(arr)&&arr.length?arr.reduce(function(a,b){return a+b},0)/arr.length:null;}
   function _escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function _currentLang(){return (window.DXI18n&&window.DXI18n.lang)||document.documentElement.lang||'en';}
+  function _mockBadgeTitle(){return _MOCK_BADGE_TITLES[_currentLang()]||_MOCK_BADGE_TITLES.en;}
 
   /* ── Selected-index persistence ── */
   function _readNpuIdx(){
@@ -231,7 +247,7 @@
     if(titleEl){
       var _isMock=!!(_lastPayload&&_lastPayload.mock)||!!(n&&n.mock);
       var _title=n?('NPU '+((n.id!=null)?n.id:_selectedNpuIdx)):'No NPU';
-      titleEl.innerHTML=_escHtml(_title)+(_isMock?' <span class="hf-mock-badge" title="Simulated data — DX Engine unavailable in this module. Values are not from the NPU.">MOCK</span>':'');
+      titleEl.innerHTML=_escHtml(_title)+(_isMock?' <span class="hf-mock-badge" title="'+_escHtml(_mockBadgeTitle())+'">MOCK</span>':'');
     }
 
     /* NPU values */

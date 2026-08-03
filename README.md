@@ -11,7 +11,7 @@
 
 - **High Efficiency**: Equipped with the proprietary **DX-COM** compiler that extracts 100% of NPU performance. It utilizes advanced quantization (Intelligent Quantization with INT8) to minimize accuracy loss while maximizing inference speed.  
 - **Seamless Integration**: Build intelligent video analytics pipelines that bridge the entire pre-processing, inference, and post-processing workflow. Using **DX-Stream** (GStreamer-based custom plugins), you can deploy complex vision tasks without extensive code modifications.  
-- **Flexible Ecosystem**: Fully supports **Python and C++ APIs** and offers a **ModelZoo** with over 270 optimized models. As a leader in the Open-Source Physical AI Alliance, we provide seamless workflows for popular frameworks.  
+- **Flexible Ecosystem**: Fully supports **Python and C++ APIs** and offers a **ModelZoo** with 345 optimized models. As a leader in the Open-Source Physical AI Alliance, we provide seamless workflows for popular frameworks.  
 
 <div align="center">
   <img src="./docs/source/img/DXNN-SDK-Simple-Architecture.png" width="600">
@@ -78,6 +78,13 @@
 **All showcases + summaries →** [`dx-agent-dev-showcase/README.md`](./dx-agent-dev-showcase/README.md)  ·  **About the feature →** [Agent-Driven Development docs](./docs/source/00_Agent_Driven_Development.md)
 <!-- dx-showcase:docs:cardgrid:end -->
 
+> **Note on build time & cost** — The build time, output-token count, and cost shown for
+> each showcase are **actual measurements** taken from that showcase's recorded
+> build-session transcript (`*-session.md`), priced with the coding agent's published
+> billing policy — not estimates, and not cherry-picked best runs. Because AI coding
+> agents are non-deterministic, the same prompt does not always consume the same output
+> tokens, so your own build time and cost may differ depending on environment and model version.
+
 ## ✨ DX AI Studio — dx-ai-studio (Beta)
 
 <div align="center">
@@ -87,6 +94,19 @@
 **DX AI Studio is here — currently in Beta.** An all-in-one desktop web workspace for building on the DEEPX NPU: eight specialized tools in one browser, launched with a single command — **DX Model Zoo** (model catalog), **DX Compiler** (ONNX/`.pt` → `.dxnn`), **DX App** (inference + one-click **Run Demo**), **DX Stream** (GStreamer pipelines), **DX Benchmark**, **DX Monitor** (live NPU telemetry), **DX EdgeGuide** (deployment planner from measured benchmark data), and **DX Agent Dev** (the agent-driven builder above). Compile a model, run a curated demo, stream a pipeline, and watch NPU utilization live — all on-device.
 
 **Explore the studio →** [`dx-ai-studio/README.md`](./dx-ai-studio/README.md)  ·  **Install & launch →** [Installation and Launch](./dx-ai-studio/docs/source/01_Installation_and_Launch.md)
+
+## ✨ DX-Benchmark — dx-benchmark (Beta)
+
+Reproducible YOLO26 performance benchmarking on the DEEPX NPU — one standardized procedure
+across any Host PC + NPU combination. It measures two tiers: **Model-Level** (`run_model`) —
+**Latency** (single-core, sync) and **Throughput** (multi-core, async) — and **E2E Pipeline**
+(DX-Stream) — **Single-Stream** FPS and **Multi-Stream** channel capacity. Both tiers run
+automatic ONNX-Runtime ON/OFF comparison with thermal-throttle detection, then render an
+interactive dashboard for cross-environment and cross-version comparison. Measured results for
+6 hardware environments are included, and the dashboard built from them is also viewable in
+[DX AI Studio](./dx-ai-studio/README.md)'s **DX Benchmark** view.
+
+**Get started →** [`dx-benchmark/README.md`](./dx-benchmark/README.md)  ·  **Performance analysis →** [`dx-benchmark/docs/ANALYSIS_EN.md`](./dx-benchmark/docs/ANALYSIS_EN.md)
 
 ## Getting Started
 
@@ -101,7 +121,7 @@ This environment is used for converting and optimizing trained AI models into DE
 -	**Hardware**: x86_64 Host PC  
 - **Software**: Python 3.8~3.14, CUDA (Optional for simulation)
 -	**Key Tasks**: AI model (`.onnx`) compilation, Quantization, `.dxnn` generation  
--	**Action**: DX-Compiler Local Installation Guide [Link]  
+-	**Action**: DX-Compiler Local Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
 
 ### AI Model Runtime Environment (Target Device)
 
@@ -112,7 +132,7 @@ This environment is for performing inference and running applications on devices
 -	**Hardware**: Host PC / Target Board (DEEPX NPU is required)
 -	**Software**: Python 3.8+
 -	**Key Tasks**: `.dxnn` model execution, real-time data inference, resource management
--	**Action**: DX-Runtime Installation Guide [Link]
+-	**Action**: DX-Runtime Installation Guide [Link](./docs/source/02_Setting_Up_Environment.md)
 
 > **Warning: Activation Required**  
 > A system reboot is mandatory after installation to properly load the NPU Driver into the kernel.  
@@ -130,7 +150,7 @@ DX-AllSuite supports a vast array of industry-standard AI architectures, optimiz
 - **Advanced Vision Tasks**: Face analysis (Detection, Recognition, Landmarks, Attributes), Human/Hand Pose Estimation, Low-Light Enhancement, Image Denoising, Super Resolution, Depth Estimation, Oriented Object Detection (OBB), Zero-Shot Instance Segmentation, and Person Attributes.  
 
 > **Note: Pro Tip**  
-> Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **over 270 optimized models**.  
+> Instead of compiling models yourself, you can download ready-to-use binaries from the [**DEEPX ModelZoo**](https://developer.deepx.ai/modelzoo/), which features **345 optimized models**.  
 
 
 ## Documentation Navigation
@@ -139,6 +159,7 @@ If you are a first-time user, we recommend following the documentation in this o
 
 - **[Introduction](./docs/source/index.md)**: DX-AS overview and component descriptions
 - **★ [Agent-Driven Development (Beta)](./docs/source/00_Agent_Driven_Development.md)**: Build DEEPX apps with natural-language prompts using AI coding agents (Claude Code, Cursor, GitHub Copilot, OpenCode, Codex CLI)  
+- **[DX-Benchmark (Beta)](./dx-benchmark/README.md)**: Reproducible YOLO26 NPU benchmarks (Model-Level + E2E Pipeline) with an interactive performance dashboard  
 - **Step 1. [DX-AllSuite Architecture Overview](./docs/source/01_DX-AllSuite_Architecture_Overview.md)**: SDK overview, module descriptions, and ModelZoo usage  
 - **Step 2. [Setting Up Environment](./docs/source/02_Setting_Up_Environment.md)**: Detailed Local/Docker installation and troubleshooting  
 - **Step 3. [Running Your First NPU Model](./docs/source/03_Running_Your_First_NPU_Model.md)**: Step-by-step hands-on script execution  

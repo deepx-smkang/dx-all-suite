@@ -3,8 +3,8 @@
 DX AI Studio Launcher — Single entry-point for DX App + DX Stream.
 
 Usage:
-    python3 launcher.py                    # default port 8890
-    python3 launcher.py --port 9000        # custom port
+    python3 -m launcher.launcher                    # default port 8890
+    python3 -m launcher.launcher --port 9000        # custom port
 
 Architecture:
     launcher (8890)
@@ -30,18 +30,18 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-# Self-bootstrap the import path: the studio has ZERO third-party deps (stdlib only), but its
-# internal packages (`shared`, `dx_*`) still need the repo root on sys.path. Don't rely on an
-# editable install (`pip install -e .`) being present — a fresh `git clone && ./launcher.sh`
-# must work as-is, else `from shared...` below raises "No module named 'shared'". Prepend the
-# repo root here, and propagate it to spawned module servers via PYTHONPATH (see start_sub_server).
 _REPO_ROOT = str(Path(__file__).resolve().parent.parent)
-if _REPO_ROOT not in sys.path:
-    sys.path.insert(0, _REPO_ROOT)
+
+if __name__ == "__main__" and not __package__:
+    os.execv(
+        sys.executable,
+        [sys.executable, "-m", "launcher.launcher", *sys.argv[1:]],
+    )
 
 from shared.dx_server import DXBaseHandler
 from shared.auth_policy import map_launcher_proxy
 from shared.chat import ChatEngine
+from shared.runtime_gate import module_start_policy as _runtime_module_start_policy
 
 # Ports are env-overridable so the studio can coexist with other services on a
 # shared host (defaults unchanged → release behavior + tests unaffected). Set e.g.
@@ -95,6 +95,11 @@ _MODULE_PROXY_PATHS = {
 }
 
 
+def module_start_policy(module: str):
+    """Return the Studio inference-launch policy without blocking setup pages."""
+    return _runtime_module_start_policy(_resolve_module_key(module))
+
+
 def _debug_routes_enabled() -> bool:
     return os.environ.get("DX_DEBUG_MODE", "").lower() in {"1", "true", "yes", "on"}
 
@@ -120,8 +125,28 @@ def _resolve_module_key(key):
 
 BASE_DIR  = Path(__file__).resolve().parent
 STUDIO_DIR = BASE_DIR.parent           # dx-ai-studio/
+SUITE_ROOT = STUDIO_DIR.parent         # <suite> root — holds the DX-AllSuite release.ver
 PORTS_DIR = BASE_DIR / ".ports"        # sub-servers report their OS-assigned (:0) port here
 APP_DIR    = STUDIO_DIR / "dx_app"
+
+# Fallback shown only if <suite>/release.ver is missing/unreadable (e.g. a partial checkout).
+_SDK_VERSION_FALLBACK = "v2.4.0"
+
+
+def _suite_sdk_version() -> str:
+    """The DX-AllSuite (DXNN SDK) version, read live from <suite>/release.ver.
+
+    The hub used to hard-code "v2.3.0", which drifted out of date (the tree ships v2.4.0).
+    release.ver is the single source of truth the release tooling writes, so read it at serve
+    time and normalize to a leading-'v' tag. Any failure falls back to a known-good constant.
+    """
+    try:
+        raw = (SUITE_ROOT / "release.ver").read_text(encoding="utf-8").strip()
+    except OSError:
+        return _SDK_VERSION_FALLBACK
+    if not raw:
+        return _SDK_VERSION_FALLBACK
+    return raw if raw.lower().startswith("v") else "v" + raw
 STREAM_DIR = STUDIO_DIR / "dx_stream"
 ZOO_DIR    = STUDIO_DIR / "dx_modelzoo"
 COMPILER_DIR = STUDIO_DIR / "dx_compiler"
@@ -701,6 +726,26 @@ def _shutdown_launcher_server(server, exit_fn=sys.exit):
     exit_fn(0)
 
 
+def _should_inject_widget(inject_widget: bool, is_html: bool,
+                          fetch_dest: str, has_no_widget_header: bool) -> bool:
+    """Decide whether the NPU-monitor float may be injected into a proxied response.
+
+    Inject ONLY into a module's top-level shell page. Suppress for:
+      * non-HTML or non-widget targets (dx_monitor),
+      * fetch/XHR fragments (Sec-Fetch-Dest empty/cors) spliced in via innerHTML,
+      * responses the module explicitly stamps X-DX-No-Widget (nested sub-iframes such
+        as the compiler's sandboxed quant-diagnosis report).
+    Each of these would otherwise render a duplicate float.
+    """
+    if not (inject_widget and is_html):
+        return False
+    if has_no_widget_header:
+        return False
+    if (fetch_dest or "").lower() in ("empty", "cors"):
+        return False
+    return True
+
+
 def _inject_before_body_close(body: bytes, snippet: bytes) -> bytes:
     lower = body.lower()
     idx = lower.rfind(b"</body>")
@@ -744,9 +789,21 @@ def _proxy(handler, target_port, path, inject_widget=True):
         content_type = resp.getheader("Content-Type", "")
         is_sse = "text/event-stream" in content_type
 
-        # Detect HTML injection target
+        # Detect HTML injection target. The NPU-monitor float must be injected ONLY
+        # into a module's top-level shell page — never into HTML *fragments* (partials
+        # fetched via XHR and spliced in with innerHTML) nor into *nested* sub-iframes
+        # (e.g. the compiler's sandboxed quant-diagnosis report). Injecting there
+        # produces a second, duplicate float. Two guards prevent that:
+        #   1. Sec-Fetch-Dest: a fetch/XHR partial arrives as "empty" — only inject for
+        #      document/iframe *navigations* (the module shell load).
+        #   2. X-DX-No-Widget response header: modules stamp it on report/partial
+        #      responses that ARE navigations (nested <iframe src=...>) but must not
+        #      carry the float. The header is stripped from the relayed response.
         is_html = "text/html" in content_type
-        widget_cache = _get_widget_cache() if (is_html and inject_widget) else b""
+        fetch_dest = handler.headers.get("Sec-Fetch-Dest", "")
+        has_no_widget = resp.getheader("X-DX-No-Widget") is not None
+        may_inject = _should_inject_widget(inject_widget, is_html, fetch_dest, has_no_widget)
+        widget_cache = _get_widget_cache() if may_inject else b""
         is_html_inject = bool(widget_cache)
 
         handler.send_response(resp.status)
@@ -754,6 +811,8 @@ def _proxy(handler, target_port, path, inject_widget=True):
             low = key.lower()
             if low in ("connection", "transfer-encoding"):
                 continue
+            if low == "x-dx-no-widget":
+                continue  # internal signal — do not leak to the browser
             if is_html_inject and low == "content-length":
                 continue
             handler.send_header(key, val)
@@ -1186,6 +1245,9 @@ class LauncherHandler(DXBaseHandler):
     def _serve_index(self):
         """Read launcher index.html, rewrite asset URLs with content hashes, send no-cache."""
         html = (BASE_DIR / "static" / "index.html").read_text(encoding="utf-8")
+        # Inject the live DX-AllSuite version (from release.ver) into the hub, instead of a
+        # stale hard-coded string.
+        html = html.replace("{{SDK_VERSION}}", _suite_sdk_version())
         html = self.render_html_with_asset_hashes(
             html,
             asset_scope=None,
@@ -1512,7 +1574,7 @@ def main():
         "DX Agent Dev": AGENT_PORT,
     }
 
-    from boot_animation import show_logo, show_boot_progress, show_system_check, show_completion_banner
+    from .boot_animation import show_logo, show_boot_progress, show_system_check, show_completion_banner
     # DX_LAUNCHER_FAST=1 (or `launcher.sh --fast`) skips the cosmetic boot animation.
     _fast = os.environ.get("DX_LAUNCHER_FAST", "").lower() in {"1", "true", "yes", "on"}
 

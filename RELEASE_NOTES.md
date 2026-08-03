@@ -1,5 +1,68 @@
 # RELEASE_NOTES
 
+## DX-All-Suite v2.4.1 / 2026-08-03
+
+- DX-Compiler: v2.4.1
+    - DX-COM: v2.4.0
+    - DX-TRON: v2.0.1 (Deprecated)
+- DX-Runtime: v2.4.1
+    - DX_FW: v2.7.4
+    - NPU Driver: v2.6.0
+    - DX-RT: v3.4.1
+    - DX-Stream: v3.1.1
+    - DX-APP: v3.2.1
+
+---
+
+Here are the **DX-All-Suite v2.4.1** Release Notes.
+
+### What's New?
+
+This release adds **DX-Benchmark (Beta)**, polishes the **DX AI Studio (Beta)** introduced in v2.4.0, includes virtualization support, super-resolution quality improvements, and documentation updates across the suite.
+
+#### 📊 New: Reproducible NPU performance benchmarks
+
+**DX-Benchmark (`dx-benchmark`) is now available in Beta** — one standardized procedure that measures YOLO26 performance on any Host PC + NPU combination, published together with results for six hardware environments.
+
+**Highlights**
+- **Two measurement tiers** — **Model-Level** (`run_model`): Latency (single-core, sync) and Throughput (multi-core, async); **E2E Pipeline** (DX-Stream): Single-Stream FPS and Multi-Stream channel capacity.
+- **Comparable by construction** — automatic ONNX-Runtime ON/OFF comparison, thermal steady-state normalization with throttle detection, and a full environment fingerprint recorded per run.
+- **Published dataset** — 6 hardware environments (H1-Quattro, Intel N97, OrangePi 5+, ROCK 5B+, and Raspberry Pi 5 with M1 / M1M) measured on v2.3.3 and v2.4.0.
+- **Interactive dashboard** — self-contained HTML (no CDN) for cross-environment and cross-version comparison; the same dataset backs DX AI Studio's Benchmark view.
+- **Performance analysis** — EN/KOR documents covering NPU-bound vs host-bound behaviour, ORT-mode selection, and per-environment deployment guidance.
+
+> **Beta notice:** DX-Benchmark is a Beta release (tool v0.1.0, measurement protocol v1). The CLI and output schema may change.
+
+**Learn more** — see [`dx-benchmark/README.md`](dx-benchmark/README.md) and the [performance analysis](dx-benchmark/docs/ANALYSIS_EN.md).
+
+#### **DX AI Studio (Beta) improvements**
+- **Model Zoo** — browse the full model catalog with one-click download (and re-download), in six languages.
+- **App demos** — correct, clearer results for classification, pose, and video demos.
+- **Stream** — demos and the Pipeline Builder now play reliably in remote / SSH browsers.
+- **Compiler** — smoother agentic auto-compile and clearer quantization diagnosis.
+- **Benchmark** — refreshed to the latest benchmark dataset.
+- **Runtime setup** — guided runtime-profile installation, validation, and rollback make App and Stream startup more reliable.
+- **NPU monitoring** — supervised telemetry collection improves status reporting and recovery when monitoring workers fail.
+
+---
+
+### Key Updates
+
+**Stability & Fixes**
+
+- **DX_FW & NPU Driver**: Added VM environment support via MSI IMWR PCIe message API; added kernel 4.4.0 support; fixed forked child process ioctl race condition.
+- **DX-RT**: Corrected supported OS list (removed Ubuntu 18.04, added Ubuntu 26.04) and improved documentation clarity.
+- **DX-APP**: Fixed RealESRGAN discolored output, removed tile seams in super-resolution, and corrected video/image saving issues in async runners.
+
+**New Features & Tools**
+
+- **DX-RT**: Added bundled wheel installation guide for virtual environments.
+- **DX-APP**: Super-resolution now outputs both side-by-side comparison and standalone upscaled images; added `--sr-tile-halo` option for tile overlap control.
+
+For detailed updated items, refer to **each environment & module's Release Notes**.
+
+---
+
 ## DX-All-Suite v2.4.0 / 2026-07-22
 
 - DX-Compiler: v2.4.0
@@ -14,7 +77,7 @@
 
 ---
 
-Here are the **DX-All-Suite v2.4.0** Release Note.
+Here are the **DX-All-Suite v2.4.0** Release Notes.
 
 ### What's New?
 
@@ -37,6 +100,20 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 
 **Learn more** — see [Agent-Driven Development docs](docs/source/00_Agent_Driven_Development.md) and the [showcase gallery](dx-agent-dev-showcase/README.md).
 
+#### 🖥️ New: DX AI Studio — one browser workspace for the DEEPX NPU (Beta)
+
+**DX AI Studio is now available in Beta** — an all-in-one desktop web workspace that unifies eight DEEPX tools in a single browser, in six languages.
+
+**Highlights**
+- **Eight tools, one hub** — DX App (NPU inference on image/video/camera/RTSP with live multi-stream), DX Stream (real-time GStreamer pipelines with live WebRTC playback), DX Model Zoo (345 models with in-browser demos and one-click `.dxnn`/ONNX downloads), DX Compiler (ONNX → `.dxnn` with a config wizard, quantization tuning/diagnosis, and agentic auto-compile), DX EdgeGuide (board recommendation from real benchmarks), DX Benchmark, DX Monitor (live NPU telemetry), and DX Agent Dev.
+- **Zero dependencies, self-installing** — pure Python standard library; `./launcher.sh` installs, boots every tool, and opens the browser with no manual setup.
+- **Runs without hardware** — every tool degrades gracefully to sample/mock data, so the whole studio is browsable with no NPU, SDK, or models.
+- **Six languages** and a built-in AI assistant (multi-provider, with a fully-offline local option).
+
+> **Beta notice:** DX AI Studio is a Beta release (studio v0.1.0). Features and UI may change before general availability.
+
+**Learn more** — see the DX AI Studio User Manual (`dx-ai-studio/docs/`).
+
 #### 🎯 Advanced Quantization & Model Quality
 
 - **Automated Q-PRO Configuration**: DX-COM now automatically generates DXQ combinations for higher-accuracy quantization, removing manual tuning requirements.
@@ -46,7 +123,7 @@ Describe an app or model task in plain language, and an AI coding agent drives t
 
 #### 🚀 Expanded Model & Platform Support
 
-- **Massive Model Library**: Support for 349 models across 22 AI task categories, including 5 new tasks (3D Object Detection, Keypoint Detection, Object Pose Estimation, Panoptic Driving Perception, Hand Detection).
+- **Massive Model Library**: Support for 347 models across 22 AI task categories, including 5 new tasks (3D Object Detection, Keypoint Detection, Object Pose Estimation, Panoptic Driving Perception, Hand Detection).
 - **Extended Platform Coverage**: Python 3.13–3.14 support (DX-COM) and Ubuntu 26.04 validation.
 - **Windows Ecosystem**: Full Windows MSVC support for DX-Stream including build, test suite, and Python bindings.
 
@@ -71,7 +148,7 @@ Describe an app or model task in plain language, and an AI coding agent drives t
   - Disabled Root Complex Tx Equalization Preset 10 to prevent PCIe link compliance/test loops during normal boot (DX_FW).
   - Changed BAR0 type from prefetchable to non-prefetchable on VNPU board type (DX_FW).
   - Fixed input queue clearing when all bound options are deleted (DX_FW).
-  - Solving PCIe enumeration issue on RZ/G3E (DX_FW).
+  - Solved PCIe enumeration issue on RZ/G3E (DX_FW).
   - Rejected in-flight mailbox commands during FW reboot and hardened recovery sleep (NPU Driver).
   - Fixed device recovery issues after firmware updates; resolved module installation errors in certain hardware environments (NPU Driver).
   - Automatic recovery logic for critical runtime error scenarios (NPU Driver).
@@ -131,6 +208,12 @@ Describe an app or model task in plain language, and an AI coding agent drives t
   - Test Suite: 73 new test binaries under `test/base/{element,metadata,pipeline}/` covering element contracts, domain boundaries, end-to-end pipelines (DX-Stream).
   - DxMsgConv: `include-frame` property for base64 JPEG frame encoding with Kafka/MQTT consumer display support (DX-Stream).
 
+- **Docker & Deployment**:
+  - Red Hat family support for the `dx-compiler` container: build and run on Fedora (42–45), RHEL/UBI (9, 10), and CentOS Stream (stream9, stream10) via new `--fedora_version` / `--rhel_version` / `--centos_version` options. `dx-runtime` and `dx-modelzoo` remain Ubuntu/Debian only (Docker).
+  - Ubuntu 26.04 base image support for all three containers (Docker).
+  - Faster `dx-runtime` / `dx-modelzoo` image builds: `dx_rt` and the matching `dx_engine` Python wheel are installed from prebuilt Debian packages instead of being compiled from source (Docker).
+  - DX-Tron on Red Hat family images is provided as the web variant (`run_dxtron_web.sh`) since the `.deb`/AppImage is not supported there (Docker).
+
 ### Known Issues
 
 - **PReLU Degradation**: Significant FPS degradation has been observed in models using PReLU as an activation function.
@@ -164,7 +247,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.3.3** Release Note.
+Here are the **DX-All-Suite v2.3.3** Release Notes.
 
 ### What's New?
 
@@ -186,7 +269,7 @@ This hotfix release resolves a missing Debian package file issue in `dx_rt_npu_l
 
 ---
 
-Here are the **DX-All-Suite v2.3.2** Release Note.
+Here are the **DX-All-Suite v2.3.2** Release Notes.
 
 ### What's New?
 
@@ -225,7 +308,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
 
 ---
 
-Here are the **DX-All-Suite v2.3.1** Release Note.
+Here are the **DX-All-Suite v2.3.1** Release Notes.
 
 ### What's New?
 
@@ -262,7 +345,7 @@ For detailed updated items, refer to **each environment & module's Release Notes
     - DX_FW: v2.5.6
     - NPU Driver: v2.4.1
     - DX-RT: v3.3.0
-    - DX-Stream: 3.0.0
+    - DX-Stream: v3.0.0
     - DX-APP: v3.1.0
 
 ---
@@ -314,7 +397,7 @@ This major release focuses on Runtime Efficiency, Security Hardening, and a Unif
 - **DX-APP v3.1.0**: Project structures have changed to follow the 5-layer pattern. Refer to the new `src/` directory for updated implementation standards.  
 - **Minimum Dependencies**: DX-RT v3.3.0 now requires NPU Driver v2.4.0+ and Firmware v2.5.2+ at a minimum.  
 
-For detailed updated items, refer to **each environment & module's Release Notes.  
+For detailed updated items, refer to **each environment & module's Release Notes**.  
 
 ---
 
@@ -385,7 +468,7 @@ This release focuses on enhancing the YOLO ecosystem with expanded model variant
 
 **New Features & Tools**
 
-- Add yolov26 cls, yolo26 pose, yolo26 seg, yolo26 obb examples
+- Added yolov26 cls, yolo26 pose, yolo26 seg, yolo26 obb examples
 
 ---
 
@@ -452,7 +535,7 @@ This release introduces a **Python-Centric Ecosystem** and a **Complete Example 
 - Configuration: Replace legacy JSON config files with the new Command-Line Argument system in Python (e.g., for YOLO26 execution).
 - Environment: Update your Python environment using the provided `requirements.txt` to support the new `dx_engine` and `pydxs` modules.
 
-For detailed updated items, refer to **each environment & module's Release Notes.
+For detailed updated items, refer to **each environment & module's Release Notes**.
 
 ---
 
@@ -512,7 +595,7 @@ This release marks a significant step forward with new features and major stabil
 - Accuracy degradation observed in the DeepLabV3 Semantic Segmentation model.
 - DX-Compiler v2.1.0 does not yet support converting face detection and pose estimation models to PPU format.
 
-For detailed updated items, refer to **each environment & module's Release Notes.
+For detailed updated items, refer to **each environment & module's Release Notes**.
 
 ---
 

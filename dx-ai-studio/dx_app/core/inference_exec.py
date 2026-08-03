@@ -21,7 +21,7 @@ def _sweep_stale_temp(max_age_s=6 * 3600):
     Only touches our own prefixed entries; never raises."""
     import glob
     now = time.time()
-    for pat in ("dxapp_video_*", "dxapp_upload_*"):
+    for pat in ("dxapp_video_*", "dxapp_img_*", "dxapp_upload_*"):
         for p in glob.glob(os.path.join(_TMP, pat)):
             try:
                 if now - os.path.getmtime(p) < max_age_s:
@@ -32,6 +32,9 @@ def _sweep_stale_temp(max_age_s=6 * 3600):
 
 _PAIR_COMPARE_CATS = frozenset({"embedding", "reid"})
 _STDOUT_TAG_CATS = frozenset({"classification", "attribute_recognition"})
+_SIDE_BY_SIDE_OUTPUT_CATS = frozenset({
+    "super_resolution", "image_enhancement", "image_denoising", "depth_estimation",
+})
 _IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp"})
 
 
@@ -65,6 +68,10 @@ def _python_runtime_ready():
         return False
 
 
+def _is_executable_file(path):
+    return bool(path and path.is_file() and os.access(str(path), os.X_OK))
+
+
 def _effective_run_lang(lang, category, model_name, variant, input_type):
     """Keep user-selected lang; C++ video omits --save to avoid stock VideoWriter SIGABRT."""
     return lang
@@ -93,11 +100,11 @@ def _find_fallback_binary(category, variant="sync", build_dir=None):
     candidates = _FALLBACK_BINARIES.get(category, _FALLBACK_BINARIES["classification"])
     for name in candidates:
         bp = build_dir / f"{name}_{variant}"
-        if bp.exists():
+        if _is_executable_file(bp):
             return bp
     pattern = f"*_{variant}"
     for bp in sorted(build_dir.glob(pattern)):
-        if bp.is_file() and os.access(str(bp), os.X_OK):
+        if _is_executable_file(bp):
             return bp
     return None
 
@@ -119,6 +126,26 @@ def _find_saved_video(stdout_text, save_dir=None):
     for path in candidates:
         if path.exists() and path.stat().st_size > 0:
             return path
+    return None
+
+
+def _find_saved_image(save_dir=None):
+    """Find an annotated result image written by a C++ runner's --save run-dir.
+    Some runners (the PoseRunner family: pose / object_pose / keypoint) ignore the
+    DXAPP_SAVE_IMAGE env the studio normally uses for stills, and only emit the annotated
+    image as <save-dir>/<run>/<name>_output.<ext>. Fall back to that so those tasks show a
+    result image instead of nothing. (Studio-side; no dx-runtime change.)"""
+    if not save_dir:
+        return None
+    root = Path(save_dir)
+    if not root.exists():
+        return None
+    exts = {".jpg", ".jpeg", ".png", ".bmp"}
+    cands = [p for p in root.rglob("*_output.*") if p.suffix.lower() in exts]
+    cands += [p for p in root.rglob("output.*") if p.suffix.lower() in exts]
+    for p in cands:
+        if p.exists() and p.stat().st_size > 0:
+            return p
     return None
 
 
