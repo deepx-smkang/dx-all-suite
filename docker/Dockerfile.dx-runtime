@@ -1,7 +1,7 @@
 ARG BASE_IMAGE_NAME=ubuntu
 ARG OS_VERSION=24.04
 ARG TAG_NAME=${OS_VERSION}
-FROM ${BASE_IMAGE_NAME}:${TAG_NAME}
+FROM ${BASE_IMAGE_NAME}:${TAG_NAME} AS rt
 
 USER root
 
@@ -206,33 +206,6 @@ RUN set -x && \
         fi ; \
     fi
 
-WORKDIR /deepx/dx-runtime/dx_app
-ARG FILE_DXAPP=archives/dx_app.tar.gz
-ADD ${FILE_DXAPP} /deepx/dx-runtime/dx_app/
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    echo "Build dx_app..." && \
-    ./install.sh --all
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    ./build.sh
-
-WORKDIR /deepx/dx-runtime/dx_stream
-ARG FILE_DXSTREAM=archives/dx_stream.tar.gz
-ADD ${FILE_DXSTREAM} /deepx/dx-runtime/dx_stream/
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    echo "install dependancies for dx_stream..." && \
-    sudo ./install.sh
-RUN set -x && \
-    . /venv-dxnn/bin/activate && \
-    echo "Build dx_stream..." && \
-    sudo ./build.sh --install
-
-RUN rm -rf /deepx/dx-runtime/dx_stream/util && \
-    rm -rf /deepx/dx-runtime/dx_app/util && \
-    rm -rf /deepx/dx-runtime/dx_app/build_x86_64
-
 WORKDIR /deepx
 
 RUN apt-get update && \
@@ -251,3 +224,54 @@ RUN /deepx/getting-started/runtime-clean.sh
 
 ENTRYPOINT [ "/usr/local/bin/dxrtd" ]
 # ENTRYPOINT ["tail", "-f", "/dev/null"]
+
+# ── Stage: rt-app ── dx_rt + dx_app
+FROM rt AS rt-app
+WORKDIR /deepx/dx-runtime/dx_app
+ARG FILE_DXAPP=archives/dx_app.tar.gz
+ADD ${FILE_DXAPP} /deepx/dx-runtime/dx_app/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_app..." && \
+    ./install.sh --all
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    ./build.sh
+RUN rm -rf /deepx/dx-runtime/dx_app/util && \
+    rm -rf /deepx/dx-runtime/dx_app/build_x86_64
+WORKDIR /deepx
+
+# ── Stage: rt-stream ── dx_rt + dx_stream
+FROM rt AS rt-stream
+WORKDIR /deepx/dx-runtime/dx_stream
+ARG FILE_DXSTREAM=archives/dx_stream.tar.gz
+ADD ${FILE_DXSTREAM} /deepx/dx-runtime/dx_stream/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "install dependancies for dx_stream..." && \
+    sudo ./install.sh
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_stream..." && \
+    sudo ./build.sh --install
+RUN rm -rf /deepx/dx-runtime/dx_stream/util
+WORKDIR /deepx
+
+# ── Stage: rt-app-stream ── full image (dx_rt + dx_stream + dx_app)
+# NOTE: COPY --from=rt-app 대신 직접 빌드 — install.sh --all이 apt/pip 패키지를
+# /deepx 밖에 설치하므로 파일 복사만으로는 불완전. (spec 4.1 fallback 채택)
+# Last stage = default build target → 기존 compose 빌드(타겟 미지정) 하위 호환 유지.
+FROM rt-stream AS rt-app-stream
+WORKDIR /deepx/dx-runtime/dx_app
+ARG FILE_DXAPP=archives/dx_app.tar.gz
+ADD ${FILE_DXAPP} /deepx/dx-runtime/dx_app/
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    echo "Build dx_app..." && \
+    ./install.sh --all
+RUN set -x && \
+    . /venv-dxnn/bin/activate && \
+    ./build.sh
+RUN rm -rf /deepx/dx-runtime/dx_app/util && \
+    rm -rf /deepx/dx-runtime/dx_app/build_x86_64
+WORKDIR /deepx
