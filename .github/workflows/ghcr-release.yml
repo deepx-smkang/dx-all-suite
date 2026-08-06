@@ -49,15 +49,27 @@ jobs:
       modelzoo_version: ${{ steps.meta.outputs.modelzoo_version }}
       matrix: ${{ steps.meta.outputs.matrix }}
     steps:
+      # Guarding here is enough for the whole workflow: `build` needs `prepare`, so a
+      # missing secret stops everything with this message instead of an opaque
+      # "fatal: could not read Username" from a submodule clone 20 minutes in.
+      - name: Require submodule token
+        env:
+          GC_DCI_TOKEN: ${{ secrets.GC_DCI_TOKEN }}
+        run: |
+          [ -n "$GC_DCI_TOKEN" ] || {
+            echo "::error::secret GC_DCI_TOKEN is not configured. It is required to clone the private dx-runtime / dx-compiler / dx-modelzoo submodules."
+            exit 1
+          }
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           # Version files live inside the submodules. `.gitmodules` uses relative URLs
           # (../dx-runtime.git), which actions/checkout resolves against this repo's
-          # origin, i.e. the same org. A PAT is required while the siblings are private;
-          # github.token only reaches this repository.
+          # origin, i.e. the same org. github.token reaches only this repository, so
+          # the PAT is required while the siblings are private.
           submodules: true
-          token: ${{ secrets.GC_DCI_TOKEN || github.token }}
+          token: ${{ secrets.GC_DCI_TOKEN }}
 
       - name: Resolve versions and matrix
         id: meta
@@ -76,7 +88,19 @@ jobs:
           compiler_version=$(norm "$(tr -d '[:space:]' < dx-compiler/release.ver)")
           modelzoo_version=$(norm "$(sed -n 's/^version *= *"\(.*\)"/\1/p' dx-modelzoo/pyproject.toml | head -1)")
 
-          components="${COMPONENTS_INPUT:-runtime,compiler,modelzoo}"
+          # On a tag push the tag names the release, so a tag that disagrees with the
+          # source tree would ship the wrong version silently. dx-runtime is the
+          # reference: the three components version independently (dx-modelzoo is on
+          # v0.10.1), so no single tag can match all three -- the others are logged only.
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF_TYPE" = tag ] \
+             && [ "$GITHUB_REF_NAME" != "$runtime_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match dx-runtime/release.ver ($runtime_version). Update release.ver or retag."
+            exit 1
+          fi
+
+          # Tolerate "runtime, compiler": without this the space makes the ,x, match
+          # fail and the component is dropped silently instead of erroring.
+          components=$(echo "${COMPONENTS_INPUT:-runtime,compiler,modelzoo}" | tr -d '[:space:]')
 
           entries=""
           add() {
@@ -212,7 +236,12 @@ jobs:
           RUNTIME_VERSION: ${{ needs.prepare.outputs.runtime_version }}
           COMPILER_VERSION: ${{ needs.prepare.outputs.compiler_version }}
           MODELZOO_VERSION: ${{ needs.prepare.outputs.modelzoo_version }}
-          MOVING: ${{ inputs.update_moving_tags != false }}
+          # `inputs` only exists for workflow_dispatch, and `default:` is NOT applied on
+          # other triggers -- on `push: tags` it is null, and null != false casts to
+          # 0 != 0, i.e. false. So gate on the event first: any non-dispatch trigger is
+          # a real release and moves the tags. Do not compare against the string
+          # 'false' either: for a dispatch boolean that casts to NaN != 0, always true.
+          MOVING: ${{ github.event_name != 'workflow_dispatch' || inputs.update_moving_tags }}
         run: |
           set -euo pipefail
 
