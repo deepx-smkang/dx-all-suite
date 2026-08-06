@@ -140,7 +140,8 @@ curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-i
 ```
 
 Pin a specific version with `DX_VERSION` (DX-Compiler / DX-ModelZoo) or `DX_REF`
-(DX-Runtime), and change the install root with `DX_INSTALL_DIR`:
+(DX-Runtime). DX-Compiler and DX-ModelZoo also accept `DX_INSTALL_DIR` to move the
+install root; DX-Runtime has none, since it installs system packages via `dpkg`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | DX_VERSION=v2.4.1 sh

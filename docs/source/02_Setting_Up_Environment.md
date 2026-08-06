@@ -34,8 +34,10 @@ curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-modelzoo/main/oneline-i
 ```
 
 Each installer resolves the latest release on its own. Override with `DX_VERSION=vX.Y.Z`
-(DX-Compiler / DX-ModelZoo) or `DX_REF=<branch|tag>` (DX-Runtime), and change the install
-root with `DX_INSTALL_DIR=<dir>` (default `~/deepx`).
+(DX-Compiler / DX-ModelZoo) or `DX_REF=<branch|tag>` (DX-Runtime). DX-Compiler and
+DX-ModelZoo also accept `DX_INSTALL_DIR=<dir>` (default `~/deepx`) to move the install
+root; DX-Runtime has no equivalent, because it installs system packages through `dpkg`
+rather than into a directory you choose.
 
 DX-ModelZoo installs the `cpu` extra by default — that extra is what provides its ONNX
 runtime backend, so a plain install without it cannot run inference. Use `DX_EXTRA=gpu`
