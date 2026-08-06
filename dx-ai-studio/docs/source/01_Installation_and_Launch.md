@@ -73,7 +73,7 @@ Build NPU applications from natural language:
 
 1. **[Agent Dev](10_DX_Agent_Dev.md)** — Describe what you want; the agent generates and runs it
 
-See **[The Hub](02_The_Hub.md)** for details on all eight tools and navigation.
+See **[The Hub](02_The_Hub.md)** for details on all nine tools and navigation.
 
 ## How to Use This Manual
 
@@ -102,6 +102,7 @@ See **[The Hub](02_The_Hub.md)** for details on all eight tools and navigation.
 **📚 Reference:**
 
 - **[SDK Library & About](11_SDK_Library_and_About.md)** — In-app documentation and company info
+- **[DX Cloud (AWS)](13_DX_Cloud_AWS.md)** — DEEPX on AWS Marketplace: cloud compile & edge deployment
 
 **📋 Appendix:**
 

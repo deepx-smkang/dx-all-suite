@@ -4,11 +4,11 @@ The **hub** is the landing page that ties the studio together. Every tool is lau
 from here; you normally reach each one through the hub, which proxies them under a single
 address.
 
-![The hub's orbital launcher — the eight tools orbit the central DEEPX mark, each showing its online status.](resources/hub.png)
+![The hub's orbital launcher — the nine tools orbit the central DEEPX mark, each showing its online status.](resources/hub.png)
 
 ## Layout
 
-- **Orbital launcher** — the eight tools orbit the central DEEPX mark. Click a tile to
+- **Orbital launcher** — the nine tools orbit the central DEEPX mark. Click a tile to
   open that tool; the shell swaps to the module while the hub chrome stays in place.
 - **Live status** — a status dot on each tile (and the top-bar row) shows whether that
   module is online; the hub polls health every few seconds and flags a module that's
@@ -21,7 +21,7 @@ address.
   the panel. It supports multiple providers, including fully offline options (a local
   server or a signed-in coding CLI) — see
   [SDK Library & About](11_SDK_Library_and_About.md) for the full provider list.
-- **Hub views** — besides the eight tools, the hub hosts the **SDK Library** (in-app
+- **Hub views** — besides the nine tools, the hub hosts the **SDK Library** (in-app
   DEEPX documentation and brochures) and the **About DEEPX** page. See
   [SDK Library & About](11_SDK_Library_and_About.md).
 
@@ -43,7 +43,7 @@ the automatic tutorials off — or on — at any time.
 - The current tool and its view are reflected in the **URL**, so links are shareable and
   reload-safe (for example, a DX EdgeGuide recommendation or an SDK Library document can
   be linked directly).
-- **Keyboard shortcuts** — `Alt`+`1`…`8` jump straight to a tool; `Esc` backs out of a
+- **Keyboard shortcuts** — `Alt`+`1`…`9` jump straight to a tool; `Esc` backs out of a
   tool or closes an open panel.
 
 ## Language

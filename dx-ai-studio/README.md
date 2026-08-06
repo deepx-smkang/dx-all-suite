@@ -1,16 +1,16 @@
 # DX AI Studio
 
-An all-in-one desktop web workspace for building on the **DEEPX NPU**. Eight
+An all-in-one desktop web workspace for building on the **DEEPX NPU**. Nine
 specialized tools — model catalog, compiler, inference, streaming, benchmarking,
-hardware monitor, deployment planner, and an agent-driven builder — in one browser
-experience, in six languages.
+hardware monitor, deployment planner, an agent-driven builder, and an AWS Marketplace
+gateway — in one browser experience, in six languages.
 
-![The DX AI Studio hub — eight module tiles orbiting the launcher home, each with a live status dot and port.](docs/source/resources/hub.png)
+![The DX AI Studio hub — nine module tiles orbiting the launcher home, each with a live status dot and port.](docs/source/resources/hub.png)
 
 ## The hub
 
 The **hub** is the studio's home screen and the single place everything launches from.
-Eight **module tiles** orbit the center in a constellation; each shows a **live status dot**
+Nine **module tiles** orbit the center in a constellation; each shows a **live status dot**
 (green when its server is up) and the local **port** it's serving on. The center badge names
 the suite — module count, the bundled **DXNN SDK** version, the studio **build**, and the
 launcher port (`:8890`).
@@ -98,6 +98,7 @@ installed profile before starting inference.
 | **DX Benchmark** | Browse and compare NPU throughput / latency / multi-stream results. → [guide](dx_benchmark/README.md) |
 | **DX Monitor** | Live NPU + system telemetry (temperature, clock, utilization, versions). → [guide](dx_monitor/README.md) |
 | **DX Agent Dev** | Describe an NPU app in natural language and have a coding agent build it. → [guide](dx_agent_dev/README.md) |
+| **DX Cloud (AWS)** | Entry point to DEEPX on AWS Marketplace — cloud ONNX → `.dxnn` compilation and Greengrass edge deployment. |
 
 From the **hub** you can also open the **SDK Library** (DEEPX docs & brochures in-app),
 **About DEEPX**, switch **language** (6 locales), and jump to the DEEPX store.
