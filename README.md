@@ -130,6 +130,15 @@ curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-modelzoo/main/oneline-i
 DX-ModelZoo installs the `cpu` extra by default, which is what supplies its ONNX
 runtime backend — select the CUDA backend with `DX_EXTRA=gpu`.
 
+Running the DX-Compiler installer **inside a container** requires a volume path,
+because `install.sh` detects container mode and refuses to guess one. Pass it
+through with `DX_INSTALL_ARGS`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh \
+  | DX_INSTALL_ARGS=--docker_volume_path=/root/docker_vol sh
+```
+
 Pin a specific version with `DX_VERSION` (DX-Compiler / DX-ModelZoo) or `DX_REF`
 (DX-Runtime), and change the install root with `DX_INSTALL_DIR`:
 

@@ -42,6 +42,16 @@ runtime backend, so a plain install without it cannot run inference. Use `DX_EXT
 for the CUDA backend. On a minimal base image, install `build-essential` and
 `python3-dev` first; a few of its dependencies build native extensions from source.
 
+!!! note "DX-Compiler inside a container"
+    `install.sh` detects container mode and requires an explicit volume path rather than
+    guessing one. Pass extra flags through with `DX_INSTALL_ARGS`:
+    ```Bash
+    curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh \
+      | DX_INSTALL_ARGS=--docker_volume_path=/root/docker_vol sh
+    ```
+    On a bare-metal host no such flag is needed. The venv lands at
+    `$DX_INSTALL_DIR/dx-compiler-<tag>/venv-dx-compiler` (default `~/deepx/...`).
+
 !!! warning "DX-Runtime: reboot required"
     A reboot is mandatory after installation so the kernel loads the NPU driver. When no
     NPU device is detected the firmware update step is skipped — rerun the same command
