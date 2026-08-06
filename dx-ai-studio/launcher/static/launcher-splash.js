@@ -11,6 +11,7 @@
     benchmark: '<svg viewBox="0 0 24 24"><path d="M12 2 A10 10 0 0 1 22 12"/><path d="M12 2 A10 10 0 0 0 2 12"/><line x1="12" y1="12" x2="17" y2="7"/><circle cx="12" cy="12" r="2"/></svg>',
     monitor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="12" rx="2"/><path d="M8 19h8M12 15v4"/><path d="M7 9l3 3 4-4 3 3"/></svg>',
     agent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.2 8.6 4.5 4.5 0 0 1 17 18H7z"/><path d="M12 12v5M9.5 14.5L12 12l2.5 2.5"/></svg>',
   };
   ns._MODULE_ICONS = _MODULE_ICONS;
 

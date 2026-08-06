@@ -18,17 +18,19 @@ window.DXLauncher.APP_PATHS = {
   benchmark: '/benchmark/',
   dx_monitor: '/dx_monitor/',
   agent: '/agent/',
+  cloud: '/cloud/',
 };
 
 window.DXLauncher._SPLASH_MODULES = [
   { name: 'DX App',       angle: 0,    icon: 'app' },
-  { name: 'DX Stream',    angle: 45,   icon: 'stream' },
-  { name: 'DX Model Zoo', angle: 90,   icon: 'zoo' },
-  { name: 'DX Compiler',  angle: 135,  icon: 'compiler' },
-  { name: 'DX EdgeGuide', angle: 180,  icon: 'edgeguide' },
-  { name: 'DX Benchmark', angle: 225,  icon: 'benchmark' },
-  { name: 'DX Monitor',   angle: 270,  icon: 'monitor' },
-  { name: 'DX Agent Dev', angle: 315,  icon: 'agent' },
+  { name: 'DX Stream',    angle: 40,   icon: 'stream' },
+  { name: 'DX Model Zoo', angle: 80,   icon: 'zoo' },
+  { name: 'DX Compiler',  angle: 120,  icon: 'compiler' },
+  { name: 'DX EdgeGuide', angle: 160,  icon: 'edgeguide' },
+  { name: 'DX Benchmark', angle: 200,  icon: 'benchmark' },
+  { name: 'DX Monitor',   angle: 240,  icon: 'monitor' },
+  { name: 'DX Agent Dev', angle: 280,  icon: 'agent' },
+  { name: 'DX Cloud',     angle: 320,  icon: 'cloud' },
 ];
 
 window.DXLauncher._DECODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
