@@ -31,7 +31,7 @@ python3 -m venv .venv
 
 `launcher.sh` kills only *our own* stale `launcher.py` / `dx_*/server.py` processes,
 picks a free launcher port (remembered in `launcher/.launcher-port`), then execs
-`python3 launcher/launcher.py`. The launcher spawns all eight modules on ephemeral
+`python3 launcher/launcher.py`. The launcher spawns all nine modules on ephemeral
 ports and reverse-proxies them — you only ever touch the one launcher port.
 
 ## Running a single module standalone

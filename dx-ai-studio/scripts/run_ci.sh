@@ -117,6 +117,7 @@ echo "== 5/6 Module + shared + root contract suites (no browser) =="
   tests/dx_planner/ \
   tests/dx_benchmark/ \
   tests/dx_monitor/ \
+  tests/dx_cloud/ \
   tests/shared/ \
   tests/i18n_audit/ \
   "${ROOT_TESTS[@]}" \

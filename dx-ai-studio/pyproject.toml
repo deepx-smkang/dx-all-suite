@@ -23,6 +23,7 @@ packages = [
   "dx_monitor", "dx_monitor.core",
   "dx_planner", "dx_planner.core",
   "dx_agent_dev", "dx_agent_dev.core", "dx_agent_dev.core.adapters",
+  "dx_cloud",
 ]
 
 [tool.setuptools.package-data]

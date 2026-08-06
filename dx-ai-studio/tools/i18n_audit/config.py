@@ -15,6 +15,7 @@ MODULES = {
     "dx_benchmark": ("dx_benchmark",),
     "dx_monitor": ("dx_monitor",),
     "dx_agent_dev": ("dx_agent_dev",),
+    "dx_cloud": ("dx_cloud",),
     "shared": ("shared",),
 }
 
