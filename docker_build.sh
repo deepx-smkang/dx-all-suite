@@ -17,6 +17,7 @@ RHEL_VERSION=""
 CENTOS_VERSION=""
 BASE_IMAGE_NAME=""
 OS_VERSION=""
+RUNTIME_VARIANT=""
 
 NVIDIA_GPU_MODE=0
 INTERNAL_MODE=0
@@ -80,6 +81,9 @@ show_help() {
     echo -e "  ${COLOR_GREEN}[--driver_update]${COLOR_RESET}              Install 'dx_rt_npu_linux_driver' in the host environment"
     echo -e "  ${COLOR_GREEN}[--no-cache]${COLOR_RESET}                   Build Docker images freshly without cache"
     echo -e "  ${COLOR_GREEN}[--skip-archive]${COLOR_RESET}               Skip archiving dx-compiler or dx-runtime or dx-modelzoo before building"
+    echo -e "  ${COLOR_GREEN}[--variant=<variant>]${COLOR_RESET}          Build a specific dx-runtime image variant ${COLOR_RED}(--target=dx-runtime only)${COLOR_RESET}"
+    echo -e "                                   Available: ${COLOR_CYAN}rt${COLOR_RESET} (DX-RT only) | ${COLOR_CYAN}rt-app${COLOR_RESET} | ${COLOR_CYAN}rt-stream${COLOR_RESET} | ${COLOR_CYAN}rt-app-stream${COLOR_RESET} (default)"
+    echo -e "                                   Non-default variants are tagged with a '-<variant>' suffix (ex: dx-runtime:ubuntu-24.04-rt-app)"
     echo -e "  ${COLOR_GREEN}[--re-archive=<true|false>]${COLOR_RESET}    Force rebuild archive for dx-compiler (default: true)"
     echo -e "  ${COLOR_GREEN}[--help]${COLOR_RESET}                       Show this help message"
     echo -e ""
@@ -131,7 +135,13 @@ docker_build_impl()
     export BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
     export OS_VERSION=${OS_VERSION}
     export TAG_NAME=${TAG_NAME:-${OS_VERSION}}
-    export IMAGE_TAG_SUFFIX=${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
+    export RUNTIME_VARIANT=${RUNTIME_VARIANT:-rt-app-stream}
+    local image_tag_suffix=${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
+    # Non-default dx-runtime variants get a '-<variant>' tag suffix; the full build keeps the plain tag
+    if [ "${target}" = "runtime" ] && [ "${RUNTIME_VARIANT}" != "rt-app-stream" ]; then
+        image_tag_suffix="${image_tag_suffix}-${RUNTIME_VARIANT}"
+    fi
+    export IMAGE_TAG_SUFFIX="${image_tag_suffix}"
     export FILE_DXCOM=${FILE_DXCOM}
     export FILE_DXTRON=${FILE_DXTRON}
     export HOST_UID=${HOST_UID}
@@ -403,6 +413,11 @@ main() {
         show_help "error" "An OS version option must be specified (--ubuntu_version, --debian_version, --fedora_version, --rhel_version, or --centos_version)."
     fi
 
+    # --variant selects a dx-runtime Dockerfile stage, so it is meaningless for other targets
+    if [ -n "$RUNTIME_VARIANT" ] && [ "$TARGET_ENV" != "dx-runtime" ]; then
+        show_help "error" "--variant is only supported with '--target=dx-runtime' (got TARGET_ENV='${TARGET_ENV:-unset}')."
+    fi
+
     # Set BASE_IMAGE_NAME and OS_VERSION based on input
     if [ -n "$UBUNTU_VERSION" ]; then
         BASE_IMAGE_NAME="ubuntu"
@@ -535,6 +550,13 @@ while [ $# -gt 0 ]; do
             ;;
         --skip-archive)
             SKIP_ARCHIVE=y
+            ;;
+        --variant=*)
+            RUNTIME_VARIANT="${1#*=}"
+            case "${RUNTIME_VARIANT}" in
+                rt|rt-app|rt-stream|rt-app-stream) ;;
+                *) show_help "error" "Invalid --variant '${RUNTIME_VARIANT}'. Must be one of: rt, rt-app, rt-stream, rt-app-stream" ;;
+            esac
             ;;
         --nvidia_gpu)
             NVIDIA_GPU_MODE=1
