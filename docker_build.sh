@@ -426,6 +426,13 @@ main() {
         show_help "error" "--variant is only supported with '--target=dx-runtime' (got TARGET_ENV='${TARGET_ENV:-unset}')."
     fi
 
+    # The nvidia_gpu overlay hardcodes image:/container_name: to a CUDA tag and drops
+    # IMAGE_TAG_SUFFIX, so the variant suffix would be lost and every variant would
+    # overwrite the same image tag with different contents.
+    if [ -n "$RUNTIME_VARIANT" ] && [ "${NVIDIA_GPU_MODE}" -eq 1 ]; then
+        show_help "error" "--variant cannot be combined with --nvidia_gpu (the nvidia_gpu overlay overrides the image tag, so the variant suffix would be lost)."
+    fi
+
     # Set BASE_IMAGE_NAME and OS_VERSION based on input
     if [ -n "$UBUNTU_VERSION" ]; then
         BASE_IMAGE_NAME="ubuntu"
