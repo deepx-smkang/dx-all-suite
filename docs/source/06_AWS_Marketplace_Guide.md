@@ -306,9 +306,9 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
 
 The solution's software license is free of charge; you pay for the AWS resources you use.
 
-- **Amazon EC2**: The compiler instance (default `t3.xlarge`) runs only during compilation jobs and is terminated regardless of success or failure, so you are billed only for the actual compilation time. For per-instance-type pricing, see [EC2 On-Demand pricing](https://aws.amazon.com/ko/ec2/pricing/on-demand/).
+- **Amazon EC2**: The compiler instance (default `t3.xlarge`) runs only during compilation jobs and is terminated regardless of success or failure, so you are billed only for the actual compilation time. For per-instance-type pricing, see [EC2 On-Demand pricing](https://aws.amazon.com/ec2/pricing/on-demand/).
 - **Amazon S3 / AWS Lambda / AWS Step Functions**: Small charges apply for storing model files and running the pipeline.
-- **AWS IoT Greengrass**: For pricing based on the number of devices, see [AWS IoT Greengrass pricing](https://aws.amazon.com/ko/greengrass/pricing/).
+- **AWS IoT Greengrass**: For pricing based on the number of devices, see [AWS IoT Greengrass pricing](https://aws.amazon.com/greengrass/pricing/).
 
 !!! note "Measured cost reference"
     In a measured run with the YOLOv5s-Face model, compilation took about 12 minutes 30 seconds on the default `t3.xlarge` instance, and the billed time from instance launch to termination was about 17 minutes. At the US East (N. Virginia, us-east-1) On-Demand rate ($0.1664 per hour), a single compilation costs about $0.05 including the EBS volume. Time and cost may vary with model size and region.
@@ -326,6 +326,6 @@ To avoid ongoing charges, clean up resources in the following order after the wa
 
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
 - [AWS IoT Greengrass V2 Developer Guide](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html)
-- [AWS Step Functions](https://aws.amazon.com/ko/step-functions/)
+- [AWS Step Functions](https://aws.amazon.com/step-functions/)
 - [DEEPX Developer Documentation](https://developer.deepx.ai)
 - [DEEPX dx-all-suite — GitHub](https://github.com/DEEPX-AI/dx-all-suite)
