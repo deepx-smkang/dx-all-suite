@@ -837,6 +837,7 @@
     statusLabelBenchmark: 'Benchmark',
     statusLabelMonitor: 'Monitor',
     statusLabelAgent: 'Agent',
+    statusLabelCloud: 'Cloud',
   };
   var STATUS_DOT_CONFIG = [
     { labelId: 'statusLabelApp', label: STATUS_DOT_LABELS.statusLabelApp },
@@ -847,6 +848,7 @@
     { labelId: 'statusLabelBenchmark', label: STATUS_DOT_LABELS.statusLabelBenchmark },
     { labelId: 'statusLabelMonitor', label: STATUS_DOT_LABELS.statusLabelMonitor },
     { labelId: 'statusLabelAgent', label: STATUS_DOT_LABELS.statusLabelAgent },
+    { labelId: 'statusLabelCloud', label: STATUS_DOT_LABELS.statusLabelCloud },
   ];
   var NAV_ACTIVE_CLASSES = ['active', 'active-stream', 'active-zoo'];
 
@@ -1102,6 +1104,7 @@
       setDot('dotBenchmark', data.benchmark ? data.benchmark.alive : false);
       setDot('dotMonitor',  data.monitor ? data.monitor.alive : false);
       setDot('dotAgent',    data.agent ? data.agent.alive : false);
+      setDot('dotCloud',    data.cloud ? data.cloud.alive : false);
       setStatus('statusApp',      data.app.alive);
       setStatus('statusStream',   data.stream ? data.stream.alive : false);
       setStatus('statusZoo',      data.zoo ? data.zoo.alive : false);
@@ -1129,6 +1132,7 @@
       setDot('dotBenchmark', false);
       setDot('dotMonitor', false);
       setDot('dotAgent', false);
+      setDot('dotCloud', false);
       setStatus('statusApp', false);
       setStatus('statusStream', false);
       setStatus('statusZoo', false);

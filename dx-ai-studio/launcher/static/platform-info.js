@@ -11,6 +11,7 @@
     'pm-benchmark': 'benchmark',
     'pm-monitor': 'dx_monitor',
     'pm-agent-dev': 'agent',
+    'pm-dx-cloud': 'cloud',
     'pm-sdk-library': 'sdk-library',
     'pm-about-deepx': 'about'
   };
