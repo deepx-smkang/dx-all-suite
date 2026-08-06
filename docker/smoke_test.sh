@@ -57,8 +57,11 @@ $snippet" 2>&1) || rc=$?
 # outside gst's default scan path, and exports GST_PLUGIN_PATH only from
 # /root/.bashrc (which early-returns for non-interactive shells). So locate the
 # .so and point GST_PLUGIN_PATH at it before asking gst whether the element exists.
+# `-print -quit` (same idiom as Dockerfile.dx-compiler:372) instead of `| head -1`:
+# under pipefail a second match makes head close the pipe, find dies of SIGPIPE
+# and a healthy image would FAIL.
 # shellcheck disable=SC2016  # intentional: this expands inside the container, not here
-GST_PROBE='SO=$(find /usr/local/lib /usr/lib -name libgstdxstream.so 2>/dev/null | head -1)
+GST_PROBE='SO=$(find /usr/local/lib /usr/lib -name libgstdxstream.so -print -quit 2>/dev/null)
 test -n "$SO"
 export GST_PLUGIN_PATH="$(dirname "$SO")"
 gst-inspect-1.0 --exists dxpreprocess'
@@ -73,6 +76,15 @@ echo "SMOKE TEST: $IMAGE ($LABEL)"
 
 case "$COMPONENT" in
 runtime)
+    # Reject a bad variant before spending any container run, so usage lands at
+    # the top of the CI log instead of below a wall of check output.
+    case "$VARIANT" in
+    rt | rt-app | rt-stream | rt-app-stream) ;;
+    *)
+        echo "ERROR: unknown variant: $VARIANT" >&2
+        usage
+        ;;
+    esac
     check "dxrtd binary present"        'test -x /usr/local/bin/dxrtd'
     # Must succeed without an NPU driver. If this fails, find the real cause —
     # do not weaken it to a file-existence check. It must not open a device.
@@ -97,8 +109,11 @@ runtime)
         check "dxpreprocess registered" "$GST_PROBE"
         ;;
     *)
-        echo "ERROR: unknown variant: $VARIANT" >&2
-        usage
+        # Unreachable via the guard above; kept so that adding a variant to the
+        # guard but not here fails loudly instead of passing on the two common
+        # checks alone.
+        echo "ERROR: variant $VARIANT has no checks defined" >&2
+        exit 1
         ;;
     esac
     ;;
