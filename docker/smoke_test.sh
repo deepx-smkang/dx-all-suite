@@ -9,7 +9,17 @@
 #   component : runtime | compiler | modelzoo
 #   variant   : rt | rt-app | rt-stream | rt-app-stream   (runtime only; default rt-app-stream)
 #
-# Exit code: 0 = all checks passed, 1 = at least one check failed (or bad usage).
+# The image must already be present locally (built with `--load`, or pulled by
+# the caller). This script never pulls, so it cannot silently test an image
+# other than the one the caller just built.
+#
+# Exit codes: 0 = all checks passed
+#             1 = a check failed, or the image is not present locally
+#             2 = usage error (missing/unknown arguments)
+#
+# All progress and results go to stdout, so `smoke_test.sh … > smoke.log` keeps a
+# complete transcript including failure detail. stderr carries only usage and
+# preflight errors.
 set -euo pipefail
 
 usage() {
@@ -22,35 +32,41 @@ Examples:
   smoke_test.sh ghcr.io/deepx-ai/dx-runtime:ubuntu-24.04 runtime rt-app-stream
   smoke_test.sh ghcr.io/deepx-ai/dx-compiler:ubuntu-24.04 compiler
 EOF
-    exit 1
+    exit 2
 }
 
 [ $# -ge 2 ] || usage
 
 IMAGE="$1"
 COMPONENT="$2"
+# `${3:-}` (not `${3-}`) on purpose: callers pass "" for compiler/modelzoo, and
+# a present-but-empty variant must still fall back to the default.
 VARIANT="${3:-rt-app-stream}"
 
 FAILED=0
 
 # check <label> <bash snippet executed inside the image>
-# The snippet runs under `set -euo pipefail`, so any failing command in it makes
-# the container exit non-zero. Failures are reported with the snippet and the
-# captured container output so CI logs show exactly which probe broke and why.
+# The snippet runs under `set -euo pipefail` so that any failing command in it --
+# including in a pipeline a future probe might use -- exits the container non-zero.
+# Failures print the snippet and the captured container output, so a CI log shows
+# exactly which probe broke and why.
 check() {
     local label="$1" snippet="$2" out rc=0
     out=$(docker run --rm --entrypoint bash "$IMAGE" -c "set -euo pipefail
 $snippet" 2>&1) || rc=$?
     if [ "$rc" -eq 0 ]; then
         printf '  [ OK ] %s\n' "$label"
-    else
-        {
-            printf '  [FAIL] %s (container exit=%d)\n' "$label" "$rc"
-            printf '         probe: %s\n' "$snippet"
-            printf '%s\n' "$out" | sed 's/^/         | /'
-        } >&2
-        FAILED=1
+        return
     fi
+    # `exit=` not `container exit=`: 125/126/127 are docker's own codes, not the
+    # container's. Indent every line of both the snippet and the output so a
+    # multi-line probe stays visually distinct from the container's output.
+    printf '  [FAIL] %s (exit=%d)\n' "$label" "$rc"
+    printf '%s\n' "$snippet" | sed 's/^/         probe: /'
+    if [ -n "$out" ]; then
+        printf '%s\n' "$out" | sed 's/^/         | /'
+    fi
+    FAILED=1
 }
 
 # dx_stream installs its plugin to /usr/local/lib/<arch>/gstreamer-1.0, which is
@@ -62,7 +78,7 @@ $snippet" 2>&1) || rc=$?
 # and a healthy image would FAIL.
 # shellcheck disable=SC2016  # intentional: this expands inside the container, not here
 GST_PROBE='SO=$(find /usr/local/lib /usr/lib -name libgstdxstream.so -print -quit 2>/dev/null)
-test -n "$SO"
+test -n "$SO" || { echo "libgstdxstream.so not found under /usr/local/lib /usr/lib" >&2; exit 1; }
 export GST_PLUGIN_PATH="$(dirname "$SO")"
 gst-inspect-1.0 --exists dxpreprocess'
 
@@ -73,6 +89,13 @@ if [ "$COMPONENT" = runtime ]; then
 fi
 
 echo "SMOKE TEST: $IMAGE ($LABEL)"
+
+# Preflight: one clear line instead of the same docker-level error repeated once
+# per probe. A tag mismatch between the smoke step and the push step is the most
+# likely real-world failure, and it should read as "image missing", not as N
+# confusing exit=125 blocks.
+docker image inspect "$IMAGE" >/dev/null 2>&1 \
+    || { echo "ERROR: image not present locally: $IMAGE" >&2; exit 1; }
 
 case "$COMPONENT" in
 runtime)
@@ -142,7 +165,7 @@ modelzoo)
 esac
 
 if [ "$FAILED" -ne 0 ]; then
-    echo "SMOKE TEST FAILED: $IMAGE ($LABEL)" >&2
+    echo "SMOKE TEST FAILED: $IMAGE ($LABEL)"
     exit 1
 fi
 echo "SMOKE TEST PASSED: $IMAGE ($LABEL)"
