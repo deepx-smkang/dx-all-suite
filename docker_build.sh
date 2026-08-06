@@ -135,13 +135,7 @@ docker_build_impl()
     export BASE_IMAGE_NAME=${BASE_IMAGE_NAME}
     export OS_VERSION=${OS_VERSION}
     export TAG_NAME=${TAG_NAME:-${OS_VERSION}}
-    export RUNTIME_VARIANT=${RUNTIME_VARIANT:-rt-app-stream}
-    local image_tag_suffix=${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
-    # Non-default dx-runtime variants get a '-<variant>' tag suffix; the full build keeps the plain tag
-    if [ "${target}" = "runtime" ] && [ "${RUNTIME_VARIANT}" != "rt-app-stream" ]; then
-        image_tag_suffix="${image_tag_suffix}-${RUNTIME_VARIANT}"
-    fi
-    export IMAGE_TAG_SUFFIX="${image_tag_suffix}"
+    export IMAGE_TAG_SUFFIX=${IMAGE_TAG_SUFFIX:-${BASE_IMAGE_NAME}-${OS_VERSION}}
     export FILE_DXCOM=${FILE_DXCOM}
     export FILE_DXTRON=${FILE_DXTRON}
     export HOST_UID=${HOST_UID}
@@ -170,11 +164,25 @@ docker_build_impl()
         export XAUTHORITY_TARGET="/tmp/.docker.xauth"
     fi
 
+    # dx-runtime variant selects the Dockerfile stage to build; non-default variants
+    # also get a '-<variant>' image tag suffix. Both are applied in the compose
+    # subshell below only, so repeated docker_build_impl calls (docker_build_all)
+    # never inherit another target's variant or tag suffix.
+    local runtime_variant="${RUNTIME_VARIANT:-rt-app-stream}"
+    local variant_tag_suffix="${IMAGE_TAG_SUFFIX}"
+    if [ "${target}" = "runtime" ] && [ "${runtime_variant}" != "rt-app-stream" ]; then
+        variant_tag_suffix="${IMAGE_TAG_SUFFIX}-${runtime_variant}"
+    fi
+
     docker buildx use default
     CMD="docker compose ${config_file_args} build ${no_cache_arg} dx-${target}"
     echo "${CMD}"
 
-    ${CMD} || { print_colored_v2 "ERROR" "docker build 'dx-${target}' failed. "; exit 1; }
+    (
+        export RUNTIME_VARIANT="${runtime_variant}"
+        export IMAGE_TAG_SUFFIX="${variant_tag_suffix}"
+        ${CMD}
+    ) || { print_colored_v2 "ERROR" "docker build 'dx-${target}' failed. "; exit 1; }
 }
 
 docker_build_all() 
