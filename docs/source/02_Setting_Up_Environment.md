@@ -17,9 +17,45 @@
 
 ---
 
+## Quick Install (one-line)
+
+If you only need a single component, install it directly — no cloning, no submodule
+synchronization:
+
+```Bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (target device with a DEEPX NPU: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+
+# DX-ModelZoo
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-modelzoo/main/oneline-install.sh | sh
+```
+
+Each installer resolves the latest release on its own. Override with `DX_VERSION=vX.Y.Z`
+(DX-Compiler / DX-ModelZoo) or `DX_REF=<branch|tag>` (DX-Runtime), and change the install
+root with `DX_INSTALL_DIR=<dir>` (default `~/deepx`).
+
+DX-ModelZoo installs the `cpu` extra by default — that extra is what provides its ONNX
+runtime backend, so a plain install without it cannot run inference. Use `DX_EXTRA=gpu`
+for the CUDA backend. On a minimal base image, install `build-essential` and
+`python3-dev` first; a few of its dependencies build native extensions from source.
+
+!!! warning "DX-Runtime: reboot required"
+    A reboot is mandatory after installation so the kernel loads the NPU driver. When no
+    NPU device is detected the firmware update step is skipped — rerun the same command
+    after rebooting to finish it.
+
+!!! note "Scope of one-line install"
+    One-line install covers `dx_fw`, `dx_rt`, and `dx_rt_npu_linux_driver` for DX-Runtime.
+    `dx_app`, `dx_stream`, source builds, and the Docker route all use the full setup
+    described below.
+
 ## Prerequisites
 
-Follow these steps first to ensure a stable installation.
+Follow these steps first to ensure a stable installation. This is the full-suite route —
+skip it if the one-line install above already covers what you need.
 
 ### Repository Cloning and Submodule Synchronization
 

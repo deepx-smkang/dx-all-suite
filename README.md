@@ -112,6 +112,41 @@ interactive dashboard for cross-environment and cross-version comparison. Measur
 
 **DX-AllSuite** provides two environments depending on your intended use. Choose the environment that fits your needs to get started.
 
+### Quick Install (one-line)
+
+Install a single component without cloning this repository:
+
+```bash
+# DX-Compiler (x86_64 Host PC)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | sh
+
+# DX-Runtime (target device with a DEEPX NPU: NPU driver + dx_rt + firmware)
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-runtime/main/oneline-install.sh | sh
+
+# DX-ModelZoo
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-modelzoo/main/oneline-install.sh | sh
+```
+
+DX-ModelZoo installs the `cpu` extra by default, which is what supplies its ONNX
+runtime backend — select the CUDA backend with `DX_EXTRA=gpu`.
+
+Pin a specific version with `DX_VERSION` (DX-Compiler / DX-ModelZoo) or `DX_REF`
+(DX-Runtime), and change the install root with `DX_INSTALL_DIR`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DEEPX-AI/dx-compiler/main/oneline-install.sh | DX_VERSION=v2.4.1 sh
+```
+
+> **DX-Runtime notes**  
+> A reboot is required after installation to load the NPU driver. The firmware
+> update step is skipped when no NPU device is detected — rerun the same command
+> after the reboot to complete it. One-line install covers `dx_fw`, `dx_rt`, and
+> `dx_rt_npu_linux_driver`; `dx_app` and `dx_stream` still use the full
+> installation guide below.
+
+For the full suite (all components, source builds, Docker), use the environment
+guides below.
+
 ### AI Model Compile Environment (Host PC)  
 
 This environment is used for converting and optimizing trained AI models into DEEPX NPU-specific binaries.  
