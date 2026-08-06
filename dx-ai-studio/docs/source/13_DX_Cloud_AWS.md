@@ -31,7 +31,7 @@ Two cards cover cloud compilation:
 aws configure
 aws s3 cp yolov5-s-face_640x640.onnx s3://<model-bucket>/
 aws s3 cp yolov5-s-face_640x640.json s3://<model-bucket>/
-aws s3 cp s3://<output-bucket>/yolov5-s-face_640x640.dxnn .
+aws s3 cp s3://<model-bucket>/yolov5-s-face_640x640.dxnn .
 ```
 
 ## AWS Greengrass

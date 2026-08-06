@@ -57,17 +57,17 @@
             <span class="badge b-cat">S3</span>
           </div>
           <p>
-            <span class="ko">구독 후 <code>aws configure</code>로 자격 증명을 설정하고, <code>.onnx</code>와 <code>.json</code> 설정을 S3 모델 버킷에 업로드하면 컴파일된 <code>.dxnn</code>을 출력 버킷에서 다운로드할 수 있습니다.</span>
-            <span class="en">After subscribing, set credentials with <code>aws configure</code>, upload your <code>.onnx</code> and <code>.json</code> config to the S3 model bucket, then download the compiled <code>.dxnn</code> from the output bucket.</span>
-            <span class="es">Tras suscribirse, configure credenciales con <code>aws configure</code>, suba su <code>.onnx</code> y <code>.json</code> al bucket S3 de modelos y descargue el <code>.dxnn</code> compilado del bucket de salida.</span>
-            <span class="ja">サブスクライブ後、<code>aws configure</code>で認証情報を設定し、<code>.onnx</code>と<code>.json</code>設定をS3モデルバケットにアップロードすると、コンパイル済み<code>.dxnn</code>を出力バケットからダウンロードできます。</span>
-            <span class="zh-CN">订阅后使用<code>aws configure</code>设置凭证，将<code>.onnx</code>和<code>.json</code>配置上传到S3模型存储桶，即可从输出存储桶下载编译好的<code>.dxnn</code>。</span>
-            <span class="zh-TW">訂閱後使用<code>aws configure</code>設定憑證，將<code>.onnx</code>和<code>.json</code>設定上傳到S3模型儲存貯體，即可從輸出儲存貯體下載編譯完成的<code>.dxnn</code>。</span>
+            <span class="ko">구독 후 <code>aws configure</code>로 자격 증명을 설정하고, <code>.onnx</code>와 <code>.json</code> 설정을 S3 모델 버킷에 업로드하면 컴파일된 <code>.dxnn</code>이 같은 디렉터리에 생성됩니다.</span>
+            <span class="en">After subscribing, set credentials with <code>aws configure</code>, upload your <code>.onnx</code> and <code>.json</code> config to the S3 model bucket, and the compiled <code>.dxnn</code> appears in the same directory.</span>
+            <span class="es">Tras suscribirse, configure credenciales con <code>aws configure</code> y suba su <code>.onnx</code> y <code>.json</code> al bucket S3 de modelos: el <code>.dxnn</code> compilado aparece en el mismo directorio.</span>
+            <span class="ja">サブスクライブ後、<code>aws configure</code>で認証情報を設定し、<code>.onnx</code>と<code>.json</code>設定をS3モデルバケットにアップロードすると、コンパイル済み<code>.dxnn</code>が同じディレクトリに生成されます。</span>
+            <span class="zh-CN">订阅后使用<code>aws configure</code>设置凭证，将<code>.onnx</code>和<code>.json</code>配置上传到S3模型存储桶，编译好的<code>.dxnn</code>会生成在同一目录中。</span>
+            <span class="zh-TW">訂閱後使用<code>aws configure</code>設定憑證，將<code>.onnx</code>和<code>.json</code>設定上傳到S3模型儲存貯體，編譯完成的<code>.dxnn</code>會產生在相同目錄中。</span>
           </p>
           <pre><code>aws configure
 aws s3 cp yolov5-s-face_640x640.onnx s3://&lt;model-bucket&gt;/
 aws s3 cp yolov5-s-face_640x640.json s3://&lt;model-bucket&gt;/
-aws s3 cp s3://&lt;output-bucket&gt;/yolov5-s-face_640x640.dxnn .</code></pre>
+aws s3 cp s3://&lt;model-bucket&gt;/yolov5-s-face_640x640.dxnn .</code></pre>
           <div class="card-actions">
             <a class="btn btn-ghost" href="https://developer.deepx.ai/06_AWS_Marketplace_Guide.html" target="_blank" rel="noopener">
               <span class="ko">공식 가이드 문서</span>
