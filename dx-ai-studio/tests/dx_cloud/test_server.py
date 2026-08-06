@@ -1,6 +1,8 @@
 """DX Cloud (AWS) server unit tests."""
 
+import json
 import urllib.request
+from http.server import ThreadingHTTPServer
 
 import pytest
 
@@ -21,10 +23,12 @@ def _get(path, port):
 
 
 def test_create_server_returns_http_server():
-    from dx_cloud.server import create_server
-    srv = create_server(port=28100)
+    from dx_cloud.server import DXCloudHandler, create_server
+    srv = create_server(port=0)
     try:
-        assert srv.server_address[1] == 28100
+        assert isinstance(srv, ThreadingHTTPServer)
+        assert srv.RequestHandlerClass is DXCloudHandler
+        assert srv.server_address[1] > 0
     finally:
         srv.server_close()
 
@@ -44,4 +48,19 @@ def test_index_has_marketplace_links(server):
 def test_hb(server):
     status, body = _get("/api/hb", server)
     assert status == 200
-    assert "true" in body or '"ok"' in body
+    assert json.loads(body) == {"ok": True}
+
+
+def test_index_has_all_language_spans(server):
+    """Every UI string carries all 6 language spans (8 spans per language)."""
+    _, body = _get("/", server)
+    for lang in ("ko", "en", "es", "ja", "zh-CN", "zh-TW"):
+        assert body.count(f'<span class="{lang}">') == 8, lang
+
+
+def test_css_has_lang_visibility_and_card_rules(server):
+    """dx-cloud.css must hide inactive language spans and define layout classes."""
+    status, css = _get("/static/css/dx-cloud.css", server)
+    assert status == 200
+    assert "html[lang=" in css or "body.lang-" in css
+    assert ".card{" in css
