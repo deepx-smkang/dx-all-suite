@@ -43,6 +43,7 @@ nav:
   - Running Your First NPU Model: 03_Running_Your_First_NPU_Model.md
   - Version Compatibility: 04_Version_Compatibility.md
   - FAQ Troubleshooting Guide: 05_FAQ_Troubleshooting_Guide.md
+  - AWS Marketplace Guide: 06_AWS_Marketplace_Guide.md
   - DX AI Studio:
       # Copied from dx-ai-studio/docs/source at build time by mkdocs.sh (into
       # source/ai-studio/, then removed after build). Studio docs stay the single
