@@ -93,9 +93,9 @@ To run the CLI commands in this guide, such as `aws s3 cp`, from your local work
 
     ```bash
     aws configure
-    # AWS Access Key ID [None]: <액세스 키 ID>
-    # AWS Secret Access Key [None]: <시크릿 액세스 키>
-    # Default region name [None]: <리전, 예: us-east-1>
+    # AWS Access Key ID [None]: <access-key-id>
+    # AWS Secret Access Key [None]: <secret-access-key>
+    # Default region name [None]: <region, e.g. us-east-1>
     # Default output format [None]: json
     ```
 
@@ -181,8 +181,8 @@ The following is an example configuration file.
 Upload the model (`.onnx`) and configuration file (`.json`) to the same directory in the S3 model bucket. Once both files are uploaded, the pipeline starts automatically.
 
 ```bash
-aws s3 cp yolov5-s-face_640x640.onnx s3://<모델-버킷>/
-aws s3 cp yolov5-s-face_640x640.json s3://<모델-버킷>/
+aws s3 cp yolov5-s-face_640x640.onnx s3://<model-bucket>/
+aws s3 cp yolov5-s-face_640x640.json s3://<model-bucket>/
 ```
 
 ![Figure 7. .onnx / .json files uploaded to the S3 model bucket](img/aws/fig07_s3_upload.png)
@@ -194,7 +194,7 @@ You can monitor the workflow's progress in the Step Functions console. The workf
 After completion, check the compiled `.dxnn` file in the same S3 directory as the original model. Detailed compilation logs are recorded in the CloudWatch Logs log group `/dx-compiler/<stack-name>/execution`.
 
 ```bash
-aws s3 ls s3://<모델-버킷>/
+aws s3 ls s3://<model-bucket>/
 ```
 
 ![Figure 9. .dxnn file created in the same directory after compilation](img/aws/fig09_dxnn_in_s3.png)
@@ -210,7 +210,7 @@ Confirm in the Greengrass console that the deployment status becomes **Completed
 You can check the component installation logs on the device. Use the log file for the classic nucleus, and the systemd journal for nucleus lite.
 
 ```bash
-# 클래식 Greengrass nucleus
+# Classic Greengrass nucleus
 sudo tail -f /greengrass/v2/logs/com.deepx.dx-runtime.log
 
 # Greengrass nucleus lite
@@ -259,7 +259,7 @@ Downloading the compiled `.dxnn` model to the device and running inference throu
 First, download the compiled `.dxnn` model from the S3 model bucket to the device.
 
 ```bash
-aws s3 cp s3://<모델-버킷>/yolov5-s-face_640x640.dxnn .
+aws s3 cp s3://<model-bucket>/yolov5-s-face_640x640.dxnn .
 ```
 
 Download and extract the sample videos used for testing.
