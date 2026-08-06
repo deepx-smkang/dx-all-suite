@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DX Cloud (AWS)</title>
+  <link rel="stylesheet" href="/static/shared/dx-fonts.css">
+  <link rel="stylesheet" href="/static/shared/dx-tokens.css">
+  <link rel="stylesheet" href="/static/shared/dx-base.css">
+  <link rel="stylesheet" href="/static/shared/dx-utilities.css">
+  <link rel="stylesheet" href="/static/shared/module-chrome.css">
+  <link rel="stylesheet" href="/static/shared/dx-components.css">
+  <link rel="stylesheet" href="/static/shared/brand.css">
+  <link rel="stylesheet" href="/static/shared/toolbar.css">
+  <link rel="stylesheet" href="/static/css/dx-cloud.css?m=dx_cloud">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="app-title">
+      <div class="dx-brand-slot" id="dxBrand"></div>
+    </div>
+    <div class="toolbar"></div>
+  </header>
+
+  <main class="cloud-main">
+    <!-- Section 1 — AWS Compiler -->
+    <section class="mt16">
+      <h2 class="section-title">☁️ AWS Compiler</h2>
+      <div class="cloud-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3>DX-Compiler (AMI)</h3>
+            <span class="badge b-cat">EC2</span>
+          </div>
+          <p>
+            <span class="ko">AWS Marketplace의 DX-Compiler AMI로 EC2 인스턴스를 띄우면 <code>dxcom</code>이 사전 설치된 환경에서 ONNX 모델을 <code>.dxnn</code>으로 직접 컴파일할 수 있습니다.</span>
+            <span class="en">Launch an EC2 instance from the DX-Compiler AMI on AWS Marketplace and compile ONNX models to <code>.dxnn</code> directly with the pre-installed <code>dxcom</code>.</span>
+            <span class="es">Inicie una instancia EC2 con la AMI DX-Compiler de AWS Marketplace y compile modelos ONNX a <code>.dxnn</code> directamente con <code>dxcom</code> preinstalado.</span>
+            <span class="ja">AWS MarketplaceのDX-Compiler AMIでEC2インスタンスを起動し、プリインストールされた<code>dxcom</code>でONNXモデルを直接<code>.dxnn</code>にコンパイルできます。</span>
+            <span class="zh-CN">从AWS Marketplace的DX-Compiler AMI启动EC2实例，即可使用预装的<code>dxcom</code>将ONNX模型直接编译为<code>.dxnn</code>。</span>
+            <span class="zh-TW">從AWS Marketplace的DX-Compiler AMI啟動EC2執行個體，即可使用預裝的<code>dxcom</code>將ONNX模型直接編譯為<code>.dxnn</code>。</span>
+          </p>
+          <div class="card-actions">
+            <a class="btn" href="https://aws.amazon.com/marketplace/search/results?searchTerms=DEEPX" target="_blank" rel="noopener">
+              <span class="ko">Marketplace에서 DEEPX 검색</span>
+              <span class="en">Find DEEPX on Marketplace</span>
+              <span class="es">Buscar DEEPX en Marketplace</span>
+              <span class="ja">MarketplaceでDEEPXを検索</span>
+              <span class="zh-CN">在Marketplace搜索DEEPX</span>
+              <span class="zh-TW">在Marketplace搜尋DEEPX</span>
+            </a>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Cloud Compile Pipeline</h3>
+            <span class="badge b-cat">S3</span>
+          </div>
+          <p>
+            <span class="ko">구독 후 <code>aws configure</code>로 자격 증명을 설정하고, <code>.onnx</code>와 <code>.json</code> 설정을 S3 모델 버킷에 업로드하면 컴파일된 <code>.dxnn</code>을 출력 버킷에서 다운로드할 수 있습니다.</span>
+            <span class="en">After subscribing, set credentials with <code>aws configure</code>, upload your <code>.onnx</code> and <code>.json</code> config to the S3 model bucket, then download the compiled <code>.dxnn</code> from the output bucket.</span>
+            <span class="es">Tras suscribirse, configure credenciales con <code>aws configure</code>, suba su <code>.onnx</code> y <code>.json</code> al bucket S3 de modelos y descargue el <code>.dxnn</code> compilado del bucket de salida.</span>
+            <span class="ja">サブスクライブ後、<code>aws configure</code>で認証情報を設定し、<code>.onnx</code>と<code>.json</code>設定をS3モデルバケットにアップロードすると、コンパイル済み<code>.dxnn</code>を出力バケットからダウンロードできます。</span>
+            <span class="zh-CN">订阅后使用<code>aws configure</code>设置凭证，将<code>.onnx</code>和<code>.json</code>配置上传到S3模型存储桶，即可从输出存储桶下载编译好的<code>.dxnn</code>。</span>
+            <span class="zh-TW">訂閱後使用<code>aws configure</code>設定憑證，將<code>.onnx</code>和<code>.json</code>設定上傳到S3模型儲存貯體，即可從輸出儲存貯體下載編譯完成的<code>.dxnn</code>。</span>
+          </p>
+          <pre><code>aws configure
+aws s3 cp yolov5-s-face_640x640.onnx s3://&lt;model-bucket&gt;/
+aws s3 cp yolov5-s-face_640x640.json s3://&lt;model-bucket&gt;/
+aws s3 cp s3://&lt;output-bucket&gt;/yolov5-s-face_640x640.dxnn .</code></pre>
+          <div class="card-actions">
+            <a class="btn btn-ghost" href="https://developer.deepx.ai/06_AWS_Marketplace_Guide.html" target="_blank" rel="noopener">
+              <span class="ko">공식 가이드 문서</span>
+              <span class="en">Official Guide Docs</span>
+              <span class="es">Guía oficial</span>
+              <span class="ja">公式ガイドドキュメント</span>
+              <span class="zh-CN">官方指南文档</span>
+              <span class="zh-TW">官方指南文件</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2 — AWS Greengrass -->
+    <section class="mt16">
+      <h2 class="section-title">🌿 AWS Greengrass</h2>
+      <div class="cloud-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3>Subscribe &amp; Deploy Stack</h3>
+            <span class="badge b-cat">CloudFormation</span>
+          </div>
+          <p>
+            <span class="ko">Marketplace에서 DEEPX Greengrass Solution을 구독한 뒤 제공되는 CloudFormation 스택을 배포하면 IoT Core·Greengrass 리소스가 자동 구성됩니다.</span>
+            <span class="en">Subscribe to the DEEPX Greengrass Solution on Marketplace, then deploy the provided CloudFormation stack to auto-provision IoT Core and Greengrass resources.</span>
+            <span class="es">Suscríbase a la DEEPX Greengrass Solution en Marketplace y despliegue la pila CloudFormation incluida para aprovisionar IoT Core y Greengrass automáticamente.</span>
+            <span class="ja">MarketplaceでDEEPX Greengrass Solutionをサブスクライブし、提供されるCloudFormationスタックをデプロイすると、IoT CoreとGreengrassリソースが自動構成されます。</span>
+            <span class="zh-CN">在Marketplace订阅DEEPX Greengrass Solution，然后部署随附的CloudFormation堆栈，即可自动配置IoT Core和Greengrass资源。</span>
+            <span class="zh-TW">在Marketplace訂閱DEEPX Greengrass Solution，然後部署隨附的CloudFormation堆疊，即可自動設定IoT Core和Greengrass資源。</span>
+          </p>
+          <div class="card-actions">
+            <a class="btn" href="https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34" target="_blank" rel="noopener">
+              <span class="ko">Marketplace 리스팅 열기</span>
+              <span class="en">Open Marketplace Listing</span>
+              <span class="es">Abrir listado de Marketplace</span>
+              <span class="ja">Marketplaceリスティングを開く</span>
+              <span class="zh-CN">打开Marketplace页面</span>
+              <span class="zh-TW">開啟Marketplace頁面</span>
+            </a>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Thing Group &amp; ZTP</h3>
+            <span class="badge b-cat">IoT Core</span>
+          </div>
+          <p>
+            <span class="ko">디바이스를 Thing Group에 등록하면 NPU 드라이버·펌웨어·dx_rt·dx_stream이 자동 설치(Zero-Touch Provisioning)되어 별도 수작업 없이 엣지 배포가 완료됩니다.</span>
+            <span class="en">Register a device to the Thing Group and the NPU driver, firmware, dx_rt, and dx_stream are installed automatically (Zero-Touch Provisioning) — edge deployment completes with no manual steps.</span>
+            <span class="es">Registre un dispositivo en el Thing Group y el controlador NPU, el firmware, dx_rt y dx_stream se instalan automáticamente (Zero-Touch Provisioning), completando el despliegue edge sin pasos manuales.</span>
+            <span class="ja">デバイスをThing Groupに登録すると、NPUドライバー・ファームウェア・dx_rt・dx_streamが自動インストール（Zero-Touch Provisioning）され、手作業なしでエッジ展開が完了します。</span>
+            <span class="zh-CN">将设备注册到Thing Group后，NPU驱动、固件、dx_rt和dx_stream会自动安装（零接触配置），无需手动操作即可完成边缘部署。</span>
+            <span class="zh-TW">將裝置註冊到Thing Group後，NPU驅動、韌體、dx_rt和dx_stream會自動安裝（零接觸佈建），無需手動操作即可完成邊緣部署。</span>
+          </p>
+          <div class="card-actions">
+            <a class="btn btn-ghost" href="https://developer.deepx.ai/06_AWS_Marketplace_Guide.html" target="_blank" rel="noopener">
+              <span class="ko">배포 가이드 보기</span>
+              <span class="en">View Deployment Guide</span>
+              <span class="es">Ver guía de despliegue</span>
+              <span class="ja">デプロイガイドを見る</span>
+              <span class="zh-CN">查看部署指南</span>
+              <span class="zh-TW">檢視部署指南</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/shared/i18n.js"></script>
+  <script src="/static/shared/brand.js"></script>
+  <script>
+DXBrand.mount({
+  target: '#dxBrand',
+  name: 'Cloud (AWS)',
+  subtitle: {
+    ko: 'AWS Marketplace 기반 클라우드 컴파일 & 엣지 배포',
+    en: 'AWS Marketplace cloud compile & edge deployment',
+    es: 'Compilación en la nube y despliegue edge vía AWS Marketplace',
+    ja: 'AWS Marketplaceベースのクラウドコンパイル＆エッジ展開',
+    'zh-CN': '基于AWS Marketplace的云端编译与边缘部署',
+    'zh-TW': '基於AWS Marketplace的雲端編譯與邊緣部署'
+  },
+  accent: 'var(--accent)'
+});
+  </script>
+  <script src="/static/shared/toolbar.js"></script>
+  <script>DXToolbar.init({ container: '.toolbar' });</script>
+</body>
+</html>
