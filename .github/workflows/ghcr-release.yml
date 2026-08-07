@@ -82,7 +82,10 @@ jobs:
           COMPONENTS_INPUT: ${{ inputs.components }}
           OWNER: ${{ github.repository_owner }}
         run: |
-          set -euo pipefail
+          # -f disables glob expansion for this whole step: components is user input and
+          # `for c in $(echo "$components" ...)` would otherwise expand a '*' against the
+          # repo root. Nothing here needs globbing.
+          set -euo pipefail -f
 
           # GHCR paths must be lowercase; the org is spelled DEEPX-AI.
           registry="ghcr.io/$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
@@ -143,7 +146,9 @@ jobs:
             # with no image and break the manifest merge. Exclude it explicitly.
             [ "$c" = compiler ] || add arm64 "$RUNNER_ARM64" "$c"
           done
-          [ -n "$entries" ] || { echo "No known component in '$components'" >&2; exit 1; }
+          # Second line of defence, and the only one for whitespace-or-comma-only input
+          # ("" or ","): the allowlist loop above iterates zero times and passes.
+          [ -n "$entries" ] || { echo "::error::No known component in '$components'"; exit 1; }
 
           {
             echo "registry=$registry"
@@ -153,6 +158,21 @@ jobs:
             echo "modelzoo_version=$modelzoo_version"
             echo "matrix={\"include\":[$entries]}"
           } >> "$GITHUB_OUTPUT"
+
+      # Before the overwrite guard, so a blocked release still shows what it resolved.
+      - name: Show resolved release plan
+        env:
+          REGISTRY: ${{ steps.meta.outputs.registry }}
+          RUNTIME_VERSION: ${{ steps.meta.outputs.runtime_version }}
+          COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
+          MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
+          MATRIX: ${{ steps.meta.outputs.matrix }}
+        run: |
+          echo "registry:    $REGISTRY"
+          echo "dx-runtime:  $RUNTIME_VERSION"
+          echo "dx-compiler: $COMPILER_VERSION"
+          echo "dx-modelzoo: $MODELZOO_VERSION"
+          echo "matrix:      $MATRIX"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -167,33 +187,59 @@ jobs:
       - name: Refuse to overwrite a published version
         env:
           REGISTRY: ${{ steps.meta.outputs.registry }}
+          COMPONENTS: ${{ steps.meta.outputs.components }}
           RUNTIME_VERSION: ${{ steps.meta.outputs.runtime_version }}
+          COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
+          MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
           # `inputs` is null on a tag push, so this evaluates to false there and the
           # guard stays armed -- a tag push is always a new release. Deliberately the
           # mirror of MOVING in merge-manifest: `&&` returns the first falsy operand.
           ALLOW_OVERWRITE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_overwrite }}
         run: |
-          set -euo pipefail
-          # One canonical tag is enough; all 14 are published from the same run.
-          if [ "$ALLOW_OVERWRITE" != true ] \
-             && docker buildx imagetools inspect "$REGISTRY/dx-runtime:$RUNTIME_VERSION" >/dev/null 2>&1; then
-            echo "::error::$RUNTIME_VERSION is already published. Bump release.ver, or re-run with allow_overwrite=true to republish (e.g. to recover from a partial failure)."
-            exit 1
-          fi
+          set -euo pipefail -f
+          [ "$ALLOW_OVERWRITE" != true ] || exit 0
 
-      - name: Show resolved release plan
-        env:
-          REGISTRY: ${{ steps.meta.outputs.registry }}
-          RUNTIME_VERSION: ${{ steps.meta.outputs.runtime_version }}
-          COMPILER_VERSION: ${{ steps.meta.outputs.compiler_version }}
-          MODELZOO_VERSION: ${{ steps.meta.outputs.modelzoo_version }}
-          MATRIX: ${{ steps.meta.outputs.matrix }}
-        run: |
-          echo "registry:    $REGISTRY"
-          echo "dx-runtime:  $RUNTIME_VERSION"
-          echo "dx-compiler: $COMPILER_VERSION"
-          echo "dx-modelzoo: $MODELZOO_VERSION"
-          echo "matrix:      $MATRIX"
+          # `imagetools inspect` exits 1 for BOTH "no such tag" and "403 Forbidden", and
+          # only stderr tells them apart. `docker login` above proves registry-level auth
+          # but not per-package read access -- a GHCR package that is not linked to this
+          # repo 403s here -- so treating every failure as "not published" would disarm
+          # the guard silently. Accept only a not-found. The patterns stay broad because a
+          # first release has no package at all, which GHCR words differently from a
+          # missing tag (UNVERIFIED: needs real GHCR auth to confirm the exact wording;
+          # an unrecognised message fails loudly rather than passing, which is the safe
+          # direction -- fix the pattern if a legitimate first release trips it).
+          probe() {
+            local ref="$1" out
+            if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
+              echo "::error::$ref is already published. Bump the version, or re-run with allow_overwrite=true to republish (e.g. to recover from a partial failure)."
+              return 1
+            fi
+            case "$out" in
+              *"not found"* | *"NAME_UNKNOWN"* | *"MANIFEST_UNKNOWN"* | *"does not exist"*)
+                echo "  $ref: not published"
+                return 0
+                ;;
+            esac
+            echo "::error::GHCR probe for $ref failed for a reason other than not-found: $out"
+            return 1
+          }
+
+          # Probe every component being released, each at its own version. dx-runtime
+          # alone is not representative: the three version independently (dx-modelzoo is
+          # on v0.10.1), so for a subset dispatch it answers both wrong ways -- passing
+          # while dx-modelzoo:v0.10.1 gets overwritten, or blocking an unpublished one.
+          rc=0
+          for c in $(echo "$COMPONENTS" | tr ',' ' '); do
+            case "$c" in
+              runtime)  version="$RUNTIME_VERSION" ;;
+              compiler) version="$COMPILER_VERSION" ;;
+              modelzoo) version="$MODELZOO_VERSION" ;;
+              *) echo "::error::unknown component '$c'"; exit 1 ;;
+            esac
+            # Report every offender, not just the first.
+            probe "$REGISTRY/dx-$c:$version" || rc=1
+          done
+          exit "$rc"
 
   # One job per (arch, component). The runtime job builds all four variants in
   # sequence so the shared `rt` stage is built once per arch instead of four times.
@@ -288,7 +334,9 @@ jobs:
               publish
               # Peak store usage is close to the runner's 14GB. If a later variant ever
               # dies on ENOSPC, this is the record of how much margin was left.
-              df -h /; docker system df
+              # `|| true`: pure instrumentation, and it is the last statement in the loop
+              # body -- a failing df would otherwise fail the step after a successful push.
+              { df -h /; docker system df; } || true
             done
           else
             refs ""
