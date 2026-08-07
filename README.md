@@ -140,6 +140,20 @@ This environment is for performing inference and running applications on devices
 > sudo reboot  
 > ```
 
+### Prebuilt Container Images (GHCR)
+
+Prefer containers over a local install? Official Ubuntu 24.04 images are published to GitHub Container Registry, so you can skip building the suite entirely.  
+
+```Bash
+docker pull ghcr.io/deepx-ai/dx-runtime:latest
+docker run --rm -it --privileged --ipc=host --pid=host -v /dev:/dev \
+    --entrypoint bash ghcr.io/deepx-ai/dx-runtime:latest
+```
+
+`dx-runtime` ships in four variants (`rt`, `rt-app`, `rt-stream`, `rt-app-stream`) alongside `dx-compiler` and `dx-modelzoo`.  
+
+- **Action**: Container image tags, variant selection, and NPU passthrough options [Link](./docker/README.md)
+
 ## Supported Models
 
 DX-AllSuite supports a vast array of industry-standard AI architectures, optimized for peak performance on our NPU.  
