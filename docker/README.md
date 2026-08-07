@@ -22,14 +22,21 @@ All images are based on **Ubuntu 24.04**.
 The three components version independently, so their tags do not match each other —
 `dx-modelzoo` is on `v0.10.1` while the other two are on `v2.4.1`.
 
-On `dx-runtime`, the bare `v2.4.1` and `latest` tags are aliases for the **`rt-app-stream`**
-(full) variant.
+On `dx-runtime`, the bare `v2.4.1` and `latest` tags both point at the **`rt-app-stream`**
+(full) variant — but they are not equivalent: `v2.4.1` names one release and therefore never
+moves, while `latest` is repointed at the newest release every time one is published.
+
+You will also see per-architecture tags in the GHCR tag list (`v2.4.1-rt-amd64`,
+`v2.4.1-rt-app-arm64`, `v0.10.1-amd64`, …). These are build intermediates that the release
+workflow pushes before merging them into the multi-arch manifests above, and nothing deletes
+them afterwards. **They are not supported tags — ignore them** and use the manifest tags from
+the table, which resolve to the right architecture on their own.
 
 ### Tag policy
 
-- **Immutable** (`v2.4.1-rt-app`, `v0.10.1`, …) — pinned to one release and never
-  republished. **Use these in production and in CI**, so a new release cannot change what
-  your deployment runs.
+- **Immutable** (`v2.4.1-rt-app`, `v2.4.1`, `v0.10.1`, …) — every tag carrying a version
+  number is pinned to that release and is never republished. **Use these in production and in
+  CI**, so a new release cannot change what your deployment runs.
 - **Moving** (`latest`, `rt`, `rt-app`, `rt-stream`, `rt-app-stream`) — repointed to the
   newest release on every release run. Convenient for trying things out; do not pin a
   deployment to them.
@@ -46,8 +53,9 @@ On `dx-runtime`, the bare `v2.4.1` and `latest` tags are aliases for the **`rt-a
 | `rt-stream` | `rt` + **dx_stream** (GStreamer pipeline plugins) | — | GStreamer video-analytics pipelines only, without dx_app. |
 | `rt-app-stream` | `rt` + dx_app + dx_stream (**= `latest`**) | 5.60 GB | You want everything, or you are not sure yet. |
 
-Sizes are `docker images` values from a local `linux/amd64` Ubuntu 24.04 build.
-`rt-stream` was not built locally, so no measured number is quoted for it.
+Sizes are `docker images` values from a local `linux/amd64` Ubuntu 24.04 build. `rt-stream`
+has no measured number yet because it was not among the locally built images; it is not
+quoted rather than estimated.
 
 ## Pull
 
@@ -110,8 +118,13 @@ and let it use the host service through `--ipc=host --pid=host`.
 
 ### Full option set
 
-Everything below is taken from the `dx-runtime` service in
-[`docker-compose.yml`](./docker-compose.yml), with each option's purpose as commented there:
+Each option below comes from the `dx-runtime` service in
+[`docker-compose.yml`](./docker-compose.yml), with its purpose as commented there. This is not
+the complete service definition: it omits `-v /var/run/docker.sock:/var/run/docker.sock`
+(compose uses it so one container can drive another's CLI — not needed here, and handing a
+container the Docker socket is worth doing deliberately rather than by default) and the
+`TIMEZONE_MOUNT` mount, which compose uses to pass through `/etc/timezone` on Debian/Ubuntu
+hosts.
 
 | Option | Why |
 |---|---|
@@ -133,6 +146,7 @@ As one command:
 ```bash
 docker run --rm -it \
     --privileged --ipc=host --pid=host --network=host \
+    --device /dev:/dev \
     -v /dev:/dev \
     -v /lib/modules:/lib/modules \
     -v /lib/udev/rules.d:/lib/udev/rules.d \
@@ -142,7 +156,9 @@ docker run --rm -it \
     -v /var/lib/dbus:/var/lib/dbus \
     -v /etc/localtime:/etc/localtime:ro \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v "$HOME/.Xauthority:/root/.Xauthority" \
     -e DISPLAY="$DISPLAY" \
+    -e XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
     -e PYTHONUNBUFFERED=1 \
     -v "$PWD/workspace:/deepx/workspace" \
     --entrypoint bash \
@@ -151,18 +167,37 @@ docker run --rm -it \
 
 Inside the container, `dx_app` lives at `/deepx/dx-runtime/dx_app` (prebuilt binaries under
 `bin/`), `dx_stream` at `/deepx/dx-runtime/dx_stream`, and the walkthrough scripts at
-`/deepx/getting-started/`. To fetch assets and run a first example, follow
+`/deepx/getting-started/`.
+
+> **Python needs the venv.** `dx_engine` is installed in `/venv-dxnn`, not in the system
+> Python. An interactive shell activates it for you (the image appends
+> `source /venv-dxnn/bin/activate` to `/root/.bashrc`), so the `-it --entrypoint bash` command
+> above just works. A **non-interactive** command does not read `.bashrc` and will fail even on
+> `rt-app-stream`: `bash -c 'python …'` gives `python: command not found` (the `python` name
+> comes from the venv), and `bash -c 'python3 …'` reaches `/usr/bin/python3` and gives
+> `ModuleNotFoundError: No module named 'dx_engine'`. Activate it explicitly in that case:
+> ```bash
+> docker run --rm --privileged --ipc=host --pid=host -v /dev:/dev \
+>     --entrypoint bash ghcr.io/<owner>/dx-runtime:v2.4.1-rt-app-stream \
+>     -c 'source /venv-dxnn/bin/activate && python -c "import dx_engine; print(dx_engine.__name__)"'
+> ```
+
+To fetch assets and run a first example, follow
 [Running Your First NPU Model](../docs/source/03_Running_Your_First_NPU_Model.md).
 
 ## Run `dx-compiler`
 
-`linux/amd64` only. Its entrypoint is `init-workspace.sh`, which fixes workspace ownership
-and then `exec`s the command you pass — so **always pass a command**:
+`linux/amd64` only. Its entrypoint is `init-workspace.sh`, which fixes workspace ownership and
+then `exec`s the command you pass. Its default `CMD` is `tail -f /dev/null`, so omitting a
+command leaves the container idling rather than failing — pass `bash` (as below) when you want
+a shell, or your own command to run one-shot.
 
 ```bash
 docker run --rm -it \
     --privileged --network=host \
     --cap-add=SYS_ADMIN \
+    --security-opt apparmor=unconfined \
+    -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
     -v /dev:/dev \
     -v /etc/machine-id:/etc/machine-id:ro \
     -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket \
@@ -178,11 +213,28 @@ docker run --rm -it \
     ghcr.io/<owner>/dx-compiler:v2.4.1 bash
 ```
 
-`--cap-add=SYS_ADMIN`, `--privileged`, `/dev`, and the D-Bus mounts are what the
-`dx-compiler` service in [`docker-compose.yml`](./docker-compose.yml) uses for FUSE
-(DX-Tron); the X11 mounts are for the DX-Tron GUI. If compilation fails with
+`--privileged`, `--cap-add=SYS_ADMIN`, `--security-opt apparmor=unconfined`, `/dev`, and the
+D-Bus mounts are the full set the `dx-compiler` service in
+[`docker-compose.yml`](./docker-compose.yml) uses for FUSE (DX-Tron); the X11 mounts are for
+the DX-Tron GUI. They are listed explicitly to mirror the compose service — on current Docker
+`--privileged` already implies both `SYS_ADMIN` and an unconfined AppArmor profile, so the two
+matter only if you drop `--privileged`. If compilation fails with
 `[ResourceError]: Insufficient shared memory (shm)`, add `--shm-size=256m` (the same note is
 in the compose file).
+
+> **Do not drop `-e HOST_UID` / `-e HOST_GID` — they are required for *pulled* images.**
+> `HOST_UID` is a runtime `ENV` baked into the image from a build arg
+> (`Dockerfile.dx-compiler` `ENV HOST_UID=${HOST_UID:-1000}`, fed by `docker_build.sh`'s
+> `HOST_UID=$(id -u)`), and the entrypoint runs `chown -R "$HOST_UID:$HOST_GID"` over your
+> mounted workspace. So a GHCR image carries **the CI runner's uid**, which has nothing to do
+> with yours: without these two variables the container silently re-owns your workspace files
+> to that uid. `docker-compose.yml` gets away with passing them at *build* time only because
+> it builds locally, where the baked uid already equals the host's — a prebuilt image has no
+> such guarantee. Setting them to `$(id -u)`/`$(id -g)` keeps your files yours.
+>
+> If your uid differs from the image's baked uid, the container user still *is* the baked uid,
+> so it reaches your workspace through its passwordless `sudo` rather than by direct
+> ownership. Building locally (see below) avoids the mismatch entirely.
 
 For compiler usage itself, see
 [Setting Up Environment](../docs/source/02_Setting_Up_Environment.md).
