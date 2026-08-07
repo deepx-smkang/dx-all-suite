@@ -48,14 +48,17 @@ the table, which resolve to the right architecture on their own.
 
 | Variant | Contains | Size | Use when |
 |---|---|---|---|
-| `rt` | DX-RT runtime core only (`dxrtd`, `dxrt-cli`, `dx_engine`) | 2.38 GB | You are building your own app on top, or you only need the NPU service / CLI. Smallest base. |
-| `rt-app` | `rt` + **dx_app** (standalone Python/C++ inference apps) | 5.25 GB | Standalone inference — the usual choice for running models. |
-| `rt-stream` | `rt` + **dx_stream** (GStreamer pipeline plugins) | — | GStreamer video-analytics pipelines only, without dx_app. |
-| `rt-app-stream` | `rt` + dx_app + dx_stream (**= `latest`**) | 5.60 GB | You want everything, or you are not sure yet. |
+| `rt` | DX-RT runtime core only (`dxrtd`, `dxrt-cli`, `dx_engine`) | 2.41 GB | You are building your own app on top, or you only need the NPU service / CLI. Smallest base. |
+| `rt-app` | `rt` + **dx_app** (standalone Python/C++ inference apps) | 5.28 GB | Standalone inference — the usual choice for running models. |
+| `rt-stream` | `rt` + **dx_stream** (GStreamer pipeline plugins) | 4.37 GB | GStreamer video-analytics pipelines only, without dx_app. |
+| `rt-app-stream` | `rt` + dx_app + dx_stream (**= `latest`**) | 5.63 GB | You want everything, or you are not sure yet. |
 
-Sizes are `docker images` values from a local `linux/amd64` Ubuntu 24.04 build. `rt-stream`
-has no measured number yet because it was not among the locally built images; it is not
-quoted rather than estimated.
+Sizes are `docker images` values from a local `linux/amd64` Ubuntu 24.04 build on a
+containerd-backed image store. A classic overlay2 Docker reports the smaller unpacked size
+instead — `docker image inspect -f '{{.Size}}'` gives 0.71 / 1.49 / 1.22 / 1.58 GB for the
+four rows above — so treat these as an upper bound. Either way they do not add up: all four
+variants share the `rt` base layers, and `rt-app-stream` is built on top of `rt-app`, so a
+host holding all four stores about 7.6 GB rather than the 17.7 GB the column sums to.
 
 ## Pull
 
