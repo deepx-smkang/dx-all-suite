@@ -7,8 +7,8 @@ the hub tile (☁️) or with `Alt`+`9`.
 
 AWS Marketplace offers two DEEPX products, and the page is organized around them:
 
-- **DX-Compiler (AMI)** — an Amazon Machine Image with the DEEPX model compiler
-  (`dxcom`) pre-installed.
+- **[DX-Compiler (AMI)](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)** —
+  an Amazon Machine Image with the DEEPX model compiler (`dxcom`) pre-installed.
 - **DEEPX Greengrass Solution (CloudFormation)** — a single stack that provisions a
   serverless compilation pipeline plus automated edge runtime deployment (ZTP) based
   on AWS IoT Greengrass V2.
@@ -19,7 +19,7 @@ Two cards cover cloud compilation:
 
 - **DX-Compiler (AMI)** — launch an Amazon EC2 instance from the DX-Compiler AMI and
   compile ONNX models to `.dxnn` directly with the pre-installed `dxcom`. The card's
-  button searches for DEEPX on AWS Marketplace.
+  button opens the AMI's Marketplace listing.
 - **Cloud Compile Pipeline** — the fully automatic route. After subscribing, set your
   local credentials with `aws configure`, then upload a pair of files — the `.onnx`
   model and its `.json` compilation config — to the same directory in the S3 model

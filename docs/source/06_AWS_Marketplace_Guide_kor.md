@@ -16,7 +16,7 @@ DEEPX는 엣지 환경을 위한 저전력 AI 반도체(NPU)를 개발하는 회
 
 AWS Marketplace에서는 DEEPX의 다음 두 가지 제품을 제공합니다.
 
-- **DX-Compiler (AMI)**: DEEPX 모델 컴파일러(`dxcom`)가 사전 설치된 Amazon Machine Image입니다. Amazon EC2 인스턴스를 직접 시작하여 `dxcom`으로 ONNX 모델을 컴파일할 수 있습니다.
+- **[DX-Compiler (AMI)](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)**: DEEPX 모델 컴파일러(`dxcom`)가 사전 설치된 Amazon Machine Image입니다. Amazon EC2 인스턴스를 직접 시작하여 `dxcom`으로 ONNX 모델을 컴파일할 수 있습니다.
 - **DEEPX Greengrass Solution (CloudFormation)**: 이 문서에서 다루는 제품입니다. DX-Compiler AMI를 활용한 서버리스 컴파일 파이프라인과 AWS IoT Greengrass V2 기반의 엣지 런타임 자동 배포(ZTP)를 CloudFormation 스택 하나로 구성합니다.
 
 ## 솔루션 아키텍처
@@ -325,6 +325,7 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
 ## 참고 링크
 
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
+- [DX-Compiler (AMI) — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [AWS IoT Greengrass V2 개발자 안내서](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html)
 - [AWS Step Functions](https://aws.amazon.com/ko/step-functions/)
 - [DEEPX 개발자 문서](https://developer.deepx.ai)

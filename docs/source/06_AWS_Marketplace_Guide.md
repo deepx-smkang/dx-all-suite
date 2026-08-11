@@ -16,7 +16,7 @@ Deploying these NPUs in the field requires driver, firmware, and runtime configu
 
 AWS Marketplace offers the following two DEEPX products.
 
-- **DX-Compiler (AMI)**: An Amazon Machine Image with the DEEPX model compiler (`dxcom`) pre-installed. You can launch an Amazon EC2 instance directly and compile ONNX models with `dxcom`.
+- **[DX-Compiler (AMI)](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)**: An Amazon Machine Image with the DEEPX model compiler (`dxcom`) pre-installed. You can launch an Amazon EC2 instance directly and compile ONNX models with `dxcom`.
 - **DEEPX Greengrass Solution (CloudFormation)**: The product covered in this document. A single CloudFormation stack provisions a serverless compilation pipeline built on the DX-Compiler AMI, together with automated edge runtime deployment (ZTP) based on AWS IoT Greengrass V2.
 
 ## Solution Architecture
@@ -325,6 +325,7 @@ To avoid ongoing charges, clean up resources in the following order after the wa
 ## References
 
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
+- [DX-Compiler (AMI) — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [AWS IoT Greengrass V2 Developer Guide](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html)
 - [AWS Step Functions](https://aws.amazon.com/step-functions/)
 - [DEEPX Developer Documentation](https://developer.deepx.ai)
