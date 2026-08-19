@@ -14,7 +14,7 @@ DX-Edge is the AWS-native path for taking a trained model to a DEEPX NPU running
 | :--- | :--- | :--- | :--- |
 | **DEEPX Greengrass Solution** | Compiles ONNX models to DXNN in the cloud, then installs the NPU driver, firmware, `dx_rt`, and `dx_stream` on edge devices over the air (ZTP) via AWS IoT Greengrass V2 | CloudFormation stack on AWS Marketplace | [Guide](docs/source/01_DEEPX_Greengrass_Solution.md) · [한국어](docs/source/01_DEEPX_Greengrass_Solution_kor.md) |
 | **DEEPX Compiler Solution** | Compiles ONNX models into the DEEPX NPU execution format (DXNN) on AWS — either interactively on an EC2 instance or through an event-driven S3 → Lambda → Step Functions pipeline | AMI on AWS Marketplace | [Guide](docs/source/02_DEEPX_Compiler_Solution.md) · [한국어](docs/source/02_DEEPX_Compiler_Solution_kor.md) |
-| **AWS HW Path — DX-AIPlayer N97** | A compact edge AI system (Intel® N97 + DEEPX DX-M1) running Ubuntu 24.04 LTS, set up as an AWS IoT Greengrass core device from unboxing to first component deployment | Hardware | [Getting Started Guide](docs/source/03_AWS_HW_Path_DX-AIPlayer-N97.md) · [한국어](docs/source/03_AWS_HW_Path_DX-AIPlayer-N97_kor.md) |
+| **AWS HW Path — DX-AIPlayer N97** | A compact edge AI system (Intel® N97 + DEEPX DX-M1) running Ubuntu 24.04 LTS, set up as an AWS IoT Greengrass core device from unboxing to first component deployment | Hardware | [Getting Started Guide](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97.md) · [한국어](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97_kor.md) |
 
 ## How the tracks fit together
 
@@ -57,11 +57,13 @@ Both the classic AWS IoT Greengrass nucleus and Greengrass nucleus lite for reso
 dx-edge/
 ├── README.md / README-KO.md
 └── docs/source/
-    ├── 01_DEEPX_Greengrass_Solution.md      (+ _kor)
-    ├── 02_DEEPX_Compiler_Solution.md        (+ _kor)
-    ├── 03_AWS_HW_Path_DX-AIPlayer-N97.md    (+ _kor)
-    └── img/
+    ├── 01_DEEPX_Greengrass_Solution.md                                    (+ _kor)
+    ├── 02_DEEPX_Compiler_Solution.md                                      (+ _kor)
+    ├── 03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97.md (+ _kor)
+    └── img/{greengrass,compiler,n97}/
 ```
+
+The DX-AIPlayer N97 document follows the AWS Device Qualification Program *Getting Started Guide for AWS IoT Greengrass Devices* template, and carries every mandatory section in the template's order. The canonical copy that the AWS Partner Device Catalog links to is maintained in the DEEPX-owned repository [DEEPX-AI/dx-aiplayer-n97-aws-greengrass](https://github.com/DEEPX-AI/dx-aiplayer-n97-aws-greengrass); the copy here is the DX-Edge edition of the same guide.
 
 ## Related
 

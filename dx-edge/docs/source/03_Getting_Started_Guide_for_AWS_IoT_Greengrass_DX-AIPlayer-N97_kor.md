@@ -67,7 +67,7 @@ DX-AIPlayer N97은 Ubuntu 24.04 LTS에서 AWS IoT Greengrass Core 소프트웨�
 
 ## 4. 개발 환경 설정
 
-### 4.1 도구 설치
+### 4.1 도구 설치 (IDE, 툴체인, SDK)
 
 DX-AIPlayer N97에서 AWS IoT Greengrass를 실행하는 데 디바이스 전용 IDE나 툴체인은 필요하지 않습니다. 다음 항목이 필요합니다.
 

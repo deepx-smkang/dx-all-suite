@@ -67,7 +67,7 @@ None.
 
 ## 4. Set up your development environment
 
-### 4.1 Tools installation
+### 4.1 Tools installation (IDEs, Toolchains, SDKs)
 
 No device-specific IDE or toolchain is required to run AWS IoT Greengrass on the DX-AIPlayer N97. You will need:
 

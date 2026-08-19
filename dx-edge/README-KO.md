@@ -14,7 +14,7 @@ For the English edition, see [README.md](README.md).
 | :--- | :--- | :--- | :--- |
 | **DEEPX Greengrass Solution** | 클라우드에서 ONNX 모델을 DXNN으로 컴파일하고, AWS IoT Greengrass V2를 통해 NPU 드라이버·펌웨어·`dx_rt`·`dx_stream`을 엣지 디바이스에 OTA로 설치(ZTP) | AWS Marketplace CloudFormation 스택 | [문서](docs/source/01_DEEPX_Greengrass_Solution_kor.md) · [English](docs/source/01_DEEPX_Greengrass_Solution.md) |
 | **DEEPX Compiler Solution** | ONNX 모델을 DEEPX NPU 실행 형식(DXNN)으로 AWS에서 컴파일. EC2 인스턴스에서 대화형으로 실행하거나, S3 → Lambda → Step Functions 이벤트 기반 파이프라인으로 자동 실행 | AWS Marketplace AMI | [문서](docs/source/02_DEEPX_Compiler_Solution_kor.md) · [English](docs/source/02_DEEPX_Compiler_Solution.md) |
-| **AWS HW Path — DX-AIPlayer N97** | Intel® N97과 DEEPX DX-M1을 탑재하고 Ubuntu 24.04 LTS로 동작하는 소형 엣지 AI 시스템. 개봉부터 첫 컴포넌트 배포까지 AWS IoT Greengrass 코어 디바이스로 구성 | 하드웨어 | [시작 가이드](docs/source/03_AWS_HW_Path_DX-AIPlayer-N97_kor.md) · [English](docs/source/03_AWS_HW_Path_DX-AIPlayer-N97.md) |
+| **AWS HW Path — DX-AIPlayer N97** | Intel® N97과 DEEPX DX-M1을 탑재하고 Ubuntu 24.04 LTS로 동작하는 소형 엣지 AI 시스템. 개봉부터 첫 컴포넌트 배포까지 AWS IoT Greengrass 코어 디바이스로 구성 | 하드웨어 | [시작 가이드](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97_kor.md) · [English](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97.md) |
 
 ## 세 트랙의 관계
 
@@ -57,11 +57,13 @@ AWS CloudFormation · Amazon S3 · AWS Lambda · AWS Step Functions · Amazon EC
 dx-edge/
 ├── README.md / README-KO.md
 └── docs/source/
-    ├── 01_DEEPX_Greengrass_Solution.md      (+ _kor)
-    ├── 02_DEEPX_Compiler_Solution.md        (+ _kor)
-    ├── 03_AWS_HW_Path_DX-AIPlayer-N97.md    (+ _kor)
-    └── img/
+    ├── 01_DEEPX_Greengrass_Solution.md                                    (+ _kor)
+    ├── 02_DEEPX_Compiler_Solution.md                                      (+ _kor)
+    ├── 03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97.md (+ _kor)
+    └── img/{greengrass,compiler,n97}/
 ```
+
+DX-AIPlayer N97 문서는 AWS Device Qualification Program의 *Getting Started Guide for AWS IoT Greengrass Devices* 템플릿을 따르며, 템플릿의 모든 필수 섹션을 같은 순서로 포함합니다. AWS Partner Device Catalog가 연결하는 정본은 DEEPX 소유 레포지토리 [DEEPX-AI/dx-aiplayer-n97-aws-greengrass](https://github.com/DEEPX-AI/dx-aiplayer-n97-aws-greengrass)에서 관리하며, 이 문서는 같은 가이드의 DX-Edge 판입니다.
 
 ## 관련 링크
 

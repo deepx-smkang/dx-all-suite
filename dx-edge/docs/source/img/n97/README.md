@@ -1,6 +1,6 @@
 # DX-AIPlayer N97 images
 
-Device photos referenced by `03_AWS_HW_Path_DX-AIPlayer-N97.md`.
+Device photos referenced by `03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97.md`.
 Source: https://github.com/DEEPX-AI/dx-aiplayer-n97-aws-greengrass
 
 - `n97-right.png` — right side: LAN 1/2, HDMI, DP, 2x USB 3.2 Gen 2, 12V DC, power button
