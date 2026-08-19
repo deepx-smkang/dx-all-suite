@@ -140,10 +140,10 @@ dxcom -m yolov5-s-face_640x640.onnx \
 
 > **참고 — `dx-compile` 단축 명령**
 >
-> Marketplace 페이지의 벤더 기동·접속 안내는 `dx-compile <model.onnx>`라는 더 짧은 형태를
-> 제시합니다. `dxcom`을 기본값으로 감싼 래퍼이므로, 한 줄로 끝내고 싶을 때 사용합니다.
-> 설정 파일과 출력 디렉토리를 명시적으로 제어하려면 `dxcom`을 직접 사용합니다. 전체 옵션은
-> 인스턴스에서 `dxcom -h`로 확인합니다.
+> Marketplace 페이지의 벤더 기동·접속 안내는 모델만 인자로 받는 `dx-compile <model.onnx>`
+> 형태를 제시합니다. 다만 이 명령이 설정 파일과 출력 디렉토리를 어떻게 결정하는지는 리스팅에
+> 문서화되어 있지 않으므로, 이 가이드는 인자를 명시하는 `dxcom`을 기준으로 설명합니다. 짧은
+> 형태를 사용하기 전에 인스턴스에서 `dxcom -h`와 `dx-compile --help`를 비교해 보십시오.
 
 컴파일이 완료되면 `-o`로 지정한 디렉토리 **안에** 모델 이름을 딴 `.dxnn` 파일이 생성됩니다.
 
@@ -263,6 +263,13 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 | `calibration_method` | 캘리브레이션 알고리즘 (예: `ema`) |
 | `default_loader.dataset_path` | 캘리브레이션 데이터셋 경로 |
 | `default_loader.preprocessings` | 학습 시 사용한 전처리와 동일하게 구성해야 정확도 손실을 최소화할 수 있습니다. |
+
+> **참고 — 위 예시의 `dataset_path`는 설명용입니다**
+>
+> 위 예시는 항목의 형태를 보이기 위해 로컬 데이터셋 디렉토리를 가리키고 있을 뿐, 컴파일러
+> 인스턴스에 존재하는 경로가 아닙니다. 이 파일을 그대로 복사해 Amazon EC2 인스턴스에서
+> `dxcom`을 실행하면 캘리브레이션 이미지를 찾지 못합니다. [3절](#3-amazon-ec2-배포)처럼
+> `dataset_path`를 `/opt/dx-compiler/calibration_dataset/calibration_dataset`으로 지정하십시오.
 
 > **참고 — `dataset_path` 자동 치환**
 >

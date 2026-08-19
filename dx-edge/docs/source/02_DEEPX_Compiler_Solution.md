@@ -141,9 +141,10 @@ The compiler first echoes the compilation configuration — compiler version, mo
 > **Note — The `dx-compile` shortcut**
 >
 > The vendor's launch and connection instructions on the Marketplace page give a shorter
-> form, `dx-compile <model.onnx>`, which wraps `dxcom` with defaults. Use it when you want
-> a one-liner; use `dxcom` directly when you need explicit control over the configuration
-> file and the output directory. Run `dxcom -h` on the instance for the full option list.
+> form, `dx-compile <model.onnx>`, which takes the model alone. How it derives the
+> configuration file and the output directory is not documented on the listing, so this guide
+> uses `dxcom` with explicit arguments throughout. Run `dxcom -h` and `dx-compile --help` on
+> the instance to compare the two before relying on the shorter form.
 
 When compilation finishes, the `.dxnn` file is written **inside** the directory you passed to `-o`, named after the model.
 
@@ -263,6 +264,13 @@ The compilation configuration file defines the input tensor shape and the calibr
 | `calibration_method` | The calibration algorithm (for example, `ema`) |
 | `default_loader.dataset_path` | The path to the calibration dataset |
 | `default_loader.preprocessings` | Configure these to match the preprocessing used during training to minimize accuracy loss. |
+
+> **Note — The `dataset_path` above is illustrative**
+>
+> The example points at a local dataset directory to show the field's shape. It is not a path
+> that exists on the compiler instance. Copying this file as is and running `dxcom` on an
+> Amazon EC2 instance fails to find calibration images — set `dataset_path` to
+> `/opt/dx-compiler/calibration_dataset/calibration_dataset` as [section 3](#3-amazon-ec2-deployment) does.
 
 > **Note — Automatic `dataset_path` replacement**
 >
