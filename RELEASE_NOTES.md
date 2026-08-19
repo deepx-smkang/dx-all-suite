@@ -18,7 +18,7 @@ Here are the **DX-All-Suite v2.4.2** Release Notes.
 
 This hotfix release resolves centralized runtime sanity checks, Windows build and packaging reliability (DX-RT), depth-estimation and depth-map metadata/rendering in DX-Stream, and DX-APP demo and model updates including YOLO26-Depth examples. It also adds **DX-Edge**, the AWS-native documentation set for deploying DEEPX NPUs through AWS Marketplace.
 
-#### ☁️ New: DX-Edge — Powered by AWS, available on AWS Marketplace
+#### 📦 New: DX-Edge — Powered by AWS, available on AWS Marketplace
 
 **DX-Edge (`dx-edge`) documents the AWS-native path from a trained ONNX model to a DEEPX NPU running in the field**, across three tracks published on AWS Marketplace.
 

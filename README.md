@@ -108,7 +108,7 @@ interactive dashboard for cross-environment and cross-version comparison. Measur
 
 **Get started →** [`dx-benchmark/README.md`](./dx-benchmark/README.md)  ·  **Performance analysis →** [`dx-benchmark/docs/ANALYSIS_EN.md`](./dx-benchmark/docs/ANALYSIS_EN.md)
 
-## ☁️ DX-Edge — Powered by AWS, available on AWS Marketplace
+## 📦 DX-Edge — Powered by AWS, available on AWS Marketplace
 
 **Take a trained model to a DEEPX NPU in the field, entirely through AWS.** DX-Edge covers the three
 things that stand between a trained ONNX model and a working edge deployment — compiling the model

@@ -106,7 +106,7 @@ interactive dashboard로 렌더링됩니다. 6개 hardware 환경 측정 결과�
 
 **시작하기 →** [`dx-benchmark/README.md`](./dx-benchmark/README.md)  ·  **성능 분석 →** [`dx-benchmark/docs/ANALYSIS_KOR.md`](./dx-benchmark/docs/ANALYSIS_KOR.md)
 
-## ☁️ DX-Edge — Powered by AWS, available on AWS Marketplace
+## 📦 DX-Edge — Powered by AWS, available on AWS Marketplace
 
 **학습된 모델을 현장의 DEEPX NPU에서 실행하기까지, 전 과정을 AWS 위에서.** DX-Edge는 학습된 ONNX
 모델과 실제 엣지 배포 사이에 놓인 세 가지 — NPU용 모델 컴파일, 디바이스 런타임 프로비저닝, 이를
