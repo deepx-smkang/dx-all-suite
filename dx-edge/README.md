@@ -63,7 +63,7 @@ dx-edge/
     └── img/{greengrass,compiler,n97}/
 ```
 
-The DX-AIPlayer N97 document follows the AWS Device Qualification Program *Getting Started Guide for AWS IoT Greengrass Devices* template, and carries every mandatory section in the template's order. The canonical copy that the AWS Partner Device Catalog links to is maintained in the DEEPX-owned repository [DEEPX-AI/dx-aiplayer-n97-aws-greengrass](https://github.com/DEEPX-AI/dx-aiplayer-n97-aws-greengrass); the copy here is the DX-Edge edition of the same guide.
+The DX-AIPlayer N97 document follows the AWS Device Qualification Program *Getting Started Guide for AWS IoT Greengrass Devices* template, and carries every mandatory section in the template's order.
 
 ## Related
 

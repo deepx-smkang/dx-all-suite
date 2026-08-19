@@ -63,7 +63,7 @@ dx-edge/
     └── img/{greengrass,compiler,n97}/
 ```
 
-DX-AIPlayer N97 문서는 AWS Device Qualification Program의 *Getting Started Guide for AWS IoT Greengrass Devices* 템플릿을 따르며, 템플릿의 모든 필수 섹션을 같은 순서로 포함합니다. AWS Partner Device Catalog가 연결하는 정본은 DEEPX 소유 레포지토리 [DEEPX-AI/dx-aiplayer-n97-aws-greengrass](https://github.com/DEEPX-AI/dx-aiplayer-n97-aws-greengrass)에서 관리하며, 이 문서는 같은 가이드의 DX-Edge 판입니다.
+DX-AIPlayer N97 문서는 AWS Device Qualification Program의 *Getting Started Guide for AWS IoT Greengrass Devices* 템플릿을 따르며, 템플릿의 모든 필수 섹션을 같은 순서로 포함합니다.
 
 ## 관련 링크
 
