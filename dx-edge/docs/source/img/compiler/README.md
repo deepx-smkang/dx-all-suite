@@ -21,11 +21,14 @@ identifiers and are useful to the reader.
 Solution AMI**, not on a local machine. Connect over SSH as the `ubuntu` user, per the
 vendor's launch and connection instructions on the Marketplace launch page.
 
-1. Download the model and write the configuration file — see section 3, Step 2 of the document.
-2. Run `clear` before the compile command, so the SSH invocation above it (which contains the
+1. Activate the compiler's virtual environment: `source /opt/dx-compiler/venv/bin/activate`.
+   `dxcom` is not on `PATH` without it, and the `(venv)` prompt prefix it adds is visible in
+   both figures.
+2. Download the model and write the configuration file — see section 3, Step 2 of the document.
+3. Run `clear` before the compile command, so the SSH invocation above it (which contains the
    instance's public IP) is off screen.
-3. Run the `dxcom` command from section 3, Step 3 and capture once the progress bar reaches 100%.
-4. Run `clear`, then `ls -lhR output/`, and capture.
+4. Run the `dxcom` command from section 3, Step 3 and capture once the progress bar reaches 100%.
+5. Run `clear`, then `ls -lhR output/`, and capture.
 
 Keep the `ubuntu@ip-172-31-x-x:~$` prompt visible in both. The address is private and
 non-routable, and it is what identifies the terminal as running on the instance.

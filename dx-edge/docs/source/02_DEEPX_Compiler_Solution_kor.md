@@ -84,10 +84,13 @@ DEEPX Compiler Solution을 Amazon EC2 인스턴스로 기동하면 컴파일러�
 
 ### 단계 2. 접속 및 모델 준비
 
-`ubuntu` 사용자로 인스턴스에 SSH 접속한 뒤, 컴파일할 ONNX 모델과 JSON 컴파일 설정 파일을 준비합니다. 설정 파일 형식은 [5절](#5-컴파일-설정-파일-json)에서 설명합니다.
+`ubuntu` 사용자로 인스턴스에 SSH 접속해 컴파일러의 Python 환경을 활성화한 뒤, 컴파일할 ONNX 모델과 JSON 컴파일 설정 파일을 준비합니다. 설정 파일 형식은 [5절](#5-컴파일-설정-파일-json)에서 설명합니다.
 
 ```bash
 ssh -i <your-key>.pem ubuntu@<instance-address>
+
+# 컴파일러가 동작하는 Python 환경 활성화
+source /opt/dx-compiler/venv/bin/activate
 
 # Model Zoo 예제 모델 내려받기
 curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
@@ -116,7 +119,7 @@ EOF
 
 ### 단계 3. 컴파일 실행
 
-`dxcom`은 모델(`-m`), 설정 파일(`-c`), **출력 디렉토리**(`-o`)를 인자로 받습니다. 컴파일러와 이 명령이 사용하는 캘리브레이션 데이터셋은 `/opt/dx-compiler` 아래에 사전 설치되어 있으며, 컴파일러가 동작하는 Python 환경은 로그인 시 이미 활성화되어 있습니다.
+`dxcom`은 모델(`-m`), 설정 파일(`-c`), **출력 디렉토리**(`-o`)를 인자로 받습니다. 컴파일러와 이 명령이 사용하는 캘리브레이션 데이터셋은 `/opt/dx-compiler` 아래에 사전 설치되어 있습니다. 단계 2의 가상 환경이 활성화된 상태에서만 명령이 `PATH`에 잡히며, 셸 프롬프트의 `(venv)` 접두사로 확인할 수 있습니다.
 
 ```bash
 dxcom -m yolov5-s-face_640x640.onnx \
@@ -284,6 +287,7 @@ DEEPX Compiler Solution의 소프트웨어 구독 비용은 없습니다. 다만
 | 파일을 업로드했는데 워크플로가 시작되지 않음 (CloudFormation 배포) | `.onnx`와 `.json` 두 파일이 **같은 S3 경로**에 모두 업로드되었는지 확인합니다. 한쪽만 있으면 트리거 함수가 대기합니다. |
 | 워크플로가 실패로 종료됨 | Amazon CloudWatch Logs의 `/dx-compiler/<스택명>/execution` 로그 그룹에서 `dxcom` 실행 로그를 확인합니다. |
 | 인스턴스가 기동되지 않음 | 서브넷이 필요한 AWS 서비스에 HTTPS로 나갈 수 있는지(NAT Gateway 또는 VPC 엔드포인트), 그리고 Marketplace 구독이 완료되었는지 확인합니다. |
+| `dxcom: command not found` | 컴파일러 가상 환경을 먼저 활성화합니다. `source /opt/dx-compiler/venv/bin/activate` |
 | `dxcom` 시작 시 `GPU device discovery failed` 경고 | 무시해도 됩니다. 컴파일러 인스턴스에는 GPU가 없어 ONNX Runtime의 디바이스 탐색이 실패하고 CPU로 대체될 뿐이며, 컴파일은 정상 진행됩니다. |
 | 입력 형상 관련 컴파일 오류 | 설정 파일의 `inputs` 텐서 이름과 형상이 ONNX 모델의 입력 정의와 일치하는지 확인합니다. |
 | 양자화 후 정확도가 기대보다 낮음 | `preprocessings`가 학습 시 전처리와 동일한지, `calibration_num`이 충분한지 확인합니다. |

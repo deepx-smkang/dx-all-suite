@@ -84,10 +84,13 @@ The **AMI details** panel on the same page lists the AMI alias and the per-Regio
 
 ### Step 2. Connect and Prepare the Model
 
-Connect to the instance over SSH as the `ubuntu` user, then prepare the ONNX model to compile and its JSON compilation configuration file. The configuration file format is described in [section 5](#5-compilation-configuration-file-json).
+Connect to the instance over SSH as the `ubuntu` user and activate the compiler's Python environment, then prepare the ONNX model to compile and its JSON compilation configuration file. The configuration file format is described in [section 5](#5-compilation-configuration-file-json).
 
 ```bash
 ssh -i <your-key>.pem ubuntu@<instance-address>
+
+# Activate the Python environment the compiler runs in
+source /opt/dx-compiler/venv/bin/activate
 
 # Download a sample model from the Model Zoo
 curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
@@ -116,7 +119,7 @@ EOF
 
 ### Step 3. Run the Compilation
 
-`dxcom` takes the model (`-m`), the configuration file (`-c`), and the **output directory** (`-o`) as arguments. The compiler and the calibration dataset it uses are preinstalled under `/opt/dx-compiler`, and the Python environment the compiler runs in is already active on login.
+`dxcom` takes the model (`-m`), the configuration file (`-c`), and the **output directory** (`-o`) as arguments. The compiler and the calibration dataset it uses are preinstalled under `/opt/dx-compiler`. The command is only on `PATH` once the virtual environment from Step 2 is active — the `(venv)` prefix in the shell prompt confirms it.
 
 ```bash
 dxcom -m yolov5-s-face_640x640.onnx \
@@ -284,6 +287,7 @@ Actual costs vary with model size, compilation time, instance type, Region, and 
 | The workflow does not start after a file upload (CloudFormation deployment) | Confirm that both the `.onnx` and `.json` files were uploaded to the **same S3 path**. If only one is present, the trigger function waits. |
 | The workflow ends in a failure | Review the `dxcom` execution logs in the `/dx-compiler/<stack-name>/execution` log group in Amazon CloudWatch Logs. |
 | The instance does not launch | Confirm that the subnet has outbound HTTPS access to the required AWS services (through a NAT gateway or VPC endpoints), and that the Marketplace subscription is complete. |
+| `dxcom: command not found` | Activate the compiler's virtual environment first: `source /opt/dx-compiler/venv/bin/activate`. |
 | `GPU device discovery failed` warning at the start of `dxcom` | Harmless. The compiler instance has no GPU, so the ONNX Runtime device probe fails and falls back to CPU. Compilation proceeds normally. |
 | A compilation error related to input shape | Confirm that the `inputs` tensor names and shapes in the configuration file match the input definition of the ONNX model. |
 | Accuracy after quantization is lower than expected | Confirm that `preprocessings` matches the preprocessing used during training and that `calibration_num` is large enough. |
