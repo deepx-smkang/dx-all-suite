@@ -99,23 +99,25 @@ curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
 aws s3 cp s3://<your-bucket>/<path>/model.onnx .
 ```
 
-Write the compilation configuration file next to the model, pointing `dataset_path` at the calibration dataset bundled in the AMI.
+Download the matching compilation configuration file next to the model, then point its `dataset_path` at the calibration dataset bundled in the AMI.
 
 ```bash
-cat > yolov5-s-face_640x640.json <<'EOF'
-{
-  "inputs": {
-    "input.1": [1, 3, 640, 640]
-  },
-  "calibration_num": 100,
-  "calibration_method": "ema",
-  "default_loader": {
-    "dataset_path": "/opt/dx-compiler/calibration_dataset",
-    "file_extensions": ["jpeg", "jpg", "png"]
-  }
-}
-EOF
+curl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json
+
+sed -i 's#"dataset_path": *"[^"]*"#"dataset_path": "/opt/dx-compiler/calibration_dataset/calibration_dataset"#' \
+    yolov5-s-face_640x640.json
 ```
+
+!!! note "Use the Model Zoo configuration rather than writing a minimal one"
+    The configuration must describe the model's input preprocessing. A hand-written file that
+    sets only `inputs`, `calibration_num`, and `calibration_method` fails, because the
+    `preprocessings` list is missing. The Model Zoo ships a validated configuration for every
+    model it publishes, so start from that and change only what you need. [Section
+    5](#5-compilation-configuration-file-json) describes the fields.
+
+    Note the nested path: the calibration images live in
+    `/opt/dx-compiler/calibration_dataset/calibration_dataset`, one level below the directory
+    the AMI documents.
 
 ### Step 3. Run the Compilation
 
@@ -289,6 +291,8 @@ Actual costs vary with model size, compilation time, instance type, Region, and 
 | The instance does not launch | Confirm that the subnet has outbound HTTPS access to the required AWS services (through a NAT gateway or VPC endpoints), and that the Marketplace subscription is complete. |
 | `dxcom: command not found` | Activate the compiler's virtual environment first: `source /opt/dx-compiler/venv/bin/activate`. |
 | `GPU device discovery failed` warning at the start of `dxcom` | Harmless. The compiler instance has no GPU, so the ONNX Runtime device probe fails and falls back to CPU. Compilation proceeds normally. |
+| Compilation fails with a hand-written configuration file | The `preprocessings` list is likely missing. Use the Model Zoo configuration for the model instead of a minimal hand-written one. |
+| Compilation fails to find calibration images | Confirm `dataset_path` points at `/opt/dx-compiler/calibration_dataset/calibration_dataset`, not the parent directory. |
 | A compilation error related to input shape | Confirm that the `inputs` tensor names and shapes in the configuration file match the input definition of the ONNX model. |
 | Accuracy after quantization is lower than expected | Confirm that `preprocessings` matches the preprocessing used during training and that `calibration_num` is large enough. |
 

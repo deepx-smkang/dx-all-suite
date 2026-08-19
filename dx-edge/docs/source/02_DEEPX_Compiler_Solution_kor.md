@@ -99,23 +99,25 @@ curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
 aws s3 cp s3://<your-bucket>/<path>/model.onnx .
 ```
 
-모델과 같은 위치에 컴파일 설정 파일을 작성합니다. `dataset_path`는 AMI에 포함된 캘리브레이션 데이터셋 경로를 가리키게 합니다.
+모델과 같은 위치에 대응하는 컴파일 설정 파일을 내려받은 뒤, `dataset_path`가 AMI에 포함된 캘리브레이션 데이터셋을 가리키게 수정합니다.
 
 ```bash
-cat > yolov5-s-face_640x640.json <<'EOF'
-{
-  "inputs": {
-    "input.1": [1, 3, 640, 640]
-  },
-  "calibration_num": 100,
-  "calibration_method": "ema",
-  "default_loader": {
-    "dataset_path": "/opt/dx-compiler/calibration_dataset",
-    "file_extensions": ["jpeg", "jpg", "png"]
-  }
-}
-EOF
+curl -fLO https://sdk.deepx.ai/modelzoo/q-lite-json/2_4_0/yolov5-s-face_640x640.json
+
+sed -i 's#"dataset_path": *"[^"]*"#"dataset_path": "/opt/dx-compiler/calibration_dataset/calibration_dataset"#' \
+    yolov5-s-face_640x640.json
 ```
+
+!!! note "설정 파일은 직접 작성하지 말고 Model Zoo 것을 사용"
+    설정 파일에는 모델의 입력 전처리가 정의되어 있어야 합니다. `inputs`, `calibration_num`,
+    `calibration_method`만 넣어 직접 작성한 파일은 `preprocessings` 항목이 없어 컴파일에
+    실패합니다. Model Zoo는 공개하는 모든 모델에 대해 검증된 설정 파일을 함께 제공하므로,
+    이를 받아 필요한 부분만 바꾸는 편이 안전합니다. 각 항목은 [5절](#5-컴파일-설정-파일-json)에서
+    설명합니다.
+
+    경로가 한 단계 더 들어가 있다는 점에 유의하십시오. 캘리브레이션 이미지는 AMI가 안내하는
+    디렉토리보다 한 단계 아래인 `/opt/dx-compiler/calibration_dataset/calibration_dataset`에
+    있습니다.
 
 ### 단계 3. 컴파일 실행
 
@@ -289,6 +291,8 @@ DEEPX Compiler Solution의 소프트웨어 구독 비용은 없습니다. 다만
 | 인스턴스가 기동되지 않음 | 서브넷이 필요한 AWS 서비스에 HTTPS로 나갈 수 있는지(NAT Gateway 또는 VPC 엔드포인트), 그리고 Marketplace 구독이 완료되었는지 확인합니다. |
 | `dxcom: command not found` | 컴파일러 가상 환경을 먼저 활성화합니다. `source /opt/dx-compiler/venv/bin/activate` |
 | `dxcom` 시작 시 `GPU device discovery failed` 경고 | 무시해도 됩니다. 컴파일러 인스턴스에는 GPU가 없어 ONNX Runtime의 디바이스 탐색이 실패하고 CPU로 대체될 뿐이며, 컴파일은 정상 진행됩니다. |
+| 직접 작성한 설정 파일로 컴파일이 실패함 | `preprocessings` 항목이 빠졌을 가능성이 높습니다. 최소 설정을 직접 작성하지 말고 해당 모델의 Model Zoo 설정 파일을 사용합니다. |
+| 캘리브레이션 이미지를 찾지 못함 | `dataset_path`가 상위 디렉토리가 아니라 `/opt/dx-compiler/calibration_dataset/calibration_dataset`을 가리키는지 확인합니다. |
 | 입력 형상 관련 컴파일 오류 | 설정 파일의 `inputs` 텐서 이름과 형상이 ONNX 모델의 입력 정의와 일치하는지 확인합니다. |
 | 양자화 후 정확도가 기대보다 낮음 | `preprocessings`가 학습 시 전처리와 동일한지, `calibration_num`이 충분한지 확인합니다. |
 
