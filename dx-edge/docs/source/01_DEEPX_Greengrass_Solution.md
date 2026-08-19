@@ -25,7 +25,7 @@ This document proceeds in the following order.
 
 DEEPX develops NPUs that perform deep learning inference in edge environments where power and space are limited. The DX-M1 series used in this document is an AI accelerator that connects to a host in the M.2 form factor. The DEEPX DX-M1 can be paired with an Arm-based device such as a Raspberry Pi 5 or with an x86-based industrial PC to run vision models such as object detection, face recognition, and OCR in the field. Running inference where the video is produced means you do not have to send raw video to the cloud at all times, which helps reduce latency and network usage.
 
-![Figure 1. The DEEPX NPU product family](img/greengrass/fig01.png)
+![Figure 1. The DEEPX NPU product family](img/greengrass/fig01_npu_lineup.png)
 
 *Figure 1. The DEEPX NPU product family. This document focuses on the DX-M1 series of edge NPUs.*
 
@@ -41,7 +41,7 @@ AWS IoT Core and AWS IoT Greengrass connect this compilation flow to field opera
 
 Solving these operational challenges requires connecting the process of preparing a model in a format the NPU can run with the process of deploying the resulting runtime environment consistently across many devices. The DEEPX Compiler, AWS IoT Core, and AWS IoT Greengrass each play a different role in this flow.
 
-![Figure 2. End-to-end flow of the DEEPX Greengrass Solution](img/greengrass/fig02.png)
+![Figure 2. End-to-end flow of the DEEPX Greengrass Solution](img/greengrass/fig02_solution_overview.png)
 
 *Figure 2. End-to-end flow of the DEEPX Greengrass Solution, connecting model preparation with edge deployment*
 
@@ -53,7 +53,7 @@ Solving these operational challenges requires connecting the process of preparin
 
 The end-to-end flow has two main parts. The first is model preparation, in which an ONNX model is converted in the cloud into a DXNN artifact that a DEEPX NPU can run. The second is edge deployment, in which devices connected to AWS IoT Core are grouped into a thing group and DEEPX runtime components are delivered to those devices through a Greengrass deployment.
 
-![Figure 3. Cloud compilation pipeline and runtime deployment architecture](img/greengrass/fig03.png)
+![Figure 3. Cloud compilation pipeline and runtime deployment architecture](img/greengrass/fig03_architecture.png)
 
 *Figure 3. Cloud compilation pipeline and AWS IoT Greengrass runtime deployment architecture*
 
@@ -88,7 +88,7 @@ Prepare the following before you begin.
 
 Subscribe to [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34) in AWS Marketplace. There is no software subscription charge; you pay only for the AWS resources used for compilation and deployment. If you want the model compilation capability without edge device runtime deployment, you can subscribe to [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution.md) instead.
 
-![Figure 4. Subscription page for the DEEPX solution in AWS Marketplace](img/greengrass/fig04.png)
+![Figure 4. Subscription page for the DEEPX solution in AWS Marketplace](img/greengrass/fig04_marketplace_listing.png)
 
 *Figure 4. Subscription page for the DEEPX solution in AWS Marketplace*
 
@@ -164,13 +164,13 @@ aws s3 cp --only-show-errors yolov5-s-face_640x640.onnx "s3://${MODEL_BUCKET}/${
 aws s3 cp --only-show-errors yolov5-s-face_640x640.json "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 ```
 
-![Figure 5. Uploading the ONNX model and the compilation configuration file to the same S3 path](img/greengrass/fig05.png)
+![Figure 5. Uploading the ONNX model and the compilation configuration file to the same S3 path](img/greengrass/fig05_s3_upload.png)
 
 *Figure 5. Uploading the ONNX model and the compilation configuration file to the same Amazon S3 path*
 
 When both files are uploaded, an Amazon S3 event starts the workflow. You can track workflow progress in the AWS Step Functions console. The workflow starts the instance, runs the compilation, polls for status, and then terminates the instance. It is designed to terminate the instance on failure paths as well.
 
-![Figure 6. Step Functions compilation workflow execution result](img/greengrass/fig06.png)
+![Figure 6. Step Functions compilation workflow execution result](img/greengrass/fig06_stepfunctions_succeeded.png)
 
 *Figure 6. AWS Step Functions compilation workflow execution result (Succeeded)*
 
@@ -229,7 +229,7 @@ The `com.deepx.dx-runtime` component published by the CloudFormation stack insta
 
 The stack deploys this component to the target thing group. If you specified `ThingGroupName`, that group is used; if you left it blank, a `<stack-name>-cores` group is created. If the group contains core devices, the Greengrass deployment starts automatically.
 
-![Figure 7. Checking AWS IoT Greengrass deployment status](img/greengrass/fig07.png)
+![Figure 7. Checking AWS IoT Greengrass deployment status](img/greengrass/fig07_greengrass_deployment.png)
 
 *Figure 7. Checking whether the target devices succeeded in the AWS IoT Greengrass deployment status*
 
@@ -309,7 +309,7 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
   $VIDEOCONVERT_PIPELINE ! fpsdisplaysink sync=false
 ```
 
-![Figure 8. dx_stream face detection result](img/greengrass/fig08.png)
+![Figure 8. dx_stream face detection result](img/greengrass/fig08_dxstream_result.png)
 
 *Figure 8. Example of face detection running in DEEPX dx_stream*
 

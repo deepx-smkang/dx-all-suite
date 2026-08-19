@@ -25,7 +25,7 @@
 
 DEEPX는 전력과 공간이 제한된 엣지 환경에서 딥러닝 추론을 수행하기 위한 NPU를 개발합니다. 이 문서에서 사용하는 DX-M1 계열은 M.2 형태로 호스트에 연결할 수 있는 AI 가속기입니다. DEEPX DX-M1은 Raspberry Pi 5와 같은 Arm 기반 디바이스나 x86 기반 산업용 PC와 결합해 객체 탐지, 얼굴 인식, OCR과 같은 비전 모델을 현장에서 실행할 수 있습니다. 영상이 생성되는 위치에서 바로 추론하면 원본 영상을 항상 클라우드로 전송하지 않아도 되므로 지연 시간과 네트워크 사용량을 줄이는 데 유리합니다.
 
-![그림 1. DEEPX NPU 제품군](img/greengrass/fig01.png)
+![그림 1. DEEPX NPU 제품군](img/greengrass/fig01_npu_lineup.png)
 
 *그림 1. DEEPX NPU 제품군. 이 문서는 DX-M1 계열 엣지 NPU를 중심으로 설명합니다.*
 
@@ -41,7 +41,7 @@ AWS IoT Core와 AWS IoT Greengrass는 이 컴파일 흐름을 현장 운영으�
 
 이러한 운영 과제를 해결하려면 모델을 NPU가 실행할 수 있는 형식으로 준비하는 과정과, 준비된 실행 환경을 여러 디바이스에 일관되게 배포하는 과정이 연결되어야 합니다. DEEPX Compiler와 AWS IoT Core, AWS IoT Greengrass는 각각 이 흐름의 다른 역할을 담당합니다.
 
-![그림 2. DEEPX Greengrass Solution 전체 흐름](img/greengrass/fig02.png)
+![그림 2. DEEPX Greengrass Solution 전체 흐름](img/greengrass/fig02_solution_overview.png)
 
 *그림 2. 모델 준비와 엣지 배포를 연결하는 DEEPX Greengrass Solution의 전체 흐름*
 
@@ -53,7 +53,7 @@ AWS IoT Core와 AWS IoT Greengrass는 이 컴파일 흐름을 현장 운영으�
 
 전체 흐름은 크게 두 부분입니다. 첫 번째는 클라우드에서 ONNX 모델을 DEEPX NPU가 실행할 수 있는 DXNN 아티팩트로 변환하는 모델 준비 단계입니다. 두 번째는 AWS IoT Core에 연결된 디바이스를 Thing Group으로 묶고, Greengrass 배포를 통해 DEEPX 런타임 컴포넌트를 디바이스에 전달하는 엣지 배포 단계입니다.
 
-![그림 3. 클라우드 컴파일 파이프라인과 런타임 배포 아키텍처](img/greengrass/fig03.png)
+![그림 3. 클라우드 컴파일 파이프라인과 런타임 배포 아키텍처](img/greengrass/fig03_architecture.png)
 
 *그림 3. 클라우드 컴파일 파이프라인과 AWS IoT Greengrass 런타임 배포 아키텍처*
 
@@ -88,7 +88,7 @@ AWS IoT Core와 AWS IoT Greengrass는 이 컴파일 흐름을 현장 운영으�
 
 AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)을 구독합니다. 소프트웨어 구독 비용은 없으며, 컴파일과 배포에 사용하는 AWS 리소스 비용만 발생합니다. 엣지 디바이스 런타임 배포 없이 모델 컴파일 기능만 사용하려면 [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution_kor.md)을 구독할 수 있습니다.
 
-![그림 4. AWS Marketplace의 DEEPX 솔루션 구독 화면](img/greengrass/fig04.png)
+![그림 4. AWS Marketplace의 DEEPX 솔루션 구독 화면](img/greengrass/fig04_marketplace_listing.png)
 
 *그림 4. AWS Marketplace의 DEEPX 솔루션 구독 화면*
 
@@ -164,13 +164,13 @@ aws s3 cp --only-show-errors yolov5-s-face_640x640.onnx "s3://${MODEL_BUCKET}/${
 aws s3 cp --only-show-errors yolov5-s-face_640x640.json "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 ```
 
-![그림 5. ONNX 모델과 컴파일 설정 파일을 같은 S3 경로에 업로드](img/greengrass/fig05.png)
+![그림 5. ONNX 모델과 컴파일 설정 파일을 같은 S3 경로에 업로드](img/greengrass/fig05_s3_upload.png)
 
 *그림 5. ONNX 모델과 컴파일 설정 파일을 같은 Amazon S3 경로에 업로드*
 
 두 파일이 업로드되면 Amazon S3 이벤트가 워크플로를 시작합니다. AWS Step Functions 콘솔에서 워크플로 진행 상태를 확인할 수 있으며, 워크플로는 인스턴스 시작, 컴파일 실행, 상태 폴링, 인스턴스 종료 순으로 진행됩니다. 실패 경로에서도 인스턴스를 종료하도록 설계되어 있습니다.
 
-![그림 6. Step Functions 컴파일 워크플로 실행 결과](img/greengrass/fig06.png)
+![그림 6. Step Functions 컴파일 워크플로 실행 결과](img/greengrass/fig06_stepfunctions_succeeded.png)
 
 *그림 6. AWS Step Functions 컴파일 워크플로 실행 결과 (Succeeded)*
 
@@ -229,7 +229,7 @@ CloudFormation 스택에서 게시한 `com.deepx.dx-runtime` 컴포넌트는 다
 
 스택은 이 컴포넌트를 대상 Thing Group에 배포합니다. `ThingGroupName`을 지정했다면 해당 그룹을 사용하고, 비워 두었다면 `<스택명>-cores` 그룹을 생성합니다. 해당 그룹에 코어 디바이스가 포함되어 있으면 Greengrass 배포가 자동으로 시작됩니다.
 
-![그림 7. AWS IoT Greengrass 배포 상태 확인](img/greengrass/fig07.png)
+![그림 7. AWS IoT Greengrass 배포 상태 확인](img/greengrass/fig07_greengrass_deployment.png)
 
 *그림 7. AWS IoT Greengrass 배포 상태에서 대상 디바이스의 성공 여부 확인*
 
@@ -309,7 +309,7 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
   $VIDEOCONVERT_PIPELINE ! fpsdisplaysink sync=false
 ```
 
-![그림 8. dx_stream 얼굴 검출 실행 결과](img/greengrass/fig08.png)
+![그림 8. dx_stream 얼굴 검출 실행 결과](img/greengrass/fig08_dxstream_result.png)
 
 *그림 8. DEEPX dx_stream에서 실행한 얼굴 검출 예시*
 
