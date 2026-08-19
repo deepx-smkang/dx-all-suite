@@ -20,12 +20,19 @@ DEEPX Compiler Solution AMI** — a local machine would not show what the sectio
 Connect over SSH as the `ubuntu` user, per the vendor's launch and connection instructions
 on the Marketplace launch page.
 
-### `fig03_dx_compile_run.png`
-- **Placement** — section 3, Step 3 ("Run the Compilation"), right after the `dx-compile` command block.
+### `fig03_dxcom_run.png`
+- **Placement** — section 3, Step 3 ("Run the Compilation"), right after the `dxcom` command block.
 - **Must show** — a terminal on the instance running
-  `dx-compile yolov5-s-face_640x640.onnx`, with the command line itself visible at the top
-  and the compiler's progress and completion output below. If the log is long, capture the
-  head and tail rather than a mid-section with no context.
+
+  ```
+  dxcom -m yolov5-s-face_640x640.onnx \
+        -c yolov5-s-face_640x640.json \
+        -o output/yolov5-s-face_640x640
+  ```
+
+  with the command itself visible at the top and the compiler's progress and completion
+  output below. If the log is long, capture the head and tail rather than a mid-section
+  with no context.
 - **Keep the prompt visible** — `ubuntu@ip-10-0-1-23:~$` is what identifies the terminal as
   running on the instance. The address is private and non-routable, so it does not need masking.
 - **This is the single most useful figure in the document** — it is the only one that shows
@@ -33,15 +40,14 @@ on the Marketplace launch page.
 
 ### `fig04_dxnn_output.png`
 - **Placement** — section 3, Step 3, after the sentence about uploading the artifact.
-- **Must show** — `ls -lhR` in the working directory, with the produced `.dxnn` file and its
-  size, captured in the same terminal session as `fig03`.
+- **Must show** — `ls -lhR output/` with the produced `.dxnn` file and its size, captured in
+  the same terminal session as `fig03`.
 - **Optional extra** — the following `aws s3 cp` upload succeeding in the same capture.
-- **Please confirm two things while capturing this**, so the document can be corrected if needed:
-  1. Where `dx-compile` writes the artifact — the document currently assumes it lands in the
-     working directory next to the model, and uploads `yolov5-s-face_640x640.dxnn` from there.
-  2. What `dx-compile --help` reports — specifically how to pass a compilation configuration
-     file and an output path. Section 3, Step 3 links to `--help` rather than naming flags,
-     because the vendor instructions document only the single-argument form.
+- **Please confirm the output layout while capturing this.** Section 3 passes
+  `-o output/yolov5-s-face_640x640` and then uploads `output/yolov5-s-face_640x640.dxnn`,
+  which assumes `-o` takes a path prefix. If `dxcom` treats it as a directory and writes the
+  artifact inside, the `aws s3 cp` path needs correcting. Sending the output of `dxcom -h`
+  along with the figures settles it.
 
 ## Optional — CloudFormation deployment
 
@@ -77,7 +83,7 @@ Insert the image reference and an italic caption in **both** the English and Kor
 keeping the figure numbering aligned across the two:
 
 ```markdown
-![Running dx-compile on the instance](img/compiler/fig03_dx_compile_run.png)
+![Running dxcom on the instance](img/compiler/fig03_dxcom_run.png)
 
-*Figure 3. Compiling the ONNX model with dx-compile on the EC2 instance*
+*Figure 3. Compiling the ONNX model with dxcom on the EC2 instance*
 ```

@@ -84,7 +84,7 @@ DEEPX Compiler Solution을 Amazon EC2 인스턴스로 기동하면 컴파일러�
 
 ### 단계 2. 접속 및 모델 준비
 
-`ubuntu` 사용자로 인스턴스에 SSH 접속한 뒤, 컴파일할 ONNX 모델을 준비합니다.
+`ubuntu` 사용자로 인스턴스에 SSH 접속한 뒤, 컴파일할 ONNX 모델과 JSON 컴파일 설정 파일을 준비합니다. 설정 파일 형식은 [5절](#5-컴파일-설정-파일-json)에서 설명합니다.
 
 ```bash
 ssh -i <your-key>.pem ubuntu@<instance-address>
@@ -96,20 +96,44 @@ curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
 aws s3 cp s3://<your-bucket>/<path>/model.onnx .
 ```
 
-### 단계 3. 컴파일 실행
-
-AMI는 ONNX 모델을 인자로 받는 `dx-compile` 명령을 제공합니다. 컴파일러(`dx-com`)와 이 명령이 사용하는 캘리브레이션 데이터셋은 `/opt/dx-compiler` 아래에 사전 설치되어 있습니다.
+모델과 같은 위치에 컴파일 설정 파일을 작성합니다. `dataset_path`는 AMI에 포함된 캘리브레이션 데이터셋 경로를 가리키게 합니다.
 
 ```bash
-dx-compile yolov5-s-face_640x640.onnx
+cat > yolov5-s-face_640x640.json <<'EOF'
+{
+  "inputs": {
+    "input.1": [1, 3, 640, 640]
+  },
+  "calibration_num": 100,
+  "calibration_method": "ema",
+  "default_loader": {
+    "dataset_path": "/opt/dx-compiler/calibration_dataset",
+    "file_extensions": ["jpeg", "jpg", "png"]
+  }
+}
+EOF
 ```
 
-컴파일 설정 파일이나 출력 경로를 지정하는 방법을 포함한 전체 옵션은 인스턴스에서 `dx-compile --help`로 확인합니다.
+### 단계 3. 컴파일 실행
 
-컴파일이 완료되면 생성된 `.dxnn` 아티팩트를 S3에 업로드해 엣지 디바이스나 다른 작업 환경에서 내려받아 사용할 수 있게 합니다.
+`dxcom`은 모델(`-m`), 설정 파일(`-c`), 출력 경로(`-o`)를 인자로 받습니다. 컴파일러와 이 명령이 사용하는 캘리브레이션 데이터셋은 `/opt/dx-compiler` 아래에 사전 설치되어 있습니다.
 
 ```bash
-aws s3 cp yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
+dxcom -m yolov5-s-face_640x640.onnx \
+      -c yolov5-s-face_640x640.json \
+      -o output/yolov5-s-face_640x640
+```
+
+!!! note "`dx-compile` 단축 명령"
+    Marketplace 페이지의 벤더 기동·접속 안내는 `dx-compile <model.onnx>`라는 더 짧은 형태를
+    제시합니다. `dxcom`을 기본값으로 감싼 래퍼이므로, 한 줄로 끝내고 싶을 때 사용합니다.
+    설정 파일과 출력 경로를 명시적으로 제어하려면 `dxcom`을 직접 사용합니다. 전체 옵션은
+    인스턴스에서 `dxcom -h`로 확인합니다.
+
+컴파일이 완료되면 지정한 출력 경로에 `.dxnn` 파일이 생성됩니다. 결과물을 S3에 업로드해 엣지 디바이스나 다른 작업 환경에서 내려받아 사용할 수 있게 합니다.
+
+```bash
+aws s3 cp output/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
 ```
 
 ### 단계 4. 인스턴스 종료
@@ -215,7 +239,7 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 | `default_loader.preprocessings` | 학습 시 사용한 전처리와 동일하게 구성해야 정확도 손실을 최소화할 수 있습니다. |
 
 !!! note "`dataset_path` 자동 치환"
-    CloudFormation 배포의 파이프라인을 사용하는 경우, 설정 파일의 `dataset_path`에 어떤 값을 넣더라도 컴파일 시점에 AMI에 포함된 캘리브레이션 데이터셋 경로(`/opt/dx-compiler/calibration_dataset`)로 자동 치환됩니다. Amazon EC2 배포에서 직접 `dx-compile`을 실행할 때는 이 치환이 적용되지 않으므로, 인스턴스에서 실제로 접근 가능한 경로를 지정해야 합니다.
+    CloudFormation 배포의 파이프라인을 사용하는 경우, 설정 파일의 `dataset_path`에 어떤 값을 넣더라도 컴파일 시점에 AMI에 포함된 캘리브레이션 데이터셋 경로(`/opt/dx-compiler/calibration_dataset`)로 자동 치환됩니다. Amazon EC2 배포에서 직접 `dxcom`을 실행할 때는 이 치환이 적용되지 않으므로, 인스턴스에서 실제로 접근 가능한 경로를 지정해야 합니다.
 
 ---
 

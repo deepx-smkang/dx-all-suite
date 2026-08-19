@@ -84,7 +84,7 @@ The **AMI details** panel on the same page lists the AMI alias and the per-Regio
 
 ### Step 2. Connect and Prepare the Model
 
-Connect to the instance over SSH as the `ubuntu` user, then prepare the ONNX model to compile.
+Connect to the instance over SSH as the `ubuntu` user, then prepare the ONNX model to compile and its JSON compilation configuration file. The configuration file format is described in [section 5](#5-compilation-configuration-file-json).
 
 ```bash
 ssh -i <your-key>.pem ubuntu@<instance-address>
@@ -96,20 +96,44 @@ curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
 aws s3 cp s3://<your-bucket>/<path>/model.onnx .
 ```
 
-### Step 3. Run the Compilation
-
-The AMI provides the `dx-compile` command, which takes the ONNX model as its argument. The compiler (`dx-com`) and the calibration dataset it uses are preinstalled under `/opt/dx-compiler`.
+Write the compilation configuration file next to the model, pointing `dataset_path` at the calibration dataset bundled in the AMI.
 
 ```bash
-dx-compile yolov5-s-face_640x640.onnx
+cat > yolov5-s-face_640x640.json <<'EOF'
+{
+  "inputs": {
+    "input.1": [1, 3, 640, 640]
+  },
+  "calibration_num": 100,
+  "calibration_method": "ema",
+  "default_loader": {
+    "dataset_path": "/opt/dx-compiler/calibration_dataset",
+    "file_extensions": ["jpeg", "jpg", "png"]
+  }
+}
+EOF
 ```
 
-Run `dx-compile --help` on the instance for the full option list, including how to point the command at a specific compilation configuration file or output path.
+### Step 3. Run the Compilation
 
-When compilation finishes, upload the resulting `.dxnn` artifact to S3 so that edge devices or other environments can download and use it.
+`dxcom` takes the model (`-m`), the configuration file (`-c`), and the output path (`-o`) as arguments. The compiler and the calibration dataset it uses are preinstalled under `/opt/dx-compiler`.
 
 ```bash
-aws s3 cp yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
+dxcom -m yolov5-s-face_640x640.onnx \
+      -c yolov5-s-face_640x640.json \
+      -o output/yolov5-s-face_640x640
+```
+
+!!! note "The `dx-compile` shortcut"
+    The vendor's launch and connection instructions on the Marketplace page give a shorter
+    form, `dx-compile <model.onnx>`, which wraps `dxcom` with defaults. Use it when you want
+    a one-liner; use `dxcom` directly when you need explicit control over the configuration
+    file and the output path. Run `dxcom -h` on the instance for the full option list.
+
+When compilation finishes, a `.dxnn` file is created at the output path you specified. Upload the artifact to S3 so that edge devices or other environments can download and use it.
+
+```bash
+aws s3 cp output/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
 ```
 
 ### Step 4. Terminate the Instance
@@ -215,7 +239,7 @@ The compilation configuration file defines the input tensor shape and the calibr
 | `default_loader.preprocessings` | Configure these to match the preprocessing used during training to minimize accuracy loss. |
 
 !!! note "Automatic `dataset_path` replacement"
-    When you use the CloudFormation pipeline, whatever value you set for `dataset_path` in the configuration file is automatically replaced at compilation time with the calibration dataset path included in the AMI (`/opt/dx-compiler/calibration_dataset`). This replacement does not apply when you run `dx-compile` yourself on an Amazon EC2 instance, so you must specify a path that the instance can actually access.
+    When you use the CloudFormation pipeline, whatever value you set for `dataset_path` in the configuration file is automatically replaced at compilation time with the calibration dataset path included in the AMI (`/opt/dx-compiler/calibration_dataset`). This replacement does not apply when you run `dxcom` yourself on an Amazon EC2 instance, so you must specify a path that the instance can actually access.
 
 ---
 
