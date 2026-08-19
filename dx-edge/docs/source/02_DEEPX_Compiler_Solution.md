@@ -116,7 +116,7 @@ EOF
 
 ### Step 3. Run the Compilation
 
-`dxcom` takes the model (`-m`), the configuration file (`-c`), and the output path (`-o`) as arguments. The compiler and the calibration dataset it uses are preinstalled under `/opt/dx-compiler`.
+`dxcom` takes the model (`-m`), the configuration file (`-c`), and the **output directory** (`-o`) as arguments. The compiler and the calibration dataset it uses are preinstalled under `/opt/dx-compiler`, and the Python environment the compiler runs in is already active on login.
 
 ```bash
 dxcom -m yolov5-s-face_640x640.onnx \
@@ -124,16 +124,32 @@ dxcom -m yolov5-s-face_640x640.onnx \
       -o output/yolov5-s-face_640x640
 ```
 
+The compiler first echoes the compilation configuration — compiler version, model, config file, output directory, and optimization level — then reports quantization and preprocessing decisions before the compilation progress bar.
+
+![Running dxcom on the instance](img/compiler/fig03_dxcom_run.png)
+
+*Figure 3. Compiling the ONNX model with `dxcom` on the EC2 instance*
+
 !!! note "The `dx-compile` shortcut"
     The vendor's launch and connection instructions on the Marketplace page give a shorter
     form, `dx-compile <model.onnx>`, which wraps `dxcom` with defaults. Use it when you want
     a one-liner; use `dxcom` directly when you need explicit control over the configuration
-    file and the output path. Run `dxcom -h` on the instance for the full option list.
+    file and the output directory. Run `dxcom -h` on the instance for the full option list.
 
-When compilation finishes, a `.dxnn` file is created at the output path you specified. Upload the artifact to S3 so that edge devices or other environments can download and use it.
+When compilation finishes, the `.dxnn` file is written **inside** the directory you passed to `-o`, named after the model.
 
 ```bash
-aws s3 cp output/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
+ls -lhR output/
+```
+
+![The compiled .dxnn artifact](img/compiler/fig04_dxnn_output.png)
+
+*Figure 4. The compiled `.dxnn` artifact in the output directory*
+
+Upload the artifact to S3 so that edge devices or other environments can download and use it.
+
+```bash
+aws s3 cp output/yolov5-s-face_640x640/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
 ```
 
 ### Step 4. Terminate the Instance
@@ -268,6 +284,7 @@ Actual costs vary with model size, compilation time, instance type, Region, and 
 | The workflow does not start after a file upload (CloudFormation deployment) | Confirm that both the `.onnx` and `.json` files were uploaded to the **same S3 path**. If only one is present, the trigger function waits. |
 | The workflow ends in a failure | Review the `dxcom` execution logs in the `/dx-compiler/<stack-name>/execution` log group in Amazon CloudWatch Logs. |
 | The instance does not launch | Confirm that the subnet has outbound HTTPS access to the required AWS services (through a NAT gateway or VPC endpoints), and that the Marketplace subscription is complete. |
+| `GPU device discovery failed` warning at the start of `dxcom` | Harmless. The compiler instance has no GPU, so the ONNX Runtime device probe fails and falls back to CPU. Compilation proceeds normally. |
 | A compilation error related to input shape | Confirm that the `inputs` tensor names and shapes in the configuration file match the input definition of the ONNX model. |
 | Accuracy after quantization is lower than expected | Confirm that `preprocessings` matches the preprocessing used during training and that `calibration_num` is large enough. |
 

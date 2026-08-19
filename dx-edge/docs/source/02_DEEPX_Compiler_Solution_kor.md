@@ -116,7 +116,7 @@ EOF
 
 ### 단계 3. 컴파일 실행
 
-`dxcom`은 모델(`-m`), 설정 파일(`-c`), 출력 경로(`-o`)를 인자로 받습니다. 컴파일러와 이 명령이 사용하는 캘리브레이션 데이터셋은 `/opt/dx-compiler` 아래에 사전 설치되어 있습니다.
+`dxcom`은 모델(`-m`), 설정 파일(`-c`), **출력 디렉토리**(`-o`)를 인자로 받습니다. 컴파일러와 이 명령이 사용하는 캘리브레이션 데이터셋은 `/opt/dx-compiler` 아래에 사전 설치되어 있으며, 컴파일러가 동작하는 Python 환경은 로그인 시 이미 활성화되어 있습니다.
 
 ```bash
 dxcom -m yolov5-s-face_640x640.onnx \
@@ -124,16 +124,32 @@ dxcom -m yolov5-s-face_640x640.onnx \
       -o output/yolov5-s-face_640x640
 ```
 
+컴파일러는 먼저 컴파일 설정(컴파일러 버전, 모델, 설정 파일, 출력 디렉토리, 최적화 레벨)을 출력하고, 양자화와 전처리 처리 내역을 보고한 뒤 컴파일 진행률을 표시합니다.
+
+![인스턴스에서 dxcom 실행](img/compiler/fig03_dxcom_run.png)
+
+*그림 3. EC2 인스턴스에서 `dxcom`으로 ONNX 모델을 컴파일한 결과*
+
 !!! note "`dx-compile` 단축 명령"
     Marketplace 페이지의 벤더 기동·접속 안내는 `dx-compile <model.onnx>`라는 더 짧은 형태를
     제시합니다. `dxcom`을 기본값으로 감싼 래퍼이므로, 한 줄로 끝내고 싶을 때 사용합니다.
-    설정 파일과 출력 경로를 명시적으로 제어하려면 `dxcom`을 직접 사용합니다. 전체 옵션은
+    설정 파일과 출력 디렉토리를 명시적으로 제어하려면 `dxcom`을 직접 사용합니다. 전체 옵션은
     인스턴스에서 `dxcom -h`로 확인합니다.
 
-컴파일이 완료되면 지정한 출력 경로에 `.dxnn` 파일이 생성됩니다. 결과물을 S3에 업로드해 엣지 디바이스나 다른 작업 환경에서 내려받아 사용할 수 있게 합니다.
+컴파일이 완료되면 `-o`로 지정한 디렉토리 **안에** 모델 이름을 딴 `.dxnn` 파일이 생성됩니다.
 
 ```bash
-aws s3 cp output/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
+ls -lhR output/
+```
+
+![컴파일된 .dxnn 아티팩트](img/compiler/fig04_dxnn_output.png)
+
+*그림 4. 출력 디렉토리에 생성된 `.dxnn` 아티팩트*
+
+결과물을 S3에 업로드해 엣지 디바이스나 다른 작업 환경에서 내려받아 사용할 수 있게 합니다.
+
+```bash
+aws s3 cp output/yolov5-s-face_640x640/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
 ```
 
 ### 단계 4. 인스턴스 종료
@@ -268,6 +284,7 @@ DEEPX Compiler Solution의 소프트웨어 구독 비용은 없습니다. 다만
 | 파일을 업로드했는데 워크플로가 시작되지 않음 (CloudFormation 배포) | `.onnx`와 `.json` 두 파일이 **같은 S3 경로**에 모두 업로드되었는지 확인합니다. 한쪽만 있으면 트리거 함수가 대기합니다. |
 | 워크플로가 실패로 종료됨 | Amazon CloudWatch Logs의 `/dx-compiler/<스택명>/execution` 로그 그룹에서 `dxcom` 실행 로그를 확인합니다. |
 | 인스턴스가 기동되지 않음 | 서브넷이 필요한 AWS 서비스에 HTTPS로 나갈 수 있는지(NAT Gateway 또는 VPC 엔드포인트), 그리고 Marketplace 구독이 완료되었는지 확인합니다. |
+| `dxcom` 시작 시 `GPU device discovery failed` 경고 | 무시해도 됩니다. 컴파일러 인스턴스에는 GPU가 없어 ONNX Runtime의 디바이스 탐색이 실패하고 CPU로 대체될 뿐이며, 컴파일은 정상 진행됩니다. |
 | 입력 형상 관련 컴파일 오류 | 설정 파일의 `inputs` 텐서 이름과 형상이 ONNX 모델의 입력 정의와 일치하는지 확인합니다. |
 | 양자화 후 정확도가 기대보다 낮음 | `preprocessings`가 학습 시 전처리와 동일한지, `calibration_num`이 충분한지 확인합니다. |
 
