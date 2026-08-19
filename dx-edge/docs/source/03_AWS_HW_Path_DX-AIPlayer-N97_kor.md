@@ -55,8 +55,6 @@ DX-AIPlayer N97은 Ubuntu 24.04 LTS에서 AWS IoT Greengrass Core 소프트웨�
 - DX-AIPlayer N97 본체 1개 (DEEPX DX-M1 M.2 모듈 사전 장착)
 - 전원 어댑터 1개 (12V DC, 5A, threaded locking barrel jack)
 
-**[TBD — 확인 필요: 실제 동봉물 — 퀵가이드/VESA 브라켓 포함 여부]**
-
 ### 3.3 사용자 준비 항목
 
 - 인터넷 연결용 이더넷 케이블 (또는 선택 사양인 M.2 2230 E-Key Wi-Fi 모듈)
@@ -78,15 +76,25 @@ DX-AIPlayer N97에서 AWS IoT Greengrass를 실행하는 데 디바이스 전용
 
 ## 5. 디바이스 하드웨어 설정
 
-**[TBD — 이미지 필요: images/n97-front.png (전면 포트 주석), images/n97-rear.png (후면 포트 주석)]**
+DX-AIPlayer N97은 세 면에 I/O를 배치합니다. 모든 포트는 섀시에 라벨로 표시되어 있습니다.
+
+**우측면** — 2x GbE LAN (LAN 1 / LAN 2), HDMI, DisplayPort (DP), 2x USB 3.2 Gen 2, 12V DC 전원 잭, 전원 버튼:
+
+![우측면 포트](img/n97/n97-right.png)
+
+**좌측면** — COM 1 (RS-232/422/485), USB 3.2 Gen 2, Wi-Fi/BT 안테나 마운트:
+
+![좌측면 포트](img/n97/n97-left.png)
+
+**후면** — COM 2 (RS-232/422/485), Line Out, Mic In:
+
+![후면 포트](img/n97/n97-back.png)
 
 1. 평평하고 통풍이 잘되는 곳에 디바이스를 놓습니다.
-2. 인터넷에 연결된 네트워크의 이더넷 케이블을 LAN1에 연결합니다.
-3. (초기 설정) 모니터와 USB 키보드를 연결하거나, SSH 접속을 위해 디바이스 IP 주소를 확인해 둡니다.
-4. 제공된 전원 어댑터를 연결하고 디바이스 전원을 켭니다.
-5. 디바이스에 설정된 계정 정보로 Ubuntu에 로그인합니다.
-
-**[TBD — 확인 필요: 출하 이미지에 기본 계정(deepx 등)이 있는지, 아니면 첫 부팅 시 Ubuntu 초기 설정으로 계정을 생성하는지]**
+2. 인터넷에 연결된 네트워크의 이더넷 케이블을 우측면의 **LAN 1**에 연결합니다.
+3. (초기 설정) 모니터(우측면 HDMI 또는 DP)와 USB 키보드를 연결하거나, SSH 접속을 위해 디바이스 IP 주소를 확인해 둡니다.
+4. 제공된 전원 어댑터를 우측면의 **12V DC** 잭에 연결하고 전원 버튼을 누릅니다.
+5. 첫 부팅 시 Ubuntu 초기 설정을 완료해 사용자 계정을 생성한 뒤, 생성한 계정으로 로그인합니다.
 
 인터넷 연결을 확인합니다.
 
@@ -179,8 +187,6 @@ sudo tail -f /greengrass/v2/logs/com.example.HelloWorld.log
 - Greengrass Core 로그는 `/greengrass/v2/logs/greengrass.log`에, 컴포넌트 로그는 `/greengrass/v2/logs/<component-name>.log`에 있습니다.
 - nucleus 로그 수준을 변경하려면 [로그 수준](https://docs.aws.amazon.com/greengrass/v2/developerguide/monitor-logs.html)을 참고합니다.
 - 시스템 부팅 및 서비스 메시지를 확인하려면 `journalctl -u greengrass.service -f`를 사용합니다.
-
-**[TBD — 확인 필요: COM 포트 시리얼 콘솔 지원 여부와 터미널 설정(예: 115200 8N1). 미지원이면 이 항목 삭제]**
 
 ## 11. 문제 해결
 

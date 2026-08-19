@@ -55,8 +55,6 @@ Key specifications:
 - 1x DX-AIPlayer N97 unit (with DEEPX DX-M1 M.2 module pre-installed)
 - 1x Power adapter (12V DC, 5A, threaded locking barrel jack)
 
-**[TBD — 확인 필요: 실제 동봉물 — 퀵가이드/VESA 브라켓 포함 여부]**
-
 ### 3.3 User provided items
 
 - Ethernet cable for internet connectivity (or an optional M.2 2230 E-Key Wi-Fi module)
@@ -78,15 +76,25 @@ No device-specific IDE or toolchain is required to run AWS IoT Greengrass on the
 
 ## 5. Set up device hardware
 
-**[TBD — 이미지 필요: images/n97-front.png (전면 포트 주석), images/n97-rear.png (후면 포트 주석)]**
+The DX-AIPlayer N97 exposes its I/O on three faces. All ports are labeled on the chassis.
+
+**Right side** — 2x GbE LAN (LAN 1 / LAN 2), HDMI, DisplayPort (DP), 2x USB 3.2 Gen 2, 12V DC power jack, power button:
+
+![Right side ports](img/n97/n97-right.png)
+
+**Left side** — COM 1 (RS-232/422/485), USB 3.2 Gen 2, Wi-Fi/BT antenna mounts:
+
+![Left side ports](img/n97/n97-left.png)
+
+**Back** — COM 2 (RS-232/422/485), Line Out, Mic In:
+
+![Back ports](img/n97/n97-back.png)
 
 1. Place the device on a flat, ventilated surface.
-2. Connect an Ethernet cable from your network (with internet access) to LAN1.
-3. (Initial setup) Connect a monitor and a USB keyboard, or note the device IP address for SSH access.
-4. Connect the supplied power adapter and power on the device.
-5. Log in to Ubuntu with the credentials configured for your device.
-
-**[TBD — 확인 필요: 출하 이미지에 기본 계정(deepx 등)이 있는지, 아니면 첫 부팅 시 Ubuntu 초기 설정으로 계정을 생성하는지]**
+2. Connect an Ethernet cable from your network (with internet access) to **LAN 1** on the right side.
+3. (Initial setup) Connect a monitor (HDMI or DP, right side) and a USB keyboard, or note the device IP address for SSH access.
+4. Connect the supplied power adapter to the **12V DC** jack on the right side and press the power button.
+5. On first boot, complete the Ubuntu initial setup to create your user account, then log in with the account you created.
 
 Verify internet connectivity:
 
@@ -179,8 +187,6 @@ Follow the instructions online at [Deploy your component](https://docs.aws.amazo
 - Greengrass Core logs are located at `/greengrass/v2/logs/greengrass.log`; component logs at `/greengrass/v2/logs/<component-name>.log`.
 - To change the nucleus log level, see [Log levels](https://docs.aws.amazon.com/greengrass/v2/developerguide/monitor-logs.html).
 - To view system boot and service messages: `journalctl -u greengrass.service -f`.
-
-**[TBD — 확인 필요: COM 포트 시리얼 콘솔 지원 여부와 터미널 설정(예: 115200 8N1). 미지원이면 이 항목 삭제]**
 
 ## 11. Troubleshooting
 
