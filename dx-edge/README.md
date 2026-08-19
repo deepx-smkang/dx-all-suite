@@ -44,7 +44,7 @@ AWS CloudFormation · Amazon S3 · AWS Lambda · AWS Step Functions · Amazon EC
 
 ## Validated hardware
 
-| | |
+| Hardware | Specification |
 | :--- | :--- |
 | **DEEPX DX-M1** | M.2 2280 AI accelerator, 25 TOPS INT8, 4 GB LPDDR5, max 5 W. Installs in an arm64 host such as a Raspberry Pi 5 or an x86_64 industrial PC |
 | **DX-AIPlayer N97** | Intel® Processor N97 (x86_64) + DX-M1, 8 GB LPDDR5 / 64 GB eMMC, 2x GbE, Ubuntu 24.04 LTS, 95 x 95 x 55 mm |

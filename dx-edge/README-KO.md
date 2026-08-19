@@ -44,7 +44,7 @@ AWS CloudFormation · Amazon S3 · AWS Lambda · AWS Step Functions · Amazon EC
 
 ## 검증된 하드웨어
 
-| | |
+| 하드웨어 | 사양 |
 | :--- | :--- |
 | **DEEPX DX-M1** | M.2 2280 AI 가속기, 25 TOPS INT8, 4 GB LPDDR5, 최대 5 W. Raspberry Pi 5 같은 arm64 호스트나 x86_64 산업용 PC에 장착 |
 | **DX-AIPlayer N97** | Intel® Processor N97 (x86_64) + DX-M1, 8 GB LPDDR5 / 64 GB eMMC, 2x GbE, Ubuntu 24.04 LTS, 95 x 95 x 55 mm |
