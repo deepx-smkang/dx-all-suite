@@ -13,9 +13,20 @@ Place them in this directory using exactly these filenames.
   Greengrass set.
 - **Terminal** — dark or light is fine, but keep one style across `fig03` and `fig04`.
   Use a monospace font at a size that stays legible after downscaling.
+- **Terminal figures must be captured on the EC2 instance, not on a local machine.**
+  Path A is defined as launching an instance from the DX-Compiler AMI and running `dxcom`
+  there, so the figure has to make that evident. Either capture method works:
+  - **Session Manager (recommended)** — EC2 console → select the instance → **Connect** →
+    **Session Manager**. Capture the browser terminal together with the console header so
+    the instance ID is visible. This matches the document's own advice to use Session
+    Manager rather than opening an inbound SSH port.
+  - **SSH** — capture a local terminal SSH'd into the instance, leaving the
+    `ubuntu@ip-10-0-1-23:~$` prompt visible so the host is identifiable as the instance.
 - **Redact before committing** — the 12-digit AWS account ID, any ARN containing it,
-  access key IDs, private IP addresses, internal host names, and the S3 bucket name if it
-  is not a throwaway. Blur or solid-block them; do not rely on cropping alone.
+  access key IDs, public IP addresses and public DNS names, and the S3 bucket name if it is
+  not a throwaway. Blur or solid-block them; do not rely on cropping alone.
+  **Keep** the default EC2 host name in the shell prompt (`ubuntu@ip-10-0-1-23`) — the
+  address is private, non-routable, and it is what proves the terminal is on the instance.
 - **Consistent example** — use the same model across every figure. The document walks
   through `yolov5-s-face_640x640`.
 
@@ -50,9 +61,14 @@ Nothing in the document illustrates Path A today, so these four carry the most v
 
 ### `fig04_dxnn_output.png`
 - **Placement** — section 3, Step 3, after the sentence about the generated `.dxnn` file.
-- **Must show** — `ls -lh output/yolov5-s-face_640x640/` (or equivalent) with the produced
-  `.dxnn` file and its size.
+- **Must show** — `ls -lhR output/` with the produced `.dxnn` file and its size, captured in
+  the same terminal session as `fig03`.
 - **Optional extra** — the following `aws s3 cp` upload succeeding in the same capture.
+- **Please confirm the actual output layout while capturing this.** The document currently
+  passes `-o output/yolov5-s-face_640x640` and then uploads
+  `output/yolov5-s-face_640x640.dxnn`, which assumes `-o` takes a path prefix. If `dxcom`
+  instead treats it as a directory and writes the artifact inside it, the `aws s3 cp` path
+  in section 3, Step 3 needs to be corrected to match.
 
 ## Optional — Path B (event-driven pipeline)
 
