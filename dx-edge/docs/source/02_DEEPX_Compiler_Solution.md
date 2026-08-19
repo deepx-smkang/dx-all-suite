@@ -6,8 +6,9 @@ A DEEPX NPU does not run a standard ONNX model as is. The model must first be co
 
 This document describes how to run that compilation step on AWS using the **DEEPX Compiler Solution**. Instead of building a compilation environment locally, you use the DEEPX Compiler Solution from AWS Marketplace to run the compiler on AWS only when you need it.
 
-!!! note "Scope of this document"
-    This document covers **model compilation only**. To deploy a compiled DXNN model to an edge device and install the NPU driver, firmware, and runtime automatically, see [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution.md). The Greengrass Solution includes the compilation pipeline described here.
+> **Note — Scope of this document**
+>
+> This document covers **model compilation only**. To deploy a compiled DXNN model to an edge device and install the NPU driver, firmware, and runtime automatically, see [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution.md). The Greengrass Solution includes the compilation pipeline described here.
 
 ---
 
@@ -75,8 +76,9 @@ Launching the DEEPX Compiler Solution as an Amazon EC2 instance gives you the co
 
 *Figure 2. Launch configuration — Service set to Amazon EC2, with the vendor-recommended instance type and the network and key pair settings*
 
-!!! note "Choosing an instance type"
-    Compilation is a CPU-intensive and memory-intensive job. The launch page marks `t3.xlarge` (4 vCPUs, 16 GiB memory) as **Vendor recommended**, and the CloudFormation deployment uses the same type by default. Depending on model size and the number of calibration images, a larger instance may perform better.
+> **Note — Choosing an instance type**
+>
+> Compilation is a CPU-intensive and memory-intensive job. The launch page marks `t3.xlarge` (4 vCPUs, 16 GiB memory) as **Vendor recommended**, and the CloudFormation deployment uses the same type by default. Depending on model size and the number of calibration images, a larger instance may perform better.
 
 Configure the security group to allow only the traffic you need. Compilation itself does not require inbound connectivity beyond the SSH access you use to drive it.
 
@@ -108,16 +110,17 @@ sed -i 's#"dataset_path": *"[^"]*"#"dataset_path": "/opt/dx-compiler/calibration
     yolov5-s-face_640x640.json
 ```
 
-!!! note "Use the Model Zoo configuration rather than writing a minimal one"
-    The configuration must describe the model's input preprocessing. A hand-written file that
-    sets only `inputs`, `calibration_num`, and `calibration_method` fails, because the
-    `preprocessings` list is missing. The Model Zoo ships a validated configuration for every
-    model it publishes, so start from that and change only what you need. [Section
-    5](#5-compilation-configuration-file-json) describes the fields.
-
-    Note the nested path: the calibration images live in
-    `/opt/dx-compiler/calibration_dataset/calibration_dataset`, one level below the directory
-    the AMI documents.
+> **Note — Use the Model Zoo configuration rather than writing a minimal one**
+>
+> The configuration must describe the model's input preprocessing. A hand-written file that
+> sets only `inputs`, `calibration_num`, and `calibration_method` fails, because the
+> `preprocessings` list is missing. The Model Zoo ships a validated configuration for every
+> model it publishes, so start from that and change only what you need. [Section
+> 5](#5-compilation-configuration-file-json) describes the fields.
+>
+> Note the nested path: the calibration images live in
+> `/opt/dx-compiler/calibration_dataset/calibration_dataset`, one level below the directory
+> the AMI documents.
 
 ### Step 3. Run the Compilation
 
@@ -135,11 +138,12 @@ The compiler first echoes the compilation configuration — compiler version, mo
 
 *Figure 3. Compiling the ONNX model with `dxcom` on the EC2 instance*
 
-!!! note "The `dx-compile` shortcut"
-    The vendor's launch and connection instructions on the Marketplace page give a shorter
-    form, `dx-compile <model.onnx>`, which wraps `dxcom` with defaults. Use it when you want
-    a one-liner; use `dxcom` directly when you need explicit control over the configuration
-    file and the output directory. Run `dxcom -h` on the instance for the full option list.
+> **Note — The `dx-compile` shortcut**
+>
+> The vendor's launch and connection instructions on the Marketplace page give a shorter
+> form, `dx-compile <model.onnx>`, which wraps `dxcom` with defaults. Use it when you want
+> a one-liner; use `dxcom` directly when you need explicit control over the configuration
+> file and the output directory. Run `dxcom -h` on the instance for the full option list.
 
 When compilation finishes, the `.dxnn` file is written **inside** the directory you passed to `-o`, named after the model.
 
@@ -198,8 +202,9 @@ aws s3 cp --only-show-errors yolov5-s-face_640x640.json  "s3://${MODEL_BUCKET}/$
 aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 ```
 
-!!! note "Use a dedicated prefix per model"
-    The trigger function treats the `.onnx` and `.json` files in the same path as a pair. When you work with several models, use a separate prefix for each one so that configuration files for different models do not get mixed together.
+> **Note — Use a dedicated prefix per model**
+>
+> The trigger function treats the `.onnx` and `.json` files in the same path as a pair. When you work with several models, use a separate prefix for each one so that configuration files for different models do not get mixed together.
 
 ---
 
@@ -259,8 +264,9 @@ The compilation configuration file defines the input tensor shape and the calibr
 | `default_loader.dataset_path` | The path to the calibration dataset |
 | `default_loader.preprocessings` | Configure these to match the preprocessing used during training to minimize accuracy loss. |
 
-!!! note "Automatic `dataset_path` replacement"
-    When you use the CloudFormation pipeline, whatever value you set for `dataset_path` in the configuration file is automatically replaced at compilation time with the calibration dataset path included in the AMI (`/opt/dx-compiler/calibration_dataset`). This replacement does not apply when you run `dxcom` yourself on an Amazon EC2 instance, so you must specify a path that the instance can actually access.
+> **Note — Automatic `dataset_path` replacement**
+>
+> When you use the CloudFormation pipeline, whatever value you set for `dataset_path` in the configuration file is automatically replaced at compilation time with the calibration dataset path included in the AMI (`/opt/dx-compiler/calibration_dataset`). This replacement does not apply when you run `dxcom` yourself on an Amazon EC2 instance, so you must specify a path that the instance can actually access.
 
 ---
 

@@ -8,8 +8,9 @@
 
 이 문서에서는 DEEPX DX-M1 계열 NPU와 AWS IoT 서비스를 결합해 이 과정을 단순화하는 방법을 설명합니다. 먼저 AWS Marketplace를 통해 DEEPX 컴파일 환경과 AWS 리소스를 준비한 뒤, ONNX 모델을 DEEPX NPU용 DXNN 형식으로 변환합니다. 이어서 AWS IoT Core로 디바이스를 클라우드와 연결하고, AWS IoT Greengrass를 엣지 플랫폼으로 사용해 NPU 드라이버, 펌웨어, dx_rt 런타임, dx_stream 미디어 파이프라인을 디바이스 그룹에 OTA 방식으로 배포합니다.
 
-!!! note "핵심 요약"
-    DEEPX는 저전력 온디바이스 추론을 담당하고, AWS IoT Core와 AWS IoT Greengrass는 디바이스 연결, 그룹 단위 배포, 컴포넌트 수명 주기와 업데이트 상태를 관리합니다. 두 제품을 결합하면 모델을 NPU용으로 준비하는 과정과 여러 엣지 장비에 동일한 실행 환경을 배포하는 과정을 하나의 흐름으로 연결할 수 있습니다.
+> **참고 — 핵심 요약**
+>
+> DEEPX는 저전력 온디바이스 추론을 담당하고, AWS IoT Core와 AWS IoT Greengrass는 디바이스 연결, 그룹 단위 배포, 컴포넌트 수명 주기와 업데이트 상태를 관리합니다. 두 제품을 결합하면 모델을 NPU용으로 준비하는 과정과 여러 엣지 장비에 동일한 실행 환경을 배포하는 과정을 하나의 흐름으로 연결할 수 있습니다.
 
 이 문서는 다음 순서로 진행합니다.
 
@@ -65,8 +66,9 @@ AWS IoT Core와 AWS IoT Greengrass는 이 컴파일 흐름을 현장 운영으�
 
 현장 배포와 운영을 쉽게 하기 위해, DEEPX Greengrass Solution은 Zero-Touch Provisioning(ZTP)을 제공합니다. 등록된 디바이스를 Thing Group에 추가하면 Greengrass가 `com.deepx.dx-runtime` 컴포넌트를 전달해 드라이버, 펌웨어, dx_rt, dx_stream을 자동으로 설치하고 결과를 클라우드에 보고합니다. 운영자는 장비별 SSH 접속 없이 신규 장비와 런타임 업데이트를 그룹 단위로 일관되게 관리할 수 있습니다.
 
-!!! note "ZTP의 범위"
-    이 문서의 ZTP 범위는 AWS IoT Core에 등록된 디바이스에 실행 환경을 자동 배포하는 과정입니다. 제조 단계의 인증서 주입이나 첫 부팅 시 Fleet Provisioning까지 자동화하려면 별도의 디바이스 프로비저닝 설계가 필요합니다.
+> **참고 — ZTP의 범위**
+>
+> 이 문서의 ZTP 범위는 AWS IoT Core에 등록된 디바이스에 실행 환경을 자동 배포하는 과정입니다. 제조 단계의 인증서 주입이나 첫 부팅 시 Fleet Provisioning까지 자동화하려면 별도의 디바이스 프로비저닝 설계가 필요합니다.
 
 ---
 
@@ -217,8 +219,9 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 
 이 단계에서는 AWS IoT Core에 등록되고 대상 Thing Group에 포함된 Greengrass 코어 디바이스에 DEEPX 런타임을 배포합니다. AWS IoT Core는 디바이스, 인증서, Thing Group을 관리하고, AWS IoT Greengrass는 해당 그룹을 대상으로 컴포넌트와 설정을 OTA 배포합니다. 즉, 운영자는 각 장비에 SSH로 접속하지 않고도 동일한 실행 환경을 그룹 단위로 적용하고 상태를 확인할 수 있습니다.
 
-!!! note "`com.deepx.dx-runtime` 컴포넌트"
-    CloudFormation 스택이 게시하는 Greengrass 컴포넌트입니다. 대상 디바이스에 NPU 드라이버, 펌웨어, dx_rt, dx_stream을 설치해 DXNN 모델을 실행할 DEEPX 런타임 환경을 준비하고, 설치 결과를 Greengrass에 보고합니다.
+> **참고 — `com.deepx.dx-runtime` 컴포넌트**
+>
+> CloudFormation 스택이 게시하는 Greengrass 컴포넌트입니다. 대상 디바이스에 NPU 드라이버, 펌웨어, dx_rt, dx_stream을 설치해 DXNN 모델을 실행할 DEEPX 런타임 환경을 준비하고, 설치 결과를 Greengrass에 보고합니다.
 
 CloudFormation 스택에서 게시한 `com.deepx.dx-runtime` 컴포넌트는 다음 소프트웨어를 순서대로 설치합니다.
 
@@ -243,8 +246,9 @@ sudo tail -f /greengrass/v2/logs/com.deepx.dx-runtime.log
 sudo journalctl -f -u ggl.com.deepx.dx-runtime.service
 ```
 
-!!! note "설치 소요 시간"
-    설치 시간은 디바이스 사양과 네트워크 상태에 따라 달라집니다. 의존성 라이브러리를 소스에서 빌드하는 저사양 arm64 디바이스에서는 수십 분 이상 걸릴 수 있습니다.
+> **참고 — 설치 소요 시간**
+>
+> 설치 시간은 디바이스 사양과 네트워크 상태에 따라 달라집니다. 의존성 라이브러리를 소스에서 빌드하는 저사양 arm64 디바이스에서는 수십 분 이상 걸릴 수 있습니다.
 
 새 드라이버나 런타임 버전을 배포할 때도 컴포넌트 버전을 올리고 대상 Thing Group에 새 배포를 생성하는 방식을 사용합니다. 이것이 Greengrass를 단순 설치 도구가 아니라 엣지 운영 플랫폼으로 사용하는 이유입니다.
 
@@ -286,8 +290,9 @@ aws s3 cp "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn" .
 
 이어서 테스트용 샘플 영상을 내려받고 dx_stream 파이프라인으로 추론을 실행합니다. `dxpreprocess`가 영상 프레임을 모델 입력 크기(640×640)로 변환하고, `dxinfer`가 NPU에서 추론을 수행합니다. `dxpostprocess`는 YOLOv5s-Face 후처리 라이브러리로 검출 결과를 해석하고, `dxosd`가 바운딩 박스를 영상에 그려 `fpsdisplaysink`가 FPS와 함께 화면에 표시합니다.
 
-!!! note "모델을 바꿀 경우"
-    후처리 라이브러리는 모델에 종속적입니다. 다른 모델을 사용한다면 `model-path`와 함께 `library-file-path`도 해당 모델의 후처리 라이브러리로 변경해야 합니다.
+> **참고 — 모델을 바꿀 경우**
+>
+> 후처리 라이브러리는 모델에 종속적입니다. 다른 모델을 사용한다면 `model-path`와 함께 `library-file-path`도 해당 모델의 후처리 라이브러리로 변경해야 합니다.
 
 ```bash
 curl -fSLO https://sdk.deepx.ai/res/video/sample_videos.tar.gz

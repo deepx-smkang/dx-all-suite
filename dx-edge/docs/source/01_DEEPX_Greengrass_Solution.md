@@ -8,8 +8,9 @@ Running a model on a single camera and a single edge AI device is relatively sim
 
 This document describes how to simplify that process by combining DEEPX DX-M1 series NPUs with AWS IoT services. You first prepare the DEEPX compilation environment and the required AWS resources through AWS Marketplace, then convert an ONNX model into the DXNN format used by DEEPX NPUs. You then connect devices to the cloud with AWS IoT Core and use AWS IoT Greengrass as the edge platform to deploy the NPU driver, firmware, the dx_rt runtime, and the dx_stream media pipeline to a device group over the air.
 
-!!! note "Key takeaway"
-    DEEPX handles low-power on-device inference, while AWS IoT Core and AWS IoT Greengrass manage device connectivity, group-level deployment, component lifecycle, and update status. Combining the two products connects the process of preparing a model for the NPU and the process of deploying an identical runtime environment to many edge devices into a single flow.
+> **Note — Key takeaway**
+>
+> DEEPX handles low-power on-device inference, while AWS IoT Core and AWS IoT Greengrass manage device connectivity, group-level deployment, component lifecycle, and update status. Combining the two products connects the process of preparing a model for the NPU and the process of deploying an identical runtime environment to many edge devices into a single flow.
 
 This document proceeds in the following order.
 
@@ -65,8 +66,9 @@ At the edge, AWS IoT Core manages devices and thing groups, and AWS IoT Greengra
 
 To simplify field deployment and operations, the DEEPX Greengrass Solution provides Zero-Touch Provisioning (ZTP). When you add a registered device to the thing group, Greengrass delivers the `com.deepx.dx-runtime` component, which automatically installs the driver, firmware, dx_rt, and dx_stream and reports the result to the cloud. Operators can manage new equipment and runtime updates consistently at the group level without connecting to each device over SSH.
 
-!!! note "Scope of ZTP"
-    In this document, ZTP covers the automatic deployment of the runtime environment to devices already registered with AWS IoT Core. Automating certificate injection during manufacturing or fleet provisioning at first boot requires a separate device provisioning design.
+> **Note — Scope of ZTP**
+>
+> In this document, ZTP covers the automatic deployment of the runtime environment to devices already registered with AWS IoT Core. Automating certificate injection during manufacturing or fleet provisioning at first boot requires a separate device provisioning design.
 
 ---
 
@@ -217,8 +219,9 @@ Because this approach starts an EC2 instance only when there is a compilation jo
 
 In this step, you deploy the DEEPX runtime to Greengrass core devices that are registered with AWS IoT Core and belong to the target thing group. AWS IoT Core manages devices, certificates, and thing groups, and AWS IoT Greengrass deploys components and configuration to that group over the air. As a result, operators can apply the same runtime environment at the group level and check its status without connecting to each device over SSH.
 
-!!! note "The `com.deepx.dx-runtime` component"
-    This is the Greengrass component published by the CloudFormation stack. It installs the NPU driver, firmware, dx_rt, and dx_stream on the target device to prepare a DEEPX runtime environment for running DXNN models, and it reports the installation result to Greengrass.
+> **Note — The `com.deepx.dx-runtime` component**
+>
+> This is the Greengrass component published by the CloudFormation stack. It installs the NPU driver, firmware, dx_rt, and dx_stream on the target device to prepare a DEEPX runtime environment for running DXNN models, and it reports the installation result to Greengrass.
 
 The `com.deepx.dx-runtime` component published by the CloudFormation stack installs the following software in order.
 
@@ -243,8 +246,9 @@ sudo tail -f /greengrass/v2/logs/com.deepx.dx-runtime.log
 sudo journalctl -f -u ggl.com.deepx.dx-runtime.service
 ```
 
-!!! note "Installation time"
-    Installation time varies with device specifications and network conditions. On low-spec arm64 devices that build dependency libraries from source, it can take tens of minutes or more.
+> **Note — Installation time**
+>
+> Installation time varies with device specifications and network conditions. On low-spec arm64 devices that build dependency libraries from source, it can take tens of minutes or more.
 
 To deploy a new driver or runtime version, you use the same approach: increment the component version and create a new deployment for the target thing group. This is why Greengrass is used as an edge operations platform rather than a simple installation tool.
 
@@ -286,8 +290,9 @@ aws s3 cp "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/yolov5-s-face_640x640.dxnn" .
 
 Next, download a sample video for testing and run inference through the dx_stream pipeline. `dxpreprocess` converts video frames to the model input size (640×640), and `dxinfer` runs inference on the NPU. `dxpostprocess` interprets the detection results using the YOLOv5s-Face post-processing library, `dxosd` draws the bounding boxes on the video, and `fpsdisplaysink` shows the result on screen along with the frame rate.
 
-!!! note "If you change the model"
-    The post-processing library is model specific. If you use a different model, you must change `library-file-path` to that model's post-processing library along with `model-path`.
+> **Note — If you change the model**
+>
+> The post-processing library is model specific. If you use a different model, you must change `library-file-path` to that model's post-processing library along with `model-path`.
 
 ```bash
 curl -fSLO https://sdk.deepx.ai/res/video/sample_videos.tar.gz

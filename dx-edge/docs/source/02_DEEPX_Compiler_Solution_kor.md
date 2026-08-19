@@ -6,8 +6,9 @@ DEEPX NPU는 표준 ONNX 모델을 그대로 실행하지 않습니다. NPU가 �
 
 이 문서에서는 **DEEPX Compiler Solution**을 사용해 이 컴파일 단계를 AWS에서 수행하는 방법을 설명합니다. 로컬에 컴파일 환경을 구축하지 않고, AWS Marketplace의 DEEPX Compiler Solution으로 필요할 때만 AWS에서 컴파일러를 실행하는 방식입니다.
 
-!!! note "이 문서의 범위"
-    이 문서는 **모델 컴파일만** 다룹니다. 컴파일된 DXNN 모델을 엣지 디바이스에 배포하고 NPU 드라이버·펌웨어·런타임까지 자동으로 설치하려면 [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution_kor.md)을 참고하십시오. Greengrass Solution은 이 문서에서 설명하는 컴파일 파이프라인을 포함합니다.
+> **참고 — 이 문서의 범위**
+>
+> 이 문서는 **모델 컴파일만** 다룹니다. 컴파일된 DXNN 모델을 엣지 디바이스에 배포하고 NPU 드라이버·펌웨어·런타임까지 자동으로 설치하려면 [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution_kor.md)을 참고하십시오. Greengrass Solution은 이 문서에서 설명하는 컴파일 파이프라인을 포함합니다.
 
 ---
 
@@ -75,8 +76,9 @@ DEEPX Compiler Solution을 Amazon EC2 인스턴스로 기동하면 컴파일러�
 
 *그림 2. 기동 설정 — Service를 Amazon EC2로 선택한 상태의 인스턴스 유형, 네트워크, 키 페어 설정*
 
-!!! note "인스턴스 유형 선택"
-    컴파일은 CPU와 메모리를 많이 사용하는 작업입니다. 기동 화면은 `t3.xlarge`(4 vCPU, 16 GiB 메모리)를 **Vendor recommended**로 표시하며, CloudFormation 배포도 같은 유형을 기본값으로 사용합니다. 모델 크기와 캘리브레이션 이미지 수에 따라 더 큰 인스턴스가 유리할 수 있습니다.
+> **참고 — 인스턴스 유형 선택**
+>
+> 컴파일은 CPU와 메모리를 많이 사용하는 작업입니다. 기동 화면은 `t3.xlarge`(4 vCPU, 16 GiB 메모리)를 **Vendor recommended**로 표시하며, CloudFormation 배포도 같은 유형을 기본값으로 사용합니다. 모델 크기와 캘리브레이션 이미지 수에 따라 더 큰 인스턴스가 유리할 수 있습니다.
 
 보안 그룹은 필요한 통신만 허용하도록 구성합니다. 컴파일 작업 자체는 작업을 위한 SSH 접속 외에 별도의 인바운드 연결을 요구하지 않습니다.
 
@@ -108,16 +110,17 @@ sed -i 's#"dataset_path": *"[^"]*"#"dataset_path": "/opt/dx-compiler/calibration
     yolov5-s-face_640x640.json
 ```
 
-!!! note "설정 파일은 직접 작성하지 말고 Model Zoo 것을 사용"
-    설정 파일에는 모델의 입력 전처리가 정의되어 있어야 합니다. `inputs`, `calibration_num`,
-    `calibration_method`만 넣어 직접 작성한 파일은 `preprocessings` 항목이 없어 컴파일에
-    실패합니다. Model Zoo는 공개하는 모든 모델에 대해 검증된 설정 파일을 함께 제공하므로,
-    이를 받아 필요한 부분만 바꾸는 편이 안전합니다. 각 항목은 [5절](#5-컴파일-설정-파일-json)에서
-    설명합니다.
-
-    경로가 한 단계 더 들어가 있다는 점에 유의하십시오. 캘리브레이션 이미지는 AMI가 안내하는
-    디렉토리보다 한 단계 아래인 `/opt/dx-compiler/calibration_dataset/calibration_dataset`에
-    있습니다.
+> **참고 — 설정 파일은 직접 작성하지 말고 Model Zoo 것을 사용**
+>
+> 설정 파일에는 모델의 입력 전처리가 정의되어 있어야 합니다. `inputs`, `calibration_num`,
+> `calibration_method`만 넣어 직접 작성한 파일은 `preprocessings` 항목이 없어 컴파일에
+> 실패합니다. Model Zoo는 공개하는 모든 모델에 대해 검증된 설정 파일을 함께 제공하므로,
+> 이를 받아 필요한 부분만 바꾸는 편이 안전합니다. 각 항목은 [5절](#5-컴파일-설정-파일-json)에서
+> 설명합니다.
+>
+> 경로가 한 단계 더 들어가 있다는 점에 유의하십시오. 캘리브레이션 이미지는 AMI가 안내하는
+> 디렉토리보다 한 단계 아래인 `/opt/dx-compiler/calibration_dataset/calibration_dataset`에
+> 있습니다.
 
 ### 단계 3. 컴파일 실행
 
@@ -135,11 +138,12 @@ dxcom -m yolov5-s-face_640x640.onnx \
 
 *그림 3. EC2 인스턴스에서 `dxcom`으로 ONNX 모델을 컴파일한 결과*
 
-!!! note "`dx-compile` 단축 명령"
-    Marketplace 페이지의 벤더 기동·접속 안내는 `dx-compile <model.onnx>`라는 더 짧은 형태를
-    제시합니다. `dxcom`을 기본값으로 감싼 래퍼이므로, 한 줄로 끝내고 싶을 때 사용합니다.
-    설정 파일과 출력 디렉토리를 명시적으로 제어하려면 `dxcom`을 직접 사용합니다. 전체 옵션은
-    인스턴스에서 `dxcom -h`로 확인합니다.
+> **참고 — `dx-compile` 단축 명령**
+>
+> Marketplace 페이지의 벤더 기동·접속 안내는 `dx-compile <model.onnx>`라는 더 짧은 형태를
+> 제시합니다. `dxcom`을 기본값으로 감싼 래퍼이므로, 한 줄로 끝내고 싶을 때 사용합니다.
+> 설정 파일과 출력 디렉토리를 명시적으로 제어하려면 `dxcom`을 직접 사용합니다. 전체 옵션은
+> 인스턴스에서 `dxcom -h`로 확인합니다.
 
 컴파일이 완료되면 `-o`로 지정한 디렉토리 **안에** 모델 이름을 딴 `.dxnn` 파일이 생성됩니다.
 
@@ -198,8 +202,9 @@ aws s3 cp --only-show-errors yolov5-s-face_640x640.json  "s3://${MODEL_BUCKET}/$
 aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 ```
 
-!!! note "모델별 전용 prefix 사용"
-    트리거 함수는 같은 경로에 있는 `.onnx`와 `.json`을 한 쌍으로 인식합니다. 여러 모델을 다룰 때는 모델마다 별도 prefix를 사용해 다른 모델의 설정 파일이 섞이지 않도록 합니다.
+> **참고 — 모델별 전용 prefix 사용**
+>
+> 트리거 함수는 같은 경로에 있는 `.onnx`와 `.json`을 한 쌍으로 인식합니다. 여러 모델을 다룰 때는 모델마다 별도 prefix를 사용해 다른 모델의 설정 파일이 섞이지 않도록 합니다.
 
 ---
 
@@ -259,8 +264,9 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 | `default_loader.dataset_path` | 캘리브레이션 데이터셋 경로 |
 | `default_loader.preprocessings` | 학습 시 사용한 전처리와 동일하게 구성해야 정확도 손실을 최소화할 수 있습니다. |
 
-!!! note "`dataset_path` 자동 치환"
-    CloudFormation 배포의 파이프라인을 사용하는 경우, 설정 파일의 `dataset_path`에 어떤 값을 넣더라도 컴파일 시점에 AMI에 포함된 캘리브레이션 데이터셋 경로(`/opt/dx-compiler/calibration_dataset`)로 자동 치환됩니다. Amazon EC2 배포에서 직접 `dxcom`을 실행할 때는 이 치환이 적용되지 않으므로, 인스턴스에서 실제로 접근 가능한 경로를 지정해야 합니다.
+> **참고 — `dataset_path` 자동 치환**
+>
+> CloudFormation 배포의 파이프라인을 사용하는 경우, 설정 파일의 `dataset_path`에 어떤 값을 넣더라도 컴파일 시점에 AMI에 포함된 캘리브레이션 데이터셋 경로(`/opt/dx-compiler/calibration_dataset`)로 자동 치환됩니다. Amazon EC2 배포에서 직접 `dxcom`을 실행할 때는 이 치환이 적용되지 않으므로, 인스턴스에서 실제로 접근 가능한 경로를 지정해야 합니다.
 
 ---
 
