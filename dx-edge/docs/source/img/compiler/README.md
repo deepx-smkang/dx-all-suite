@@ -9,6 +9,10 @@ Figures referenced by `02_DEEPX_Compiler_Solution.md` (and its `_kor` edition).
 | `fig01_marketplace_listing.png` | section 1 | The DEEPX Compiler Solution product page on AWS Marketplace |
 | `fig02_launch_configuration.png` | section 3, Step 1 | The launch page with Service set to Amazon EC2, the vendor-recommended instance type, and the network and key pair settings |
 
+The VPC ID, subnet ID and CIDR, and key pair name in `fig02` are masked with placeholders.
+The AMI alias and the per-Region AMI IDs are left visible — they are public Marketplace
+identifiers and are useful to the reader.
+
 ## Still needed
 
 Both are terminal captures, and both must be taken **on the EC2 instance launched from the
