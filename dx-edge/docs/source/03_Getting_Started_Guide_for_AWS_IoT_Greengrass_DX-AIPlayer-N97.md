@@ -8,7 +8,7 @@ This guide walks you through setting up AWS IoT Greengrass V2 on the DEEPX DX-AI
 
 | Revision | Date | Description |
 |---|---|---|
-| 1.0 | 2026-08-14 | Initial release |
+| 1.0 | 2026-08-19 | Initial release |
 
 ### 1.2 Applicable operating systems for this guide
 
