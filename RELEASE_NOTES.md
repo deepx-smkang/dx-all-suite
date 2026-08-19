@@ -24,7 +24,7 @@ This hotfix release resolves centralized runtime sanity checks, Windows build an
 
 **Highlights**
 - **DEEPX Greengrass Solution** — a single AWS CloudFormation stack that provisions the cloud compilation pipeline and installs the NPU driver, firmware, `dx_rt`, and `dx_stream` on edge devices over the air (Zero-Touch Provisioning) through AWS IoT Greengrass V2. Both the classic Greengrass nucleus and nucleus lite are supported.
-- **DEEPX Compiler Solution** — ONNX → `.dxnn` compilation on AWS, either interactively on an Amazon EC2 instance launched from the DX-Compiler AMI, or fully automatically through an event-driven Amazon S3 → AWS Lambda → AWS Step Functions pipeline that starts and terminates the compiler instance per job.
+- **DEEPX Compiler Solution** — ONNX → `.dxnn` compilation on AWS, either interactively on an Amazon EC2 instance launched from the AMI, or fully automatically through an event-driven Amazon S3 → AWS Lambda → AWS Step Functions pipeline that starts and terminates the compiler instance per job.
 - **AWS HW Path (DX-AIPlayer N97)** — a Getting Started Guide for AWS IoT Greengrass covering the Intel® N97 + DEEPX DX-M1 edge AI system, written to the AWS Device Qualification Program template.
 - **Bilingual** — every document is published in English and Korean.
 

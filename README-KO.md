@@ -114,7 +114,7 @@ interactive dashboard로 렌더링됩니다. 6개 hardware 환경 측정 결과�
 Solution**은 AWS CloudFormation 스택 하나로 클라우드 컴파일 파이프라인과 엣지 런타임 배포 환경을
 함께 구성하고, AWS IoT Greengrass V2를 통해 NPU 드라이버·펌웨어·`dx_rt`·`dx_stream`을 OTA로
 설치합니다(Zero-Touch Provisioning). **DEEPX Compiler Solution**은 ONNX를 `.dxnn`으로 AWS에서
-컴파일합니다 — DX-Compiler AMI로 대화형 실행하거나, S3 → Lambda → Step Functions 이벤트 기반
+컴파일합니다 — Amazon EC2 인스턴스에서 대화형으로 실행하거나, S3 → Lambda → Step Functions 이벤트 기반
 파이프라인으로 자동 실행합니다. **AWS HW Path**는 **DX-AIPlayer N97**(Intel® N97 + DX-M1)을 AWS IoT
 Greengrass 코어 디바이스로 구성하는 과정을 AWS Device Qualification Program의 Getting Started Guide
 템플릿에 맞춰 문서화합니다. 모든 문서는 영문과 국문으로 제공됩니다.

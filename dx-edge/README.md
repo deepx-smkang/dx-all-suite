@@ -20,7 +20,7 @@ DX-Edge is the AWS-native path for taking a trained model to a DEEPX NPU running
 
 ```
    ONNX model                DEEPX Compiler Solution              .dxnn artifact
-       │                     (DX-Compiler AMI / dxcom)                  │
+       │                  (DEEPX Compiler Solution AMI)                  │
        └──────────────────────────────►─────────────────────────────────┘
                                                                         │
    Edge device                DEEPX Greengrass Solution                 ▼
@@ -34,7 +34,7 @@ The Greengrass Solution includes the compilation pipeline, so it is the single-s
 ## AWS Marketplace listings
 
 - **[DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)** (CloudFormation) — compilation pipeline + automated edge runtime deployment
-- **[DX-Compiler (AMI)](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)** — Amazon Machine Image with the `dxcom` compiler pre-installed
+- **[DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)** (AMI) — model compilation on its own, deployable as an Amazon EC2 instance or as an AWS CloudFormation stack
 
 Both are free of software charge; you pay only for the AWS resources you use.
 

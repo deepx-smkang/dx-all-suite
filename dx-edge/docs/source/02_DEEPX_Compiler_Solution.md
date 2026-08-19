@@ -2,28 +2,32 @@
 
 **Compiling ONNX models into the DEEPX NPU execution format (DXNN) on AWS**
 
-A DEEPX NPU does not run a standard ONNX model as is. The model must first be converted into the DXNN (`.dxnn`) format, which contains the instruction set and weights the NPU executes. The DEEPX compiler `dxcom` performs this conversion. Compilation includes a calibration step for INT8 quantization, so it requires a representative dataset along with sufficient CPU and memory resources.
+A DEEPX NPU does not run a standard ONNX model as is. The model must first be converted into the DXNN (`.dxnn`) format, which contains the instruction set and weights the NPU executes. The DEEPX compiler (`dx-com`) performs this conversion. Compilation includes a calibration step for INT8 quantization, so it requires a representative dataset along with sufficient CPU and memory resources.
 
-This document describes how to run that compilation step on AWS using the **DEEPX Compiler Solution**. Instead of building a compilation environment locally, you use the DX-Compiler AMI from AWS Marketplace to launch an instance only when you need one.
+This document describes how to run that compilation step on AWS using the **DEEPX Compiler Solution**. Instead of building a compilation environment locally, you use the DEEPX Compiler Solution from AWS Marketplace to run the compiler on AWS only when you need it.
 
 !!! note "Scope of this document"
     This document covers **model compilation only**. To deploy a compiled DXNN model to an edge device and install the NPU driver, firmware, and runtime automatically, see [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution.md). The Greengrass Solution includes the compilation pipeline described here.
 
 ---
 
-## 1. Two Usage Paths
+## 1. Two Deployment Options
 
-The DEEPX Compiler Solution offers two paths, depending on how you want to work. Choose the one that fits your purpose.
+The **DEEPX Compiler Solution** is listed on AWS Marketplace under ML Solutions as an Amazon Machine Image, and its launch page offers two deployment services. Choose the one that fits how you want to work.
 
-| | **Path A — Using the DX-Compiler AMI directly** | **Path B — Event-driven compilation pipeline** |
+![The DEEPX Compiler Solution listing on AWS Marketplace](img/compiler/fig01_marketplace_listing.png)
+
+*Figure 1. The DEEPX Compiler Solution product page on AWS Marketplace*
+
+| | **Amazon EC2** | **AWS CloudFormation** |
 | :--- | :--- | :--- |
-| Delivery form | AMI (Amazon Machine Image) | CloudFormation stack |
-| How it runs | You launch an EC2 instance and run `dxcom` yourself | You upload files to S3 and compilation starts automatically |
+| Described on the launch page as | Custom deployment using Amazon Machine Image (AMI) | Automated, one-step deployment |
+| How it runs | You launch an instance and run the compiler yourself | You upload files to Amazon S3 and compilation starts automatically |
 | Best suited for | Experimenting by changing compilation options repeatedly, interactive debugging | Running a standardized compilation repeatedly, integrating with CI and automation |
-| Instance lifecycle | You start and stop the instance | The workflow starts and stops the instance |
-| Marketplace | [DX-Compiler (AMI)](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo) | Included in [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34) |
+| Instance lifecycle | You start and terminate the instance | The workflow starts and terminates the instance |
+| Covered in | [Section 3](#3-amazon-ec2-deployment) | [Section 4](#4-aws-cloudformation-deployment) |
 
-Both paths use the same `dxcom` compiler and the same calibration dataset, so the compilation result is identical.
+Both options use the same compiler and the same calibration dataset, so the compilation result is identical.
 
 ---
 
@@ -53,26 +57,38 @@ If the command prints your account ID and user ARN, the configuration is complet
 
 ---
 
-## 3. Path A — Using the DX-Compiler AMI Directly
+## 3. Amazon EC2 Deployment
 
-[DX-Compiler (AMI)](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo) in AWS Marketplace is an Amazon Machine Image with the DEEPX model compiler `dxcom` and the calibration dataset preinstalled. There is nothing to install: you can start compiling as soon as the instance launches.
+Launching the DEEPX Compiler Solution as an Amazon EC2 instance gives you the compiler and the calibration dataset preinstalled under `/opt/dx-compiler`. There is nothing to install: you can start compiling as soon as the instance is up.
 
 ### Step 1. Subscribe and Launch an Instance
 
-1. On the Marketplace product page, choose **Continue to Subscribe**. There is no software subscription charge; you pay only for the AWS resources you use.
-2. On **Continue to Configuration**, choose the Region and AMI version to deploy.
-3. On **Continue to Launch**, specify the instance type, VPC and subnet, security group, and key pair, and launch the instance.
+1. On the Marketplace product page, choose **View purchase options** and subscribe. There is no software subscription charge; you pay only for the AWS resources you use.
+2. On the **Launch DEEPX Compiler Solution** page, under **Service**, choose **Amazon EC2**.
+3. Under **Launch method**, choose one of the following.
+    - **One-click launch from AWS Marketplace** — quick deployment with minimal configuration requirements. This is the path described below.
+    - **Launch from EC2 Console** — a scalable method with full control over the configuration. Use this when you need launch options the Marketplace form does not expose, such as instance profiles, user data, or additional volumes.
+4. Fill in the setup fields: **Version** (the latest stable `dx-com` release is preselected), **Region**, **Number of instances**, **Instance type**, **VPC**, **Subnet**, **Security group**, and **Key pair**.
+5. Choose **Launch**.
+
+![The launch configuration page for the DEEPX Compiler Solution](img/compiler/fig02_launch_configuration.png)
+
+*Figure 2. Launch configuration — Service set to Amazon EC2, with the vendor-recommended instance type and the network and key pair settings*
 
 !!! note "Choosing an instance type"
-    Compilation is a CPU-intensive and memory-intensive job. The compilation pipeline in the DEEPX Greengrass Solution uses `t3.xlarge` by default. Depending on model size and the number of calibration images, a larger instance may perform better.
+    Compilation is a CPU-intensive and memory-intensive job. The launch page marks `t3.xlarge` (4 vCPUs, 16 GiB memory) as **Vendor recommended**, and the CloudFormation deployment uses the same type by default. Depending on model size and the number of calibration images, a larger instance may perform better.
 
-Configure the security group to allow only the outbound traffic you need. Compilation itself does not require inbound connectivity. If you need to work interactively, we recommend using AWS Systems Manager Session Manager instead of SSH so that no inbound ports are open.
+Configure the security group to allow only the traffic you need. Compilation itself does not require inbound connectivity beyond the SSH access you use to drive it.
 
-### Step 2. Prepare the Model and Configuration File
+The **AMI details** panel on the same page lists the AMI alias and the per-Region AMI IDs. The alias is an AWS Systems Manager parameter path in the form `/aws/service/marketplace/<product-code>/dx-com-<version>`, which is the same mechanism the CloudFormation deployment uses to resolve the image for each Region.
 
-After you connect to the instance, prepare the ONNX model to compile and its JSON configuration file.
+### Step 2. Connect and Prepare the Model
+
+Connect to the instance over SSH as the `ubuntu` user, then prepare the ONNX model to compile.
 
 ```bash
+ssh -i <your-key>.pem ubuntu@<instance-address>
+
 # Download a sample model from the Model Zoo
 curl -fLO https://sdk.deepx.ai/modelzoo/onnx/yolov5-s-face_640x640.onnx
 
@@ -82,38 +98,38 @@ aws s3 cp s3://<your-bucket>/<path>/model.onnx .
 
 ### Step 3. Run the Compilation
 
-`dxcom` takes the model (`-m`), the configuration file (`-c`), and the output path (`-o`) as arguments.
+The AMI provides the `dx-compile` command, which takes the ONNX model as its argument. The compiler (`dx-com`) and the calibration dataset it uses are preinstalled under `/opt/dx-compiler`.
 
 ```bash
-dxcom -m yolov5-s-face_640x640.onnx \
-      -c yolov5-s-face_640x640.json \
-      -o output/yolov5-s-face_640x640
+dx-compile yolov5-s-face_640x640.onnx
 ```
 
-When compilation finishes, a `.dxnn` file is created at the output path you specified. Upload the artifact to S3 so that edge devices or other environments can download and use it.
+Run `dx-compile --help` on the instance for the full option list, including how to point the command at a specific compilation configuration file or output path.
+
+When compilation finishes, upload the resulting `.dxnn` artifact to S3 so that edge devices or other environments can download and use it.
 
 ```bash
-aws s3 cp output/yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
+aws s3 cp yolov5-s-face_640x640.dxnn s3://<your-bucket>/<path>/
 ```
 
 ### Step 4. Terminate the Instance
 
-Compilation is a one-time job, so terminate the instance when you are done to stop incurring charges. If you expect to compile repeatedly, the automated pipeline in Path B is a better choice for both management and cost.
+Compilation is a one-time job, so terminate the instance when you are done to stop incurring charges. If you expect to compile repeatedly, the CloudFormation deployment in the next section is a better choice for both management and cost.
 
 ---
 
-## 4. Path B — Event-Driven Compilation Pipeline
+## 4. AWS CloudFormation Deployment
 
-In Path B, no one handles the compiler instance directly. When you upload a model and a configuration file to Amazon S3, an event starts a workflow that launches an instance based on the DX-Compiler AMI, runs the compilation, and then terminates the instance. All you have to do is download the result.
+Choosing **AWS CloudFormation** on the launch page gives you an automated, one-step deployment: an event-driven compilation pipeline that nobody has to operate by hand. When you upload a model and a configuration file to Amazon S3, an event starts a workflow that launches a compiler instance, runs the compilation, and then terminates the instance. All you have to do is download the result.
 
-This pipeline is included in the DEEPX Greengrass Solution CloudFormation stack. For the stack deployment procedure and parameters, see the [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution.md) document.
+The DEEPX Greengrass Solution deploys this same pipeline as part of its stack, alongside the edge runtime deployment. For that stack's parameters and the end-to-end walkthrough, see the [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution.md) document.
 
 ### How It Works
 
 1. You upload the `.onnx` model and the `.json` configuration file to the **same path** in the S3 model bucket.
 2. An S3 `ObjectCreated` event invokes an AWS Lambda trigger function. The function looks for the matching file in the same path and proceeds to the next step **only when both files are present**. The execution name is generated as a hash based on the file names, which prevents duplicate runs.
 3. The AWS Step Functions compilation workflow starts.
-4. The workflow launches an Amazon EC2 instance based on the DX-Compiler AMI. The instance runs in the existing VPC and subnet specified by the CloudFormation parameters.
+4. The workflow launches an Amazon EC2 instance based on the DEEPX Compiler Solution AMI. The instance runs in the existing VPC and subnet specified by the CloudFormation parameters.
 5. AWS Systems Manager Run Command sends the compilation commands defined in an SSM document to the instance.
 6. The `dxcom` compiler preinstalled on the instance runs. At this point, the `dataset_path` value in the configuration file is automatically replaced with `/opt/dx-compiler/calibration_dataset`, the calibration dataset path included in the AMI.
 7. The compiled `.dxnn` binary is uploaded to the same S3 path as the source model. The workflow terminates the instance whether the job succeeds or fails, so there is no idle cost, and you can review execution logs in the Amazon CloudWatch Logs log group (`/dx-compiler/<stack-name>/execution`).
@@ -199,7 +215,7 @@ The compilation configuration file defines the input tensor shape and the calibr
 | `default_loader.preprocessings` | Configure these to match the preprocessing used during training to minimize accuracy loss. |
 
 !!! note "Automatic `dataset_path` replacement"
-    When you use the Path B pipeline, whatever value you set for `dataset_path` in the configuration file is automatically replaced at compilation time with the calibration dataset path included in the AMI (`/opt/dx-compiler/calibration_dataset`). This replacement does not apply when you run `dxcom` yourself in Path A, so you must specify a path that the instance can actually access.
+    When you use the CloudFormation pipeline, whatever value you set for `dataset_path` in the configuration file is automatically replaced at compilation time with the calibration dataset path included in the AMI (`/opt/dx-compiler/calibration_dataset`). This replacement does not apply when you run `dx-compile` yourself on an Amazon EC2 instance, so you must specify a path that the instance can actually access.
 
 ---
 
@@ -213,9 +229,9 @@ Even if you do not have a model of your own, you can download pre-trained ONNX m
 
 There is no software subscription charge for the DEEPX Compiler Solution. However, you incur charges for the following AWS resource usage.
 
-- **Amazon EC2**: You are charged for the time the compiler instance runs. The Path B pipeline runs the instance only during a compilation job and terminates it on both success and failure paths, so there is no idle cost. In Path A, you must terminate the instance yourself.
+- **Amazon EC2**: You are charged for the time the compiler instance runs. The CloudFormation pipeline runs the instance only during a compilation job and terminates it on both success and failure paths, so there is no idle cost. When you launch the instance yourself, you must terminate it yourself.
 - **Amazon EBS**: You are charged for the volumes attached to the instance.
-- **Amazon S3, AWS Lambda, AWS Step Functions, and Amazon CloudWatch Logs** (Path B): You incur charges for model file storage, event processing, workflow execution, and log retention.
+- **Amazon S3, AWS Lambda, AWS Step Functions, and Amazon CloudWatch Logs** (CloudFormation deployment): You incur charges for model file storage, event processing, workflow execution, and log retention.
 
 Actual costs vary with model size, compilation time, instance type, Region, and log retention period. Before you deploy, estimate costs using the [AWS Pricing Calculator](https://calculator.aws/) and the current pricing for each service.
 
@@ -225,7 +241,7 @@ Actual costs vary with model size, compilation time, instance type, Region, and 
 
 | Symptom | What to check |
 | :--- | :--- |
-| The workflow does not start after a file upload (Path B) | Confirm that both the `.onnx` and `.json` files were uploaded to the **same S3 path**. If only one is present, the trigger function waits. |
+| The workflow does not start after a file upload (CloudFormation deployment) | Confirm that both the `.onnx` and `.json` files were uploaded to the **same S3 path**. If only one is present, the trigger function waits. |
 | The workflow ends in a failure | Review the `dxcom` execution logs in the `/dx-compiler/<stack-name>/execution` log group in Amazon CloudWatch Logs. |
 | The instance does not launch | Confirm that the subnet has outbound HTTPS access to the required AWS services (through a NAT gateway or VPC endpoints), and that the Marketplace subscription is complete. |
 | A compilation error related to input shape | Confirm that the `inputs` tensor names and shapes in the configuration file match the input definition of the ONNX model. |
@@ -233,8 +249,8 @@ Actual costs vary with model size, compilation time, instance type, Region, and 
 
 ## 9. Cleaning Up Resources
 
-1. **Path A**: Terminate the EC2 instance when you finish using it. If any EBS volumes are not deleted with the instance, delete them separately.
-2. **Path B**: Delete the stack in the CloudFormation console. The model bucket is retained to protect your data, so if you no longer need it, empty the bucket and delete it manually.
+1. **Amazon EC2 deployment**: Terminate the EC2 instance when you finish using it. If any EBS volumes are not deleted with the instance, delete them separately.
+2. **CloudFormation deployment**: Delete the stack in the CloudFormation console. The model bucket is retained to protect your data, so if you no longer need it, empty the bucket and delete it manually.
 3. If you no longer need the AWS Marketplace subscription, cancel it in [Manage subscriptions](https://aws.amazon.com/marketplace/library).
 
 ## Next Steps
@@ -243,7 +259,7 @@ To run a compiled `.dxnn` model on an edge device, the device must have the NPU 
 
 ## References
 
-- [DX-Compiler (AMI) — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
+- [DEEPX Compiler Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
 - [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)
 - [DEEPX Developer Documentation](https://developer.deepx.ai)

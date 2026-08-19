@@ -20,7 +20,7 @@ For the English edition, see [README.md](README.md).
 
 ```
    ONNX 모델                 DEEPX Compiler Solution              .dxnn 아티팩트
-       │                     (DX-Compiler AMI / dxcom)                  │
+       │                  (DEEPX Compiler Solution AMI)                  │
        └──────────────────────────────►─────────────────────────────────┘
                                                                         │
    엣지 디바이스              DEEPX Greengrass Solution                  ▼
@@ -34,7 +34,7 @@ Greengrass Solution은 컴파일 파이프라인을 포함하므로 단일 스�
 ## AWS Marketplace 리스팅
 
 - **[DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)** (CloudFormation) — 컴파일 파이프라인 + 엣지 런타임 자동 배포
-- **[DX-Compiler (AMI)](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)** — `dxcom` 컴파일러가 사전 설치된 Amazon Machine Image
+- **[DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)** (AMI) — 모델 컴파일 단독 사용. Amazon EC2 인스턴스 또는 AWS CloudFormation 스택으로 배포
 
 두 제품 모두 소프트웨어 구독 비용은 없으며, 사용한 AWS 리소스 비용만 발생합니다.
 

@@ -343,7 +343,7 @@ The value of this combination is not simply that a model runs once on an NPU. It
 ## References
 
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
-- [DX-Compiler (AMI) — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
+- [DEEPX Compiler Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [AWS IoT Core Developer Guide](https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html)
 - [AWS IoT Greengrass Version 2 Developer Guide](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html)
 - [Manage AWS IoT Greengrass deployments](https://docs.aws.amazon.com/greengrass/v2/developerguide/manage-deployments.html)

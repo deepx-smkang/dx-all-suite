@@ -343,7 +343,7 @@ DEEPX Greengrass Solution의 소프트웨어 구독 비용은 없습니다. 다�
 ## 참고 자료
 
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
-- [DX-Compiler (AMI) — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
+- [DEEPX Compiler Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [AWS IoT Core 개발자 안내서](https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html)
 - [AWS IoT Greengrass V2 개발자 안내서](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html)
 - [AWS IoT Greengrass 배포 관리](https://docs.aws.amazon.com/greengrass/v2/developerguide/manage-deployments.html)

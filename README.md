@@ -117,7 +117,7 @@ three tracks published on AWS Marketplace. The **DEEPX Greengrass Solution** pro
 compilation pipeline and the edge runtime from a single AWS CloudFormation stack, installing the NPU
 driver, firmware, `dx_rt`, and `dx_stream` over the air (Zero-Touch Provisioning) via AWS IoT
 Greengrass V2. The **DEEPX Compiler Solution** compiles ONNX to `.dxnn` on AWS — interactively from
-the DX-Compiler AMI, or automatically through an event-driven S3 → Lambda → Step Functions pipeline.
+an Amazon EC2 instance, or automatically through an event-driven S3 → Lambda → Step Functions pipeline.
 The **AWS HW Path** documents the **DX-AIPlayer N97** (Intel® N97 + DX-M1) as an AWS IoT Greengrass
 core device, following the AWS Device Qualification Program Getting Started Guide template. Every
 document is published in English and Korean.
