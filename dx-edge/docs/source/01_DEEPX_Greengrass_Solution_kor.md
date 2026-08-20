@@ -88,7 +88,7 @@ AWS IoT Core와 AWS IoT Greengrass는 이 컴파일 흐름을 현장 운영으�
 
 ### Marketplace 구독 및 환경 준비
 
-AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)을 구독합니다. 소프트웨어 구독 비용은 없으며, 컴파일과 배포에 사용하는 AWS 리소스 비용만 발생합니다. 엣지 디바이스 런타임 배포 없이 모델 컴파일 기능만 사용하려면 [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution_kor.md)을 구독할 수 있습니다.
+AWS Marketplace에서 [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)을 구독합니다. AWS 리소스 사용 비용이 별도로 발생하므로, 현재 소프트웨어 요금과 구독 조건은 AWS Marketplace 리스팅에서 확인하십시오. 엣지 디바이스 런타임 배포 없이 모델 컴파일 기능만 사용하려면 [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution_kor.md)을 구독할 수 있습니다.
 
 ![그림 4. AWS Marketplace의 DEEPX 솔루션 구독 화면](img/greengrass/fig04_marketplace_listing.png)
 
@@ -322,7 +322,7 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
 
 ## 비용 안내
 
-DEEPX Greengrass Solution의 소프트웨어 구독 비용은 없습니다. 다만 다음 AWS 리소스 사용량에 따라 비용이 발생합니다.
+AWS 리소스 사용 비용이 별도로 발생합니다. 현재 소프트웨어 요금과 구독 조건은 AWS Marketplace 리스팅에서 확인하고, 다음 AWS 리소스 사용량에 따른 비용도 고려하십시오.
 
 - **Amazon EC2**: 컴파일러 인스턴스는 컴파일 작업 중에만 실행되고 성공과 실패 경로 모두에서 종료됩니다. 따라서 컴파일 시간에 대해서만 비용이 발생합니다.
 - **Amazon S3, AWS Lambda, AWS Step Functions, Amazon CloudWatch Logs**: 모델 파일 저장, 이벤트 처리, 워크플로 실행, 로그 보관에 따른 비용이 발생합니다.

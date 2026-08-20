@@ -10,7 +10,19 @@ This document describes how to run that compilation step on AWS using the **DEEP
 >
 > This document covers **model compilation only**. To deploy a compiled DXNN model to an edge device and install the NPU driver, firmware, and runtime automatically, see [DEEPX Greengrass Solution](01_DEEPX_Greengrass_Solution.md). The Greengrass Solution includes the compilation pipeline described here.
 
+## Choose Your Compilation Path
+
+Choose the compilation path that matches how you want to work:
+
+1. Complete the common prerequisites in Section 2.
+2. For interactive compilation and repeated option changes, follow Section 3: Amazon EC2 Deployment.
+3. For repeatable, event-driven compilation, follow Section 4: AWS CloudFormation Deployment.
+4. Use Sections 5 and 6 to configure and select models.
+5. Review cost, troubleshooting, and cleanup guidance before finishing.
+
 ---
+
+## Part I. Choose and prepare the deployment
 
 ## 1. Two Deployment Options
 
@@ -58,13 +70,15 @@ If the command prints your account ID and user ARN, the configuration is complet
 
 ---
 
+## Part II. Compile with Amazon EC2
+
 ## 3. Amazon EC2 Deployment
 
 Launching the DEEPX Compiler Solution as an Amazon EC2 instance gives you the compiler and the calibration dataset preinstalled under `/opt/dx-compiler`. There is nothing to install: you can start compiling as soon as the instance is up.
 
 ### Step 1. Subscribe and Launch an Instance
 
-1. On the Marketplace product page, choose **View purchase options** and subscribe. There is no software subscription charge; you pay only for the AWS resources you use.
+1. On the Marketplace product page, choose **View purchase options** and subscribe. AWS resource charges apply separately; see the AWS Marketplace listing for current software pricing and subscription terms.
 2. On the **Launch DEEPX Compiler Solution** page, under **Service**, choose **Amazon EC2**.
 3. Under **Launch method**, choose one of the following.
     - **One-click launch from AWS Marketplace** — quick deployment with minimal configuration requirements. This is the path described below.
@@ -168,6 +182,8 @@ Compilation is a one-time job, so terminate the instance when you are done to st
 
 ---
 
+## Part III. Automate compilation with CloudFormation
+
 ## 4. AWS CloudFormation Deployment
 
 Choosing **AWS CloudFormation** on the launch page gives you an automated, one-step deployment: an event-driven compilation pipeline that nobody has to operate by hand. When you upload a model and a configuration file to Amazon S3, an event starts a workflow that launches a compiler instance, runs the compilation, and then terminates the instance. All you have to do is download the result.
@@ -208,6 +224,8 @@ aws s3 ls "s3://${MODEL_BUCKET}/${MODEL_PREFIX}/"
 > The trigger function treats the `.onnx` and `.json` files in the same path as a pair. When you work with several models, use a separate prefix for each one so that configuration files for different models do not get mixed together.
 
 ---
+
+## Part IV. Configure and validate models
 
 ## 5. Compilation Configuration File (JSON)
 
@@ -284,9 +302,11 @@ Even if you do not have a model of your own, you can download pre-trained ONNX m
 
 ---
 
+## Part V. Operate and finish
+
 ## 7. Cost
 
-There is no software subscription charge for the DEEPX Compiler Solution. However, you incur charges for the following AWS resource usage.
+AWS resource charges apply separately. See the AWS Marketplace listing for current software pricing and subscription terms, in addition to the following AWS resource usage charges.
 
 - **Amazon EC2**: You are charged for the time the compiler instance runs. The CloudFormation pipeline runs the instance only during a compilation job and terminates it on both success and failure paths, so there is no idle cost. When you launch the instance yourself, you must terminate it yourself.
 - **Amazon EBS**: You are charged for the volumes attached to the instance.
@@ -325,7 +345,7 @@ To run a compiled `.dxnn` model on an edge device, the device must have the NPU 
 - [DEEPX Compiler Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)
 - [DEEPX Greengrass Solution — AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)
 - [DEEPX Model Zoo](https://developer.deepx.ai/modelzoo/)
-- [DEEPX Developer Documentation](https://developer.deepx.ai)
+- [DEEPX Technical Documentation](https://developer.deepx.ai/tech-docs)
 - [Amazon EC2 User Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html)
 - [AWS Systems Manager Session Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html)
 - [AWS Step Functions Developer Guide](https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html)

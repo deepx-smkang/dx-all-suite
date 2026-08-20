@@ -12,7 +12,7 @@ DX-Edge is the AWS-native path for taking a trained model to a DEEPX NPU running
 
 | Track | What it does | AWS delivery | Guide |
 | :--- | :--- | :--- | :--- |
-| **DEEPX Greengrass Solution** | Compiles ONNX models to DXNN in the cloud, then installs the NPU driver, firmware, `dx_rt`, and `dx_stream` on edge devices over the air (ZTP) via AWS IoT Greengrass V2 | CloudFormation stack on AWS Marketplace | [Guide](docs/source/01_DEEPX_Greengrass_Solution.md) · [한국어](docs/source/01_DEEPX_Greengrass_Solution_kor.md) |
+| **DEEPX Greengrass Solution** | Compiles ONNX models to `.dxnn` in the cloud, then installs the NPU driver, firmware, `dx_rt`, and `dx_stream` on edge devices over the air (ZTP) via AWS IoT Greengrass V2 | CloudFormation stack on AWS Marketplace | [Guide](docs/source/01_DEEPX_Greengrass_Solution.md) · [한국어](docs/source/01_DEEPX_Greengrass_Solution_kor.md) |
 | **DEEPX Compiler Solution** | Compiles ONNX models into the DEEPX NPU execution format (DXNN) on AWS — either interactively on an EC2 instance or through an event-driven S3 → Lambda → Step Functions pipeline | AMI on AWS Marketplace | [Guide](docs/source/02_DEEPX_Compiler_Solution.md) · [한국어](docs/source/02_DEEPX_Compiler_Solution_kor.md) |
 | **AWS HW Path — DX-AIPlayer N97** | A compact edge AI system (Intel® N97 + DEEPX DX-M1) running Ubuntu 24.04 LTS, set up as an AWS IoT Greengrass core device from unboxing to first component deployment | Hardware | [Getting Started Guide](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97.md) · [한국어](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97_kor.md) |
 
@@ -36,7 +36,7 @@ The Greengrass Solution includes the compilation pipeline, so it is the single-s
 - **[DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)** (CloudFormation) — compilation pipeline + automated edge runtime deployment
 - **[DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)** (AMI) — model compilation on its own, deployable as an Amazon EC2 instance or as an AWS CloudFormation stack
 
-Both are free of software charge; you pay only for the AWS resources you use.
+You pay for the AWS resources you use; see each AWS Marketplace listing for software pricing and subscription terms.
 
 ## AWS services used
 

@@ -88,7 +88,7 @@ Prepare the following before you begin.
 
 ### Subscribing in Marketplace and Preparing the Environment
 
-Subscribe to [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34) in AWS Marketplace. There is no software subscription charge; you pay only for the AWS resources used for compilation and deployment. If you want the model compilation capability without edge device runtime deployment, you can subscribe to [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution.md) instead.
+Subscribe to [DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34) in AWS Marketplace. AWS resource charges apply separately; see the AWS Marketplace listing for current software pricing and subscription terms. If you want the model compilation capability without edge device runtime deployment, you can subscribe to [DEEPX Compiler Solution](02_DEEPX_Compiler_Solution.md) instead.
 
 ![Figure 4. Subscription page for the DEEPX solution in AWS Marketplace](img/greengrass/fig04_marketplace_listing.png)
 
@@ -322,7 +322,7 @@ gst-launch-1.0 urisourcebin uri=file://$INPUT_VIDEO_PATH ! decodebin ! \
 
 ## Cost
 
-There is no software subscription charge for the DEEPX Greengrass Solution. However, you incur charges for the following AWS resource usage.
+AWS resource charges apply separately. See the AWS Marketplace listing for current software pricing and subscription terms, in addition to the following AWS resource usage charges.
 
 - **Amazon EC2**: The compiler instance runs only during a compilation job and is terminated on both success and failure paths, so you are charged only for compilation time.
 - **Amazon S3, AWS Lambda, AWS Step Functions, and Amazon CloudWatch Logs**: You incur charges for model file storage, event processing, workflow execution, and log retention.

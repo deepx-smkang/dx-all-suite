@@ -2,6 +2,16 @@
 
 이 가이드는 DEEPX DX-AIPlayer N97에서 AWS IoT Greengrass V2를 설정하고 디바이스가 AWS IoT 서비스와 통신하는지 확인하는 과정을, 개봉부터 첫 Greengrass 컴포넌트 배포까지 순서대로 설명합니다.
 
+## 빠른 시작 경로
+
+다음 다섯 단계로 진행하십시오.
+
+1. DX-AIPlayer N97과 하드웨어를 이해합니다.
+2. 디바이스, 네트워크, AWS 계정, Greengrass 사전 요구 사항을 준비합니다.
+3. AWS IoT Greengrass를 설치하고 등록합니다.
+4. Hello World 컴포넌트를 만들고 배포합니다.
+5. 설치 상태를 디버깅하거나 DX-Edge 런타임 배포로 진행합니다.
+
 ## 1. 문서 정보
 
 ### 1.1 문서 개정 이력
@@ -19,11 +29,13 @@
 | 디바이스 (DX-AIPlayer N97) | Ubuntu 24.04 LTS (64-bit, x86_64) |
 | 호스트 컴퓨터 | 웹 브라우저와 SSH 클라이언트를 사용할 수 있는 모든 OS (Windows 10/11, macOS, Linux) |
 
+## Part I. 디바이스 이해
+
 ## 2. 개요
 
-DX-AIPlayer N97은 Intel® Processor N97(x86_64)과 DEEPX DX-M1 AI 가속기(M.2 모듈)를 기반으로 하는 소형 팬리스급 엣지 AI 시스템으로, 가속기 전력 1–5 W에서 최대 25 TOPS의 AI 추론 성능을 제공합니다. 듀얼 GbE LAN, USB 3.2, 시리얼 포트, 온보드 스토리지를 갖추고 있어 로컬 AI 추론과 AWS IoT Greengrass를 통한 클라우드 연결이 함께 필요한 비전 AI, 스마트 팩토리, 리테일 분석 등 엣지 애플리케이션에 적합합니다.
+DX-AIPlayer N97은 Intel® Processor N97(x86_64)과 DEEPX DX-M1 AI 가속기(M.2 모듈)를 기반으로 하는 소형 팬리스 엣지 AI 시스템으로, 가속기 전력 1–5 W에서 최대 25 TOPS의 AI 추론 성능을 제공합니다. 듀얼 GbE LAN, USB 3.2, 시리얼 포트, 온보드 스토리지를 갖추고 있어 로컬 AI 추론과 AWS IoT Greengrass를 통한 클라우드 연결이 함께 필요한 비전 AI, 스마트 팩토리, 리테일 분석 등 엣지 애플리케이션에 적합합니다.
 
-DX-AIPlayer N97은 Ubuntu 24.04 LTS에서 AWS IoT Greengrass Core 소프트웨어(클래식 nucleus)를 실행하며, Greengrass 컴포넌트의 로컬 실행, 메시징, 데이터 관리, AWS 클라우드와의 보안 통신을 지원합니다.
+DX-AIPlayer N97은 Ubuntu 24.04 LTS에서 AWS IoT Greengrass Core 소프트웨어(클래식 nucleus)를 실행하며, Greengrass 컴포넌트 로컬 실행, 메시징, 데이터 관리, AWS 클라우드와의 보안 통신을 지원합니다.
 
 ## 3. 하드웨어 설명
 
@@ -65,14 +77,16 @@ DX-AIPlayer N97은 Ubuntu 24.04 LTS에서 AWS IoT Greengrass Core 소프트웨�
 
 없음.
 
-## 4. 개발 환경 설정
+## Part II. 환경 준비
+
+## 4. 개발 환경
 
 ### 4.1 도구 설치 (IDE, 툴체인, SDK)
 
 DX-AIPlayer N97에서 AWS IoT Greengrass를 실행하는 데 디바이스 전용 IDE나 툴체인은 필요하지 않습니다. 다음 항목이 필요합니다.
 
 - 명령줄로 설정하려면 디바이스 또는 호스트에 AWS Command Line Interface(AWS CLI)를 설치합니다. [AWS CLI 설치](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)를 참고합니다.
-- (선택) DX-M1 가속기를 사용하는 AI 가속 Greengrass 컴포넌트를 개발하려면 DEEPX DXNN® SDK를 설치합니다. [DEEPX 개발자 포털](https://developer.deepx.ai)을 참고합니다.
+- (선택) DX-M1 가속기를 사용하는 AI 가속 Greengrass 컴포넌트를 개발하려면 DEEPX DXNN® SDK를 설치합니다. [DEEPX 기술 문서](https://developer.deepx.ai/tech-docs)을 참고합니다.
 
 ## 5. 디바이스 하드웨어 설정
 
@@ -110,7 +124,7 @@ sudo apt install -y default-jre curl unzip
 java -version
 ```
 
-## 6. AWS IoT Greengrass 소개
+## 6. AWS IoT Greengrass 개요
 
 AWS IoT Greengrass에 대한 자세한 내용은 [AWS IoT Greengrass 작동 방식](https://docs.aws.amazon.com/greengrass/v2/developerguide/how-it-works.html)과 [AWS IoT Greengrass 버전 2의 새로운 기능](https://docs.aws.amazon.com/greengrass/v2/developerguide/greengrass-v2-whats-new.html)을 참고합니다.
 
@@ -120,6 +134,8 @@ AWS IoT Greengrass에 필요한 사전 요구 사항은 온라인 문서에서 �
 
 - [1단계: AWS 계정 설정](https://docs.aws.amazon.com/greengrass/v2/developerguide/getting-started-set-up-aws-account.html)
 - [2단계: 환경 설정](https://docs.aws.amazon.com/greengrass/v2/developerguide/getting-started-prerequisites.html)
+
+## Part III. Greengrass 설치 및 등록
 
 ## 8. AWS IoT Greengrass 설치
 
@@ -131,6 +147,12 @@ AWS IoT Greengrass에 필요한 사전 요구 사항은 온라인 문서에서 �
 export AWS_ACCESS_KEY_ID=<the access key id for your user>
 export AWS_SECRET_ACCESS_KEY=<the secret access key for your user>
 ```
+
+> **보안 참고**
+>
+> 장기 IAM 사용자 자격 증명은 개발 및 테스트 환경에서만 사용하십시오.
+> 운영 환경에서는 IAM 역할 또는 임시 자격 증명을 사용하고, 조직의 자격 증명
+> 관리 정책을 따르십시오.
 
 2. AWS IoT Greengrass Core 소프트웨어를 내려받습니다.
 
@@ -164,7 +186,9 @@ sudo systemctl status greengrass.service
 
 AWS IoT 콘솔의 **Greengrass devices > Core devices**에서 디바이스 상태가 **Healthy**인지도 확인할 수 있습니다.
 
-## 9. "Hello World" 컴포넌트 만들기
+## Part IV. 첫 번째 컴포넌트 배포
+
+## 9. "Hello World" 컴포넌트
 
 ### 9.1 엣지 디바이스에서 컴포넌트 만들기
 
@@ -181,6 +205,8 @@ sudo tail -f /greengrass/v2/logs/com.example.HelloWorld.log
 ### 9.3 컴포넌트 배포
 
 온라인 문서 [컴포넌트 배포](https://docs.aws.amazon.com/greengrass/v2/developerguide/getting-started.html#deploy-first-component)의 지침에 따라 AWS IoT 콘솔에서 컴포넌트를 배포하고 디바이스에서 정상 실행되는지 확인합니다.
+
+## Part V. 운영 및 문제 해결
 
 ## 10. 디버깅
 

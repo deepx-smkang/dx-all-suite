@@ -2,7 +2,7 @@
 
 **Powered by AWS · Available on AWS Marketplace**
 
-DX-Edge는 학습된 모델을 현장의 DEEPX NPU에서 실행하기까지의 과정을 AWS 위에서 완결하는 경로입니다. 학습된 ONNX 모델과 실제 엣지 배포 사이에 놓인 세 가지 — NPU용 모델 컴파일, 디바이스 런타임 프로비저닝, 그리고 이를 실행할 검증된 하드웨어 — 를 이미 운영 중인 AWS 서비스로 해결합니다.
+DX-Edge는 학습된 모델을 현장의 DEEPX NPU에서 실행하기까지의 과정을 AWS 기반으로 완성하는 경로입니다. 학습된 ONNX 모델과 실제 엣지 배포 사이에 놓인 세 가지 — NPU용 모델 컴파일, 디바이스 런타임 프로비저닝, 그리고 이를 실행할 검증된 하드웨어 — 를 이미 운영 중인 AWS 서비스로 해결합니다.
 
 For the English edition, see [README.md](README.md).
 
@@ -12,7 +12,7 @@ For the English edition, see [README.md](README.md).
 
 | 트랙 | 역할 | AWS 제공 형태 | 문서 |
 | :--- | :--- | :--- | :--- |
-| **DEEPX Greengrass Solution** | 클라우드에서 ONNX 모델을 DXNN으로 컴파일하고, AWS IoT Greengrass V2를 통해 NPU 드라이버·펌웨어·`dx_rt`·`dx_stream`을 엣지 디바이스에 OTA로 설치(ZTP) | AWS Marketplace CloudFormation 스택 | [문서](docs/source/01_DEEPX_Greengrass_Solution_kor.md) · [English](docs/source/01_DEEPX_Greengrass_Solution.md) |
+| **DEEPX Greengrass Solution** | 클라우드에서 ONNX 모델을 `.dxnn`으로 컴파일하고, AWS IoT Greengrass V2를 통해 NPU 드라이버·펌웨어·`dx_rt`·`dx_stream`을 엣지 디바이스에 OTA로 설치(ZTP) | AWS Marketplace CloudFormation 스택 | [문서](docs/source/01_DEEPX_Greengrass_Solution_kor.md) · [English](docs/source/01_DEEPX_Greengrass_Solution.md) |
 | **DEEPX Compiler Solution** | ONNX 모델을 DEEPX NPU 실행 형식(DXNN)으로 AWS에서 컴파일. EC2 인스턴스에서 대화형으로 실행하거나, S3 → Lambda → Step Functions 이벤트 기반 파이프라인으로 자동 실행 | AWS Marketplace AMI | [문서](docs/source/02_DEEPX_Compiler_Solution_kor.md) · [English](docs/source/02_DEEPX_Compiler_Solution.md) |
 | **AWS HW Path — DX-AIPlayer N97** | Intel® N97과 DEEPX DX-M1을 탑재하고 Ubuntu 24.04 LTS로 동작하는 소형 엣지 AI 시스템. 개봉부터 첫 컴포넌트 배포까지 AWS IoT Greengrass 코어 디바이스로 구성 | 하드웨어 | [시작 가이드](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97_kor.md) · [English](docs/source/03_Getting_Started_Guide_for_AWS_IoT_Greengrass_DX-AIPlayer-N97.md) |
 
@@ -36,7 +36,7 @@ Greengrass Solution은 컴파일 파이프라인을 포함하므로 단일 스�
 - **[DEEPX Greengrass Solution](https://aws.amazon.com/marketplace/pp/prodview-732s46qfzuh34)** (CloudFormation) — 컴파일 파이프라인 + 엣지 런타임 자동 배포
 - **[DEEPX Compiler Solution](https://aws.amazon.com/marketplace/pp/prodview-ev6ed5omu4ulo)** (AMI) — 모델 컴파일 단독 사용. Amazon EC2 인스턴스 또는 AWS CloudFormation 스택으로 배포
 
-두 제품 모두 소프트웨어 구독 비용은 없으며, 사용한 AWS 리소스 비용만 발생합니다.
+AWS 리소스 사용 비용이 별도로 발생하며, 소프트웨어 요금과 구독 조건은 각 Marketplace 리스팅을 확인하십시오.
 
 ## 사용하는 AWS 서비스
 

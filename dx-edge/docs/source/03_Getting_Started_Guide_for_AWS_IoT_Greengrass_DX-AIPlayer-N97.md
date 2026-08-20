@@ -2,6 +2,16 @@
 
 This guide walks you through setting up AWS IoT Greengrass V2 on the DEEPX DX-AIPlayer N97 and verifying that the device communicates with AWS IoT services, from unboxing to deploying your first Greengrass component.
 
+## Quick Start Path
+
+Follow these five phases in order:
+
+1. Understand the DX-AIPlayer N97 and its hardware.
+2. Prepare the device, network, AWS account, and Greengrass prerequisites.
+3. Install and register AWS IoT Greengrass.
+4. Create and deploy a Hello World component.
+5. Debug the setup or continue with DX-Edge runtime deployment.
+
 ## 1. Document information
 
 ### 1.1 Document revision history
@@ -18,6 +28,8 @@ This guide applies to the DX-AIPlayer N97 system with an Intel® Processor N97 (
 |---|---|
 | Device (DX-AIPlayer N97) | Ubuntu 24.04 LTS (64-bit, x86_64) |
 | Host computer | Any OS with a web browser and an SSH client (Windows 10/11, macOS, or Linux) |
+
+## Part I. Understand the device
 
 ## 2. Overview
 
@@ -55,26 +67,28 @@ Key specifications:
 - 1x DX-AIPlayer N97 unit (with DEEPX DX-M1 M.2 module pre-installed)
 - 1x Power adapter (12V DC, 5A, threaded locking barrel jack)
 
-### 3.3 User provided items
+### 3.3 User-provided items
 
 - Ethernet cable for internet connectivity (or an optional M.2 2230 E-Key Wi-Fi module)
 - USB keyboard/mouse and a monitor with HDMI or DisplayPort input for initial setup (or use SSH over the network)
 - A host computer for remote access (optional after initial setup)
 
-### 3.4 3rd party purchasable items
+### 3.4 Third-party purchasable items
 
 None.
 
-## 4. Set up your development environment
+## Part II. Prepare the environment
+
+## 4. Development environment
 
 ### 4.1 Tools installation (IDEs, Toolchains, SDKs)
 
 No device-specific IDE or toolchain is required to run AWS IoT Greengrass on the DX-AIPlayer N97. You will need:
 
 - The AWS Command Line Interface (AWS CLI) on the device or host, if you prefer command-line setup. See [Installing the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
-- (Optional) To develop AI-accelerated Greengrass components using the DX-M1 accelerator, install the DEEPX DXNN® SDK. See the [DEEPX Developer Portal](https://developer.deepx.ai).
+- (Optional) To develop AI-accelerated Greengrass components using the DX-M1 accelerator, install the DEEPX DXNN® SDK. See the [DEEPX Technical Documentation](https://developer.deepx.ai/tech-docs).
 
-## 5. Set up device hardware
+## 5. Device hardware setup
 
 The DX-AIPlayer N97 exposes its I/O on three faces. All ports are labeled on the chassis.
 
@@ -110,7 +124,7 @@ sudo apt install -y default-jre curl unzip
 java -version
 ```
 
-## 6. About AWS IoT Greengrass
+## 6. AWS IoT Greengrass overview
 
 To learn more about AWS IoT Greengrass, see [How AWS IoT Greengrass works](https://docs.aws.amazon.com/greengrass/v2/developerguide/how-it-works.html) and [What's new in AWS IoT Greengrass Version 2](https://docs.aws.amazon.com/greengrass/v2/developerguide/greengrass-v2-whats-new.html).
 
@@ -121,7 +135,9 @@ Refer to the online documentation detailing the prerequisites needed for AWS IoT
 - [Step 1: Set up an AWS account](https://docs.aws.amazon.com/greengrass/v2/developerguide/getting-started-set-up-aws-account.html)
 - [Step 2: Set up your environment](https://docs.aws.amazon.com/greengrass/v2/developerguide/getting-started-prerequisites.html)
 
-## 8. Install AWS IoT Greengrass
+## Part III. Install and register Greengrass
+
+## 8. AWS IoT Greengrass installation
 
 Follow the online guide to [Install the AWS IoT Greengrass Core software with automatic provisioning](https://docs.aws.amazon.com/greengrass/v2/developerguide/quick-installation.html). The steps below summarize the process on the DX-AIPlayer N97.
 
@@ -131,6 +147,12 @@ Follow the online guide to [Install the AWS IoT Greengrass Core software with au
 export AWS_ACCESS_KEY_ID=<the access key id for your user>
 export AWS_SECRET_ACCESS_KEY=<the secret access key for your user>
 ```
+
+> **Security note**
+>
+> Use long-term IAM user credentials only for development and testing. For
+> production environments, use an IAM role or temporary credentials instead,
+> and follow your organization's credential management policy.
 
 2. Download the AWS IoT Greengrass Core software:
 
@@ -164,7 +186,9 @@ sudo systemctl status greengrass.service
 
 You can also verify in the AWS IoT console under **Greengrass devices > Core devices** that the device status is **Healthy**.
 
-## 9. Create a "Hello World" component
+## Part IV. Deploy the first component
+
+## 9. "Hello World" component
 
 ### 9.1 Create the component on your edge device
 
@@ -181,6 +205,8 @@ Follow the instructions online at [Create your component in the AWS IoT Greengra
 ### 9.3 Deploy your component
 
 Follow the instructions online at [Deploy your component](https://docs.aws.amazon.com/greengrass/v2/developerguide/getting-started.html#deploy-first-component) to deploy the component from the AWS IoT console and verify that it is running on the device.
+
+## Part V. Operate and troubleshoot
 
 ## 10. Debugging
 
