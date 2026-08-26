@@ -449,7 +449,7 @@ check_nvidia_container_runtime() {
         print_colored_v2 "WARNING" "'nvidia-smi' not found. NVIDIA driver may not be installed."
         return 1
     fi
-    if ! docker info 2>/dev/null | grep -q "Runtimes:.*nvidia"; then
+    if ! docker info --format '{{range $k, $_ := .Runtimes}}{{$k}} {{end}}' 2>/dev/null | grep -qw "nvidia"; then
         print_colored_v2 "WARNING" "Docker 'nvidia' runtime not registered."
         echo -e "${TAG_HINT} Install nvidia-container-toolkit and run:"
         echo -e "${TAG_HINT}   sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker"

@@ -541,7 +541,7 @@ main() {
         if [ "${TARGET_ENV}" != "dx-runtime" ]; then
             show_help "error" "--intel_gpu_hw_acc applies to dx-runtime only (VA-API media acceleration for dx_stream)."
         fi
-        if [ ! -e /dev/dri/renderD128 ] && ! ls /dev/dri/renderD* >/dev/null 2>&1; then
+        if ! ls /dev/dri/renderD* >/dev/null 2>&1; then
             show_help "error" "No GPU render node (/dev/dri/renderD*) found on the host. Intel GPU driver (i915/xe) may not be loaded."
         fi
         export IMAGE_TAG_SUFFIX="vaapi-${BASE_IMAGE_NAME}-${OS_VERSION}"
